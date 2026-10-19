@@ -1,5 +1,6 @@
 using System.Globalization;
 using ElevatorSystem.Application;
+using ElevatorSystem.Application.Occupancy;
 using ElevatorSystem.Application.Simulation;
 using ElevatorSystem.Domain;
 using ElevatorSystem.Domain.Events;
@@ -11,6 +12,8 @@ internal sealed class ScriptedTour(
     ElevatorController controller,
     SimulatedElevatorDrive drive,
     ConsoleEventSink events,
+    OccupancyTracker tracker,
+    ConsoleOccupancyView people,
     ConsoleOutput output,
     ElevatorControllerOptions options)
 {
@@ -22,6 +25,9 @@ internal sealed class ScriptedTour(
         output.Narrate(string.Create(
             CultureInfo.InvariantCulture,
             $"Travel {options.TravelTimePerFloor.TotalSeconds:0.0} s per floor, doors open {options.DoorOpenDuration.TotalSeconds:0.0} s, watchdog after {options.StuckTimeout.TotalSeconds:0.0} s."));
+        output.Narrate(string.Create(
+            CultureInfo.InvariantCulture,
+            $"People are counted from their calls: each hall call is one person waiting, and the car carries {tracker.Current.CarCapacity} (the 'people' lines)."));
 
         output.Heading("1. A passenger on floor 7 calls the elevator to go down");
         var pickedUp = Served(new HallCall(new Floor(7), Direction.Down), cancellationToken);
@@ -65,6 +71,10 @@ internal sealed class ScriptedTour(
         output.Narrate("No arrival within the watchdog limit, so the car was taken out of service. An operator returns it:");
         controller.ReturnToService();
 
+        output.Heading("Where everyone is now");
+        output.Narrate("Riders were evacuated when the car stopped; people whose calls were cancelled are still waiting.");
+        people.PrintTable(tracker.Current);
+
         output.Heading("Tour complete");
         output.Narrate("Run with --interactive to drive the elevator yourself.");
     }
@@ -72,6 +82,7 @@ internal sealed class ScriptedTour(
     private async Task RunBurstAsync(CancellationToken cancellationToken)
     {
         events.QuietRequests = true;
+        people.Quiet = true;
         var assigned = events.ExpectAssignments(BurstSize, cancellationToken);
         var gate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var requests = Enumerable.Range(0, BurstSize)
@@ -90,6 +101,7 @@ internal sealed class ScriptedTour(
         var results = await Task.WhenAll(requests);
         await assigned;
         events.QuietRequests = false;
+        people.Quiet = false;
 
         var snapshot = controller.Elevator.Snapshot();
         output.Result(string.Create(
@@ -98,6 +110,7 @@ internal sealed class ScriptedTour(
         output.Result(string.Create(
             CultureInfo.InvariantCulture,
             $"Slowest assignment: {events.SlowestAssignment.TotalMilliseconds:0.000} ms (budget: 100 ms)."));
+        output.Result($"Every hall call is a person: {ConsoleOccupancyView.Summary(tracker.Current)}.");
     }
 
     private Task Served(ElevatorCall call, CancellationToken cancellationToken) =>
