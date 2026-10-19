@@ -14,4 +14,8 @@ namespace ElevatorSystem.Contracts;
 [JsonSerializable(typeof(ElevatorConfigurationDto))]
 [JsonSerializable(typeof(ElevatorStatusDto))]
 [JsonSerializable(typeof(ElevatorActivityDto))]
+[JsonSerializable(typeof(ElevatorCommandV1))]
+[JsonSerializable(typeof(ElevatorUpdateV1))]
+[JsonSerializable(typeof(OccupancyUpdateV1))]
+[JsonSerializable(typeof(BuildingOccupancyDto))]
 public sealed partial class ContractsJsonContext : JsonSerializerContext;
