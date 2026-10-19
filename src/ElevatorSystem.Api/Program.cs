@@ -4,6 +4,7 @@ using ElevatorSystem.Api.Components;
 using ElevatorSystem.Api.Endpoints;
 using ElevatorSystem.Api.Hosting;
 using ElevatorSystem.Api.RealTime;
+using ElevatorSystem.Api.Security;
 using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -13,6 +14,7 @@ builder.WebHost.ConfigureKestrel(options => options.AddServerHeader = false);
 
 builder.AddElevator();
 builder.AddElevatorRealTime();
+builder.AddApiRateLimiting();
 
 builder.Services.ConfigureHttpJsonOptions(options =>
 {
@@ -34,6 +36,9 @@ builder.Services.AddRazorComponents()
 
 var app = builder.Build();
 
+// First, so every response carries the headers, whichever middleware produces it.
+app.UseSecurityHeaders(app.Environment.IsDevelopment());
+
 if (app.Environment.IsDevelopment())
 {
     app.UseWebAssemblyDebugging();
@@ -45,6 +50,7 @@ else
 
 app.UseErrorHandling();
 app.UseHttpsRedirection();
+app.UseRateLimiter();
 app.UseAntiforgery();
 
 app.MapStaticAssets();

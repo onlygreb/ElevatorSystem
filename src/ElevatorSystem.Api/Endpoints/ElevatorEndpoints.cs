@@ -1,3 +1,4 @@
+using ElevatorSystem.Api.Security;
 using ElevatorSystem.Application;
 using ElevatorSystem.Contracts;
 using Microsoft.AspNetCore.Http.HttpResults;
@@ -28,6 +29,7 @@ internal static class ElevatorEndpoints
             .WithName(nameof(RequestElevator))
             .WithSummary("Call the elevator to a floor")
             .WithDescription("A passenger on a landing presses the up or down button. The call is queued in arrival order (FIFO); its progress is reported on the hub.")
+            .RequireRateLimiting(RateLimiting.PassengerPolicy)
             .WithRequestSizeLimit()
             .ProducesRefusals();
 
@@ -35,16 +37,21 @@ internal static class ElevatorEndpoints
             .WithName(nameof(RequestDestination))
             .WithSummary("Choose a destination floor")
             .WithDescription("A passenger inside the car presses a floor button. The call is queued in arrival order (FIFO); its progress is reported on the hub.")
+            .RequireRateLimiting(RateLimiting.PassengerPolicy)
             .WithRequestSizeLimit()
             .ProducesRefusals();
 
         elevator.MapGet(ApiRoutes.Elevator, GetStatus)
             .WithName(nameof(GetStatus))
-            .WithSummary("Get the elevator's current status");
+            .WithSummary("Get the elevator's current status")
+            .RequireRateLimiting(RateLimiting.ReadPolicy)
+            .ProducesProblem(StatusCodes.Status429TooManyRequests);
 
         elevator.MapGet(ApiRoutes.Configuration, GetConfiguration)
             .WithName(nameof(GetConfiguration))
-            .WithSummary("Get the building and timing settings");
+            .WithSummary("Get the building and timing settings")
+            .RequireRateLimiting(RateLimiting.ReadPolicy)
+            .ProducesProblem(StatusCodes.Status429TooManyRequests);
 
         return endpoints;
     }
@@ -113,5 +120,6 @@ internal static class ElevatorEndpoints
         .ProducesProblem(StatusCodes.Status400BadRequest)
         .ProducesProblem(StatusCodes.Status409Conflict)
         .ProducesProblem(StatusCodes.Status413PayloadTooLarge)
+        .ProducesProblem(StatusCodes.Status429TooManyRequests)
         .ProducesProblem(StatusCodes.Status503ServiceUnavailable);
 }
