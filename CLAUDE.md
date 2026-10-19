@@ -75,8 +75,8 @@ Load the matching skill before working in an area:
 ## Delivery phases
 
 0. Foundation: solution, build policies, CI/CD, ADRs ✅
-1. Domain, `ElevatorController`, console demo, domain test suite
+1. Domain, `ElevatorController` with trip watchdog, console demo, domain and controller test suites ✅
 2. REST API, SignalR, Blazor passenger view (in-memory bus)
-3. RabbitMQ, PostgreSQL, persistence and recovery, watchdog, failover
+3. RabbitMQ, PostgreSQL, persistence and recovery, failover
 4. Authentication, roles, admin panel, tamper-evident audit log
 5. LGPD features and documents, observability, load, end-to-end and mutation testing
