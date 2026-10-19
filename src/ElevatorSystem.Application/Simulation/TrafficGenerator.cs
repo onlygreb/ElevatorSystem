@@ -353,7 +353,7 @@ public sealed class TrafficGenerator : IElevatorEventSink, IDisposable
             return;
         }
 
-        if (request.Call is CarCall)
+        if (request.Call is not HallCall call)
         {
             person.CarPress = null;
             person.DestinationAcknowledged = person.Riding;
@@ -361,36 +361,33 @@ public sealed class TrafficGenerator : IElevatorEventSink, IDisposable
         }
 
         person.HallPress = null;
-        if (person.Riding)
-        {
-            return;
-        }
-
         if (_outOfService)
         {
             // A press overtaken by a safety command: its call was cancelled with the others, and the
             // tracker counted it from the cancelled calls as one more person, left behind.
-            if (!person.Counted)
+            if (Newcomer(person, call.Floor) is { } newcomer)
             {
-                Count(person);
+                Count(newcomer);
             }
 
             return;
         }
 
-        if (person.Counted)
+        // The tracker only knows floors: a call is a left-behind person's if anyone there was left
+        // behind (the presser first), otherwise it is one more person on that floor.
+        var caller = IsLeftBehind(person) ? person : LeftBehindAt(call.Floor);
+        if (caller is null)
         {
-            person.CallDirection = person.Direction;
+            caller = Newcomer(person, call.Floor);
+            if (caller is not null)
+            {
+                Count(caller);
+            }
         }
-        else if (LeftBehindAt(person.Origin) is { } leftBehind)
+
+        if (caller is not null)
         {
-            // Counted as the call of someone left behind; this person will press again.
-            leftBehind.CallDirection = person.Direction;
-        }
-        else
-        {
-            Count(person);
-            person.CallDirection = person.Direction;
+            caller.CallDirection = call.Direction;
         }
     }
 
@@ -420,12 +417,16 @@ public sealed class TrafficGenerator : IElevatorEventSink, IDisposable
     {
         if (_presses.Remove(served.FirstRequestId, out var person))
         {
-            // Served on the spot: the press was taken in and its call served at once. When a safety
-            // command overtook it, the tracker ignores it, so the person stays uncounted and presses again.
+            // Served on the spot: the press was taken in and its call served at once, so it is a
+            // left-behind person's (who stays behind) or one more person. When a safety command
+            // overtook it, the tracker ignores it, so the person stays uncounted and presses again.
             person.HallPress = null;
-            if (!person.Counted && !person.Riding && !_outOfService && LeftBehindAt(call.Floor) is null)
+            if (!_outOfService
+                && !IsLeftBehind(person)
+                && LeftBehindAt(call.Floor) is null
+                && Newcomer(person, call.Floor) is { } newcomer)
             {
-                Count(person);
+                Count(newcomer);
             }
         }
 
@@ -494,12 +495,8 @@ public sealed class TrafficGenerator : IElevatorEventSink, IDisposable
             .ToList();
         foreach (var person in boarding)
         {
-            if (person.HallPress is { } press)
-            {
-                _presses.Remove(press);
-                person.HallPress = null;
-            }
-
+            // A hall press still in flight stays mapped: the loop will count it as a call at this
+            // floor, and Acknowledged gives it to whoever the tracker will count it for.
             person.Riding = true;
             person.CallDirection = null;
             PressDestination(person);
@@ -542,8 +539,19 @@ public sealed class TrafficGenerator : IElevatorEventSink, IDisposable
         person.Order = ++_order;
     }
 
-    private Person? LeftBehindAt(Floor floor) =>
-        _people.Find(person => !person.Riding && person.Counted && person.CallDirection is null && person.Origin == floor);
+    private static bool IsLeftBehind(Person person) => person is { Riding: false, Counted: true, CallDirection: null };
+
+    private Person? LeftBehindAt(Floor floor) => _people.Find(person => IsLeftBehind(person) && person.Origin == floor);
+
+    /// <summary>
+    /// Who the tracker counts as one more person when <paramref name="presser"/>'s press at
+    /// <paramref name="floor"/> adds someone: the presser when not counted yet, otherwise another
+    /// simulated person on that floor not counted yet. Null only when calls come from elsewhere too.
+    /// </summary>
+    private Person? Newcomer(Person presser, Floor floor) =>
+        presser is { Counted: false, Riding: false }
+            ? presser
+            : _people.Find(person => !person.Counted && !person.Riding && person.Origin == floor);
 
     /// <summary>One simulated person. Anonymous: a floor, a destination and their progress, nothing else.</summary>
     private sealed class Person(Floor origin, Floor destination, Direction direction)

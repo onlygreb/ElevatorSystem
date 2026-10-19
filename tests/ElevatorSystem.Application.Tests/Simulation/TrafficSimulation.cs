@@ -16,13 +16,16 @@ namespace ElevatorSystem.Application.Tests.Simulation;
 /// </summary>
 internal sealed class TrafficSimulation : IAsyncDisposable
 {
+    private readonly LateBoundSink _lateBound;
+
     private TrafficSimulation(
         ControllerHarness harness,
         OccupancyTracker tracker,
         TrafficGenerator generator,
         OccupancyConsistencyCheck check,
         RecordingLogger<OccupancyTracker> trackerLog,
-        RecordingLogger<TrafficGenerator> generatorLog)
+        RecordingLogger<TrafficGenerator> generatorLog,
+        LateBoundSink lateBound)
     {
         Harness = harness;
         Tracker = tracker;
@@ -30,6 +33,7 @@ internal sealed class TrafficSimulation : IAsyncDisposable
         Check = check;
         TrackerLog = trackerLog;
         GeneratorLog = generatorLog;
+        _lateBound = lateBound;
     }
 
     public ControllerHarness Harness { get; }
@@ -48,14 +52,19 @@ internal sealed class TrafficSimulation : IAsyncDisposable
 
     public Elevator Elevator => Harness.Elevator;
 
-    /// <summary>Creates the simulation; the control loop runs only when <paramref name="startLoop"/> is set.</summary>
+    /// <summary>
+    /// Creates the simulation; the control loop runs only when <paramref name="startLoop"/> is set.
+    /// With <paramref name="swapAcknowledgements"/>, the tracker and the generator receive each pair of
+    /// consecutive acknowledgements swapped, an order a race between presses could produce.
+    /// </summary>
     public static TrafficSimulation Create(
         TrafficGeneratorOptions options,
         int capacity = 8,
         bool startLoop = true,
-        int intakeCapacity = 64)
+        int intakeCapacity = 64,
+        bool swapAcknowledgements = false)
     {
-        var lateBound = new LateBoundSink();
+        var lateBound = new LateBoundSink(swapAcknowledgements);
         var harness = ControllerHarness.Create(
             options: ControllerHarness.DefaultOptions with { IntakeCapacity = intakeCapacity },
             sink: probe => new CompositeElevatorEventSink([lateBound, probe], NullLogger<CompositeElevatorEventSink>.Instance));
@@ -68,7 +77,7 @@ internal sealed class TrafficSimulation : IAsyncDisposable
         var check = new OccupancyConsistencyCheck(tracker, generator, options.MaxActivePeople);
         lateBound.Target = new CompositeElevatorEventSink([tracker, generator, check], NullLogger<CompositeElevatorEventSink>.Instance);
 
-        var simulation = new TrafficSimulation(harness, tracker, generator, check, trackerLog, generatorLog);
+        var simulation = new TrafficSimulation(harness, tracker, generator, check, trackerLog, generatorLog, lateBound);
         if (startLoop)
         {
             harness.Start();
@@ -100,7 +109,7 @@ internal sealed class TrafficSimulation : IAsyncDisposable
         Harness.Time.Advance(ControllerHarness.Step);
 
         await Probe.WaitUntilAsync(
-            () => (!busy || Probe.Count > before) && Generator.Statistics.PressesInFlight == 0,
+            () => (!busy || Probe.Count > before) && Generator.Statistics.PressesInFlight <= _lateBound.Held,
             "the step to settle");
     }
 
@@ -139,17 +148,58 @@ internal sealed class TrafficSimulation : IAsyncDisposable
     /// serialises publishing, so a safety command published from the test thread never interleaves
     /// with the loop's events between the tracker, the generator and the check.
     /// </summary>
-    private sealed class LateBoundSink : IElevatorEventSink
+    private sealed class LateBoundSink(bool swapAcknowledgements) : IElevatorEventSink
     {
         private readonly Lock _gate = new();
+        private ElevatorEvent? _held;
 
         public CompositeElevatorEventSink? Target { get; set; }
+
+        /// <summary>Acknowledgements held back to be delivered after the next one (0 or 1).</summary>
+        public int Held
+        {
+            get
+            {
+                lock (_gate)
+                {
+                    return _held is null ? 0 : 1;
+                }
+            }
+        }
 
         public void Publish(ElevatorEvent elevatorEvent)
         {
             lock (_gate)
             {
-                Target?.Publish(elevatorEvent);
+                if (!swapAcknowledgements)
+                {
+                    Target?.Publish(elevatorEvent);
+                    return;
+                }
+
+                // Each pair of consecutive acknowledgements arrives swapped, as two presses racing for
+                // the intake could; anything else first delivers the one held back.
+                if (elevatorEvent is CallQueued or CallMerged)
+                {
+                    if (_held is null)
+                    {
+                        _held = elevatorEvent;
+                        return;
+                    }
+
+                    Target?.Publish(elevatorEvent);
+                }
+
+                if (_held is { } held)
+                {
+                    _held = null;
+                    Target?.Publish(held);
+                }
+
+                if (elevatorEvent is not (CallQueued or CallMerged))
+                {
+                    Target?.Publish(elevatorEvent);
+                }
             }
         }
     }
