@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- The RabbitMQ messaging adapter against a real broker in Testcontainers: delivery guarantees, failure paths, recovery. -->
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\ElevatorSystem.Infrastructure\ElevatorSystem.Infrastructure.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Testcontainers.RabbitMq" />
+    <PackageReference Include="Microsoft.Extensions.Diagnostics.Testing" />
+  </ItemGroup>
+</Project>
