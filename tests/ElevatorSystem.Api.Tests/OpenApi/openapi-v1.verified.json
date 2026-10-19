@@ -1,0 +1,466 @@
+{
+  "openapi": "3.1.1",
+  "info": {
+    "title": "ElevatorSystem.Api | v1",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/api/v1/hall-calls": {
+      "post": {
+        "tags": [
+          "Elevator"
+        ],
+        "summary": "Call the elevator to a floor",
+        "description": "A passenger on a landing presses the up or down button. The call is queued in arrival order (FIFO); its progress is reported on the hub.",
+        "operationId": "RequestElevator",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HallCallRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "description": "Accepted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RequestAcceptedResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Payload Too Large",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/car-calls": {
+      "post": {
+        "tags": [
+          "Elevator"
+        ],
+        "summary": "Choose a destination floor",
+        "description": "A passenger inside the car presses a floor button. The call is queued in arrival order (FIFO); its progress is reported on the hub.",
+        "operationId": "RequestDestination",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CarCallRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "description": "Accepted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RequestAcceptedResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Payload Too Large",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/elevator": {
+      "get": {
+        "tags": [
+          "Elevator"
+        ],
+        "summary": "Get the elevator's current status",
+        "operationId": "GetStatus",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ElevatorStatusDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/elevator/configuration": {
+      "get": {
+        "tags": [
+          "Elevator"
+        ],
+        "summary": "Get the building and timing settings",
+        "operationId": "GetConfiguration",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ElevatorConfigurationDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "CallDirection": {
+        "enum": [
+          "Up",
+          "Down"
+        ]
+      },
+      "CallDto": {
+        "required": [
+          "kind",
+          "floor",
+          "direction"
+        ],
+        "type": "object",
+        "properties": {
+          "kind": {
+            "$ref": "#/components/schemas/CallKind"
+          },
+          "floor": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "direction": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/CallDirection"
+              }
+            ]
+          }
+        },
+        "description": "A call: a hall call has a CallDirection? CallDto.Direction, a car call does not."
+      },
+      "CallKind": {
+        "enum": [
+          "Hall",
+          "Car"
+        ]
+      },
+      "CarCallRequest": {
+        "required": [
+          "floor"
+        ],
+        "type": "object",
+        "properties": {
+          "floor": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "description": "Body of `POST /api/v1/car-calls`: a passenger inside the car chose int CarCallRequest.Floor."
+      },
+      "ElevatorConfigurationDto": {
+        "required": [
+          "lowestFloor",
+          "highestFloor",
+          "travelTimePerFloor",
+          "doorOpenDuration",
+          "schedulingStrategy"
+        ],
+        "type": "object",
+        "properties": {
+          "lowestFloor": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "highestFloor": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "travelTimePerFloor": {
+            "pattern": "^-?(\\d+\\.)?\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,7})?$",
+            "type": "string"
+          },
+          "doorOpenDuration": {
+            "pattern": "^-?(\\d+\\.)?\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,7})?$",
+            "type": "string"
+          },
+          "schedulingStrategy": {
+            "type": "string"
+          }
+        },
+        "description": "Building and timing settings, so a client can draw the shaft and animate at the right speed."
+      },
+      "ElevatorStatus": {
+        "enum": [
+          "Idle",
+          "MovingUp",
+          "MovingDown",
+          "DoorOpen",
+          "OutOfService"
+        ]
+      },
+      "ElevatorStatusDto": {
+        "required": [
+          "currentFloor",
+          "status",
+          "travelDirection",
+          "outOfServiceCause",
+          "pendingCalls",
+          "targetFloors",
+          "version",
+          "takenAt"
+        ],
+        "type": "object",
+        "properties": {
+          "currentFloor": {
+            "type": "integer",
+            "description": "The floor the car is at, or travelling to while moving.",
+            "format": "int32"
+          },
+          "status": {
+            "description": "What the car is doing.",
+            "$ref": "#/components/schemas/ElevatorStatus"
+          },
+          "travelDirection": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "description": "Direction of the current or most recent trip; null before the first one.",
+                "$ref": "#/components/schemas/CallDirection"
+              }
+            ]
+          },
+          "outOfServiceCause": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "description": "Why the car is out of service, when it is.",
+                "$ref": "#/components/schemas/OutOfServiceCause"
+              }
+            ]
+          },
+          "pendingCalls": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PendingCallDto"
+            },
+            "description": "Calls still to be served, oldest first."
+          },
+          "targetFloors": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int32"
+            },
+            "description": "Floors still to visit, in the order they were first requested."
+          },
+          "version": {
+            "type": "integer",
+            "description": "Increases with every change; ignore a status older than the one shown.",
+            "format": "int64"
+          },
+          "takenAt": {
+            "type": "string",
+            "description": "When the status was taken.",
+            "format": "date-time"
+          }
+        },
+        "description": "A consistent view of the elevator at one moment. Higher long ElevatorStatusDto.Version is newer."
+      },
+      "HallCallRequest": {
+        "required": [
+          "floor",
+          "direction"
+        ],
+        "type": "object",
+        "properties": {
+          "floor": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "direction": {
+            "$ref": "#/components/schemas/CallDirection"
+          }
+        },
+        "description": "Body of `POST /api/v1/hall-calls`: someone on int HallCallRequest.Floor wants to go CallDirection HallCallRequest.Direction."
+      },
+      "OutOfServiceCause": {
+        "enum": [
+          "Maintenance",
+          "Fault",
+          "EmergencyStop",
+          null
+        ]
+      },
+      "PendingCallDto": {
+        "required": [
+          "call",
+          "requestCount",
+          "firstRequestedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "call": {
+            "$ref": "#/components/schemas/CallDto"
+          },
+          "requestCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "firstRequestedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "description": "A call waiting to be served and how many requests were merged into it."
+      },
+      "ProblemDetails": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "title": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "status": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "detail": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "instance": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "RequestAcceptedResponse": {
+        "required": [
+          "requestId"
+        ],
+        "type": "object",
+        "properties": {
+          "requestId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "description": "The request was accepted; its progress is reported through the hub's activity feed."
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "Elevator"
+    }
+  ]
+}

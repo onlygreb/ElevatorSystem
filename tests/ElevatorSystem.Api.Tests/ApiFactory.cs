@@ -24,6 +24,8 @@ public sealed class ApiFactory : WebApplicationFactory<Program>
     {
         ["Elevator:TravelTimePerFloor"] = TravelTime.ToString("c"),
         ["Elevator:DoorOpenDuration"] = DoorTime.ToString("c"),
+        // Generous, so a test host starved of CPU by its neighbours is never mistaken for a stuck car.
+        ["Elevator:StuckTolerance"] = "100",
     };
 
     private readonly List<Action<IServiceCollection>> _services = [];
