@@ -17,6 +17,7 @@ public abstract class WebTestContext : BunitContext
         Services.AddSingleton(Store);
         Services.AddSingleton<IElevatorApiClient>(Api);
         Services.AddSingleton<IElevatorHubClient>(Hub);
+        Services.AddSingleton<CulturePreference>();
     }
 
     internal ElevatorStateStore Store { get; } = new();

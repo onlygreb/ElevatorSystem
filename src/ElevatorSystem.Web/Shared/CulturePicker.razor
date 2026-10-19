@@ -1,0 +1,34 @@
+@* English or Portuguese. Each option is named in its own language, so anyone can find theirs. *@
+@inject CulturePreference Preference
+@inject NavigationManager Navigation
+@inject IStringLocalizer<SharedResource> L
+
+<div class="culture-picker" role="group" aria-label="@L[Text.LanguageLabel]">
+    @foreach (var culture in CulturePreference.Supported)
+    {
+        var option = culture;
+        var selected = option.Name == CultureInfo.CurrentUICulture.Name;
+        <button type="button"
+                class="culture-picker__option"
+                lang="@option.Name"
+                aria-pressed="@(selected ? "true" : "false")"
+                data-culture="@option.Name"
+                @onclick="() => ChooseAsync(option)">
+            @L[option == CulturePreference.Portuguese ? Text.LanguagePortuguese : Text.LanguageEnglish]
+        </button>
+    }
+</div>
+
+@code {
+    private async Task ChooseAsync(CultureInfo culture)
+    {
+        if (culture.Name == CultureInfo.CurrentUICulture.Name)
+        {
+            return;
+        }
+
+        await Preference.SaveAsync(culture);
+        // Reload so every component, resource and number format starts over in the new culture.
+        Navigation.NavigateTo(Navigation.Uri, forceLoad: true);
+    }
+}
