@@ -50,7 +50,7 @@ ElevatorSystem controls an elevator serving floors 1 to 10 and gives passengers 
 | **Real-time simulation** | Car movement and doors run in real time; every change streams live to connected browsers. |
 | **Concurrency** | 100+ simultaneous requests handled safely; target time from request to assignment under 100 ms. |
 | **Fail-safe operation** | Stuck-car detection, out-of-service mode, emergency stop, recovery after restart, and a guarantee that only one controller drives the car. |
-| **Operations panel** | Live metrics, maintenance mode, emergency stop, strategy switch, tamper-evident audit log, user and role management. |
+| **Admin view** | People in the elevator, waiting and present on each floor, live status and activity; maintenance, emergency stop and return to service. Admins manage the service, they never operate the car. |
 | **Privacy** | Passengers are anonymous by design; staff data follows LGPD purpose, retention and data-subject-rights rules. |
 | **Languages** | English and Brazilian Portuguese. |
 
@@ -82,7 +82,7 @@ them, so each side can fail and restart without losing accepted work.
 ```mermaid
 flowchart LR
     subgraph Browser
-        UI["Blazor WebAssembly<br/>passenger view · operations panel"]
+        UI["Blazor WebAssembly<br/>passenger view · admin view"]
     end
 
     subgraph API["ElevatorSystem.Api"]
@@ -316,8 +316,8 @@ gh attestation verify oci://ghcr.io/onlygreb/elevatorsystem-api:<version> --owne
 - [x] **Foundation:** solution architecture, build and supply-chain policies, CI/CD, architecture decisions
 - [x] **Elevator core:** state machine, FIFO and LOOK scheduling, thread-safe controller with watchdog, console demo, domain and controller test suites
 - [ ] **API and live UI:** REST API, SignalR, Blazor passenger view, English and Portuguese
-- [ ] **Messaging and resilience:** RabbitMQ, PostgreSQL, state recovery, failover
-- [ ] **Operations and security:** authentication with 2FA, roles, operations panel, tamper-evident audit log
+- [ ] **Messaging and resilience:** RabbitMQ, PostgreSQL, state recovery, failover, occupancy counting, test traffic generator
+- [ ] **Administration and security:** authentication with 2FA, admin view with service control, tamper-evident audit log
 - [ ] **Privacy and observability:** LGPD features and documents, dashboards, load, end-to-end and mutation testing
 
 ## Documentation

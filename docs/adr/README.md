@@ -21,3 +21,4 @@ supersedes the old one instead of editing it. New records start from [`template.
 | [0013](0013-ui-culture-preference-in-browser-storage.md) | Keep the UI culture preference in browser storage (amends 0009) | Accepted |
 | [0014](0014-audit-tombstones-and-chain-checkpoints.md) | Anonymise audit entries with salted personal digests and purge with checkpoints | Proposed |
 | [0016](0016-keep-the-browser-view-in-step-with-the-server.md) | Keep the browser view in step with the server | Accepted |
+| [0017](0017-manual-passengers-occupancy-and-admin-service-control.md) | Manual passengers, occupancy counts and admin service control | Accepted |

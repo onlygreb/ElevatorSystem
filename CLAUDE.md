@@ -15,7 +15,7 @@ test depth are core requirements, not extras. Read `README.md` for the product v
 | `src/ElevatorSystem.Infrastructure` | RabbitMQ, PostgreSQL (EF Core), audit log, retention jobs. |
 | `src/ElevatorSystem.Engine` | Host that runs the control loop. Health endpoints only. |
 | `src/ElevatorSystem.Api` | REST API, SignalR hub, auth; serves the Blazor UI. |
-| `src/ElevatorSystem.Web` | Blazor WebAssembly UI (passenger view + admin panel). |
+| `src/ElevatorSystem.Web` | Blazor WebAssembly UI (passenger view + admin view). |
 | `src/ElevatorSystem.ConsoleDemo` | Core scenario with no infrastructure. |
 | `src/ElevatorSystem.ServiceDefaults` | OpenTelemetry, health checks, HTTP resilience. |
 | `src/ElevatorSystem.AppHost` | Aspire orchestration for local runs. |
@@ -77,6 +77,6 @@ Load the matching skill before working in an area:
 0. Foundation: solution, build policies, CI/CD, ADRs ✅
 1. Domain, `ElevatorController` with trip watchdog, console demo, domain and controller test suites ✅
 2. REST API, SignalR, Blazor passenger view (in-memory bus)
-3. RabbitMQ, PostgreSQL, persistence and recovery, failover
-4. Authentication, roles, admin panel, tamper-evident audit log
+3. RabbitMQ, PostgreSQL, persistence and recovery, failover, occupancy counting and a test traffic generator (ADR-0017)
+4. Authentication, admin view (people in the car, waiting and present per floor; maintenance, emergency stop, return to service), tamper-evident audit log
 5. LGPD features and documents, observability, load, end-to-end and mutation testing
