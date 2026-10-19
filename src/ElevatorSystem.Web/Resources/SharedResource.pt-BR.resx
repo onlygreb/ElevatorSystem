@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="RefusedInvalidFloor" xml:space="preserve">
+    <value>Este elevador não atende esse andar.</value>
+  </data>
+  <data name="RefusedInvalidDirection" xml:space="preserve">
+    <value>Essa direção não está disponível neste andar.</value>
+  </data>
+  <data name="RefusedOutOfService" xml:space="preserve">
+    <value>O elevador está fora de serviço no momento. Use a escada ou tente novamente mais tarde.</value>
+  </data>
+  <data name="RefusedBusy" xml:space="preserve">
+    <value>O elevador está atendendo muitas chamadas. Tente novamente em instantes.</value>
+  </data>
+  <data name="RefusedTooManyRequests" xml:space="preserve">
+    <value>Muitos toques em pouco tempo. Aguarde um instante e tente novamente.</value>
+  </data>
+  <data name="RefusedUnavailable" xml:space="preserve">
+    <value>Não foi possível falar com o serviço do elevador. Tente novamente.</value>
+  </data>
+  <data name="RefusedUnexpected" xml:space="preserve">
+    <value>Não foi possível concluir sua chamada. Tente novamente.</value>
+  </data>
+</root>

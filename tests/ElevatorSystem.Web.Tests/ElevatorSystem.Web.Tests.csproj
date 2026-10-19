@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk.Razor">
+  <!-- Passenger view components and client services, rendered with bUnit against hand-written fakes. No network. -->
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\ElevatorSystem.Web\ElevatorSystem.Web.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="bunit" />
+  </ItemGroup>
+</Project>
