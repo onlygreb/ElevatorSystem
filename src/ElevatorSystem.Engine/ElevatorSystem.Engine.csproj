@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <!--
+    Worker host that owns the elevator control loop. It exposes no business endpoints:
+    the Web SDK is used only to serve health probes to the orchestrator.
+  -->
+  <PropertyGroup>
+    <UserSecretsId>dotnet-ElevatorSystem.Engine-612da97c-4201-48cc-a1f5-dd7aae6b834a</UserSecretsId>
+  </PropertyGroup>
+
+  <!-- Published by the SDK (no Dockerfile): Ubuntu chiseled base, non-root user, ICU included for pt-BR. -->
+  <PropertyGroup Label="Container image">
+    <ContainerRepository>elevatorsystem-engine</ContainerRepository>
+    <ContainerFamily>noble-chiseled-extra</ContainerFamily>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ElevatorSystem.Application\ElevatorSystem.Application.csproj" />
+    <ProjectReference Include="..\ElevatorSystem.Infrastructure\ElevatorSystem.Infrastructure.csproj" />
+    <ProjectReference Include="..\ElevatorSystem.ServiceDefaults\ElevatorSystem.ServiceDefaults.csproj" />
+  </ItemGroup>
+</Project>

@@ -3,6 +3,8 @@
     <Project Path="src/ElevatorSystem.Application/ElevatorSystem.Application.csproj" />
     <Project Path="src/ElevatorSystem.Contracts/ElevatorSystem.Contracts.csproj" />
     <Project Path="src/ElevatorSystem.Domain/ElevatorSystem.Domain.csproj" />
+    <Project Path="src/ElevatorSystem.Engine/ElevatorSystem.Engine.csproj" />
     <Project Path="src/ElevatorSystem.Infrastructure/ElevatorSystem.Infrastructure.csproj" />
+    <Project Path="src/ElevatorSystem.ServiceDefaults/ElevatorSystem.ServiceDefaults.csproj" />
   </Folder>
 </Solution>
