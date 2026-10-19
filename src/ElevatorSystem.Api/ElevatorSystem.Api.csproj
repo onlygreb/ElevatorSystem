@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <!--
+    The single HTTP entry point: REST API (/api/v1), SignalR hub, authentication, and host of the
+    Blazor WebAssembly UI (same origin, cookie auth; see docs/adr/0006).
+  -->
+  <PropertyGroup>
+    <BlazorDisableThrowNavigationException>true</BlazorDisableThrowNavigationException>
+  </PropertyGroup>
+
+  <!-- Published by the SDK (no Dockerfile): Ubuntu chiseled base, non-root user, ICU included for pt-BR. -->
+  <PropertyGroup Label="Container image">
+    <ContainerRepository>elevatorsystem-api</ContainerRepository>
+    <ContainerFamily>noble-chiseled-extra</ContainerFamily>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ElevatorSystem.Web\ElevatorSystem.Web.csproj" />
+    <ProjectReference Include="..\ElevatorSystem.Application\ElevatorSystem.Application.csproj" />
+    <ProjectReference Include="..\ElevatorSystem.Infrastructure\ElevatorSystem.Infrastructure.csproj" />
+    <ProjectReference Include="..\ElevatorSystem.ServiceDefaults\ElevatorSystem.ServiceDefaults.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" />
+  </ItemGroup>
+</Project>

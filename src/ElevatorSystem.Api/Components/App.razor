@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <base href="/" />
+    <ResourcePreloader />
+    <link rel="stylesheet" href="@Assets["app.css"]" />
+    <link rel="stylesheet" href="@Assets["ElevatorSystem.Api.styles.css"]" />
+    <ImportMap />
+    <HeadOutlet @rendermode="RenderMode" />
+</head>
+
+<body>
+    <Routes @rendermode="RenderMode" />
+    <script src="@Assets["_framework/blazor.web.js"]"></script>
+</body>
+
+</html>
+
+@code {
+    // The UI runs entirely in the browser and reaches data only through the API (ADR-0006).
+    // Prerendering is off so no component ever executes server-side with direct service access.
+    private static readonly IComponentRenderMode RenderMode = new InteractiveWebAssemblyRenderMode(prerender: false);
+}
