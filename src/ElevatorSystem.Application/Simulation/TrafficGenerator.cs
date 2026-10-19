@@ -206,7 +206,8 @@ public sealed class TrafficGenerator : IElevatorEventSink, IDisposable
                     break;
                 case DoorsClosed:
                     _doorOpenAt = null;
-                    PressAgain();
+                    // On the loop thread: these presses are taken in before the next stop.
+                    PressAgain(countedLimit: int.MaxValue);
                     break;
                 case ElevatorMoved:
                     _doorOpenAt = null;
@@ -216,7 +217,8 @@ public sealed class TrafficGenerator : IElevatorEventSink, IDisposable
                     break;
                 case ElevatorReturnedToService:
                     _outOfService = false;
-                    PressAgain();
+                    // Not on the loop thread: one counted person calls the car back; the rest press when its door closes.
+                    PressAgain(countedLimit: 1);
                     break;
             }
         }
@@ -256,7 +258,8 @@ public sealed class TrafficGenerator : IElevatorEventSink, IDisposable
                 _nextDueAt += _next.Delay;
             }
 
-            PressAgain();
+            // From the timer: only people the counts do not include yet, and destinations.
+            PressAgain(countedLimit: 0);
             if (_next is not null)
             {
                 _timer?.Change(_nextDueAt - now, Timeout.InfiniteTimeSpan);
@@ -309,8 +312,14 @@ public sealed class TrafficGenerator : IElevatorEventSink, IDisposable
         }
     }
 
-    /// <summary>Everyone whose call is not pending presses again, unless the door is open where they wait.</summary>
-    private void PressAgain()
+    /// <summary>
+    /// Everyone whose call is not pending presses again, unless the door is open where they wait.
+    /// Only <paramref name="countedLimit"/> of them may be people the counts already include: such a
+    /// press must reach the control loop before the door can open at their floor, or they would board
+    /// with it still in flight and the loop would later take it for someone new. The loop's own events
+    /// guarantee that (it takes requests in before its next stop); a timer or another thread does not.
+    /// </summary>
+    private void PressAgain(int countedLimit)
     {
         if (_outOfService)
         {
@@ -326,7 +335,10 @@ public sealed class TrafficGenerator : IElevatorEventSink, IDisposable
                     PressDestination(person);
                 }
             }
-            else if (person.HallPress is null && person.CallDirection is null && _doorOpenAt != person.Origin)
+            else if (person.HallPress is null
+                && person.CallDirection is null
+                && _doorOpenAt != person.Origin
+                && (!person.Counted || countedLimit-- > 0))
             {
                 PressHallButton(person);
             }
@@ -356,8 +368,13 @@ public sealed class TrafficGenerator : IElevatorEventSink, IDisposable
 
         if (_outOfService)
         {
-            // A press overtaken by a safety command: its call was cancelled with the others.
-            Count(person);
+            // A press overtaken by a safety command: its call was cancelled with the others, and the
+            // tracker counted it from the cancelled calls as one more person, left behind.
+            if (!person.Counted)
+            {
+                Count(person);
+            }
+
             return;
         }
 
@@ -403,9 +420,10 @@ public sealed class TrafficGenerator : IElevatorEventSink, IDisposable
     {
         if (_presses.Remove(served.FirstRequestId, out var person))
         {
-            // Served on the spot: the press was taken in and its call served at once.
+            // Served on the spot: the press was taken in and its call served at once. When a safety
+            // command overtook it, the tracker ignores it, so the person stays uncounted and presses again.
             person.HallPress = null;
-            if (!person.Counted && !person.Riding && (_outOfService || LeftBehindAt(call.Floor) is null))
+            if (!person.Counted && !person.Riding && !_outOfService && LeftBehindAt(call.Floor) is null)
             {
                 Count(person);
             }

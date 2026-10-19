@@ -140,6 +140,9 @@ Passengers are anonymous counts; nothing identifies a person (ADR-0009).
   (`MaxPeople`).
 - It must also receive the elevator's events (add it to the composite sink), and it is started
   with `Start(controller)`.
+- People the counts already include press again only from the control loop's `DoorsClosed`
+  (and one of them after a return to service). A press from another thread could arrive after
+  they boarded and be counted as a new person (ADR-0020 §5).
 - Event IDs 1820–1839.
 
 ## Before you finish a change here

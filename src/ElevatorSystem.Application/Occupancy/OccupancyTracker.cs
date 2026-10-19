@@ -179,6 +179,12 @@ public sealed class OccupancyTracker : IElevatorEventSink
             return;
         }
 
+        AddWaiting(floor, calledAt);
+    }
+
+    /// <summary>One more person waiting on the floor: someone present there if anyone is, otherwise a new person.</summary>
+    private void AddWaiting(FloorCounts floor, DateTimeOffset calledAt)
+    {
         if (floor.Present > 0)
         {
             floor.Present--;
@@ -319,11 +325,12 @@ public sealed class OccupancyTracker : IElevatorEventSink
             {
                 Log.UncountedRequests(_logger, call, uncounted);
                 _corrections++;
+                // Each is one more person, left behind with the others below; none is taken for
+                // someone already waiting, so the count does not depend on the order of the calls.
                 var floor = At(call.Floor);
                 for (var person = 0; person < uncounted; person++)
                 {
-                    CountCaller(floor, cancelled.FirstRequestedAt);
-                    floor.Callers++;
+                    AddWaiting(floor, cancelled.FirstRequestedAt);
                 }
             }
         }
