@@ -1,8 +1,7 @@
-using ElevatorSystem.Application;
+using System.Net;
 using ElevatorSystem.Contracts;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.AspNetCore.SignalR.Client;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace ElevatorSystem.Api.Tests.RealTime;
 
@@ -39,11 +38,13 @@ public sealed class ElevatorHubTests
     {
         await using var factory = new ApiFactory();
         await using var client = await HubClient.ConnectAsync(factory);
+        using var http = factory.CreateClient();
         var initial = await client.NextStatusAsync();
-        var controller = factory.Services.GetRequiredService<ElevatorController>();
 
-        var requestId = controller.RequestDestination(3).RequestId!.Value.Value;
+        using var response = await http.PostJsonAsync(ApiRoutes.CarCalls, """{"floor":3}""");
 
+        response.StatusCode.ShouldBe(HttpStatusCode.Accepted);
+        var requestId = (await response.ReadJsonAsync()).GetProperty("requestId").GetGuid();
         var queued = await client.NextActivityAsync(activity => activity.Kind == ElevatorActivityKind.CallQueued);
         queued.RequestId.ShouldBe(requestId);
         queued.Call.ShouldBe(new CallDto(CallKind.Car, 3, null));

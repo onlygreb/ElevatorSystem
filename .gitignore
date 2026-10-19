@@ -484,3 +484,6 @@ $RECYCLE.BIN/
 ## ElevatorSystem
 # Personal, machine-specific assistant settings
 .claude/settings.local.json
+
+# Snapshot tests write the actual output here when it differs from the approved snapshot.
+*.received.json
