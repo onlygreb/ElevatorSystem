@@ -13,5 +13,6 @@
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/ElevatorSystem.Architecture.Tests/ElevatorSystem.Architecture.Tests.csproj" />
+    <Project Path="tests/ElevatorSystem.Domain.Tests/ElevatorSystem.Domain.Tests.csproj" />
   </Folder>
 </Solution>

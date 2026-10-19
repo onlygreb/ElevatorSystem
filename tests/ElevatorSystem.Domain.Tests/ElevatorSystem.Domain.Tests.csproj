@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Elevator state machine, requests, invariants (property-based) and scheduling strategies. -->
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\ElevatorSystem.Domain\ElevatorSystem.Domain.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.TimeProvider.Testing" />
+    <PackageReference Include="CsCheck" />
+  </ItemGroup>
+</Project>
