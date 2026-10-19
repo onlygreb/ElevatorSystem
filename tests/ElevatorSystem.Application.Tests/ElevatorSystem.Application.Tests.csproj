@@ -6,5 +6,6 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.TimeProvider.Testing" />
+    <PackageReference Include="CsCheck" />
   </ItemGroup>
 </Project>
