@@ -1,9 +1,12 @@
 using ElevatorSystem.Api.Components;
+using ElevatorSystem.Api.Hosting;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults();
 builder.WebHost.ConfigureKestrel(options => options.AddServerHeader = false);
+
+builder.AddElevator();
 
 builder.Services.AddProblemDetails();
 builder.Services.AddHsts(options =>

@@ -23,4 +23,8 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" />
   </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="ElevatorSystem.Api.Tests" />
+  </ItemGroup>
 </Project>

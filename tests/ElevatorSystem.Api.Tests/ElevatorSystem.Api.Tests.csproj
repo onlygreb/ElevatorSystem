@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    The API host end to end through the in-memory test server: endpoints, problem details, the SignalR
+    hub, real-time fan-out, rate limits, security headers, the OpenAPI document and log privacy.
+  -->
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\ElevatorSystem.Api\ElevatorSystem.Api.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" />
+    <PackageReference Include="Microsoft.Extensions.Diagnostics.Testing" />
+    <PackageReference Include="Microsoft.Extensions.TimeProvider.Testing" />
+  </ItemGroup>
+</Project>
