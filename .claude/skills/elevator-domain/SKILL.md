@@ -1,102 +1,102 @@
 ---
 name: elevator-domain
-description: Rules for the elevator domain and ElevatorController - states and transitions, FIFO scheduling behaviour, request validation, the thread-safety model, the watchdog and fail-safe behaviour. Use when creating or changing anything in ElevatorSystem.Domain or ElevatorSystem.Application, or when reasoning about how the elevator behaves.
+description: Rules for the elevator domain and ElevatorController - states and transitions, FIFO scheduling behaviour, request validation, the thread-safety model, the control loop, the trip watchdog and fail-safe behaviour. Use when creating or changing anything in ElevatorSystem.Domain or ElevatorSystem.Application, or when reasoning about how the elevator behaves.
 ---
 
 # Elevator domain
 
-Decisions behind this skill: ADR-0004 (concurrency and time), ADR-0005 (FIFO), ADR-0007 (fail-safe).
+Decisions behind this skill: ADR-0004 (concurrency and time), ADR-0005 (FIFO), ADR-0007 (fail-safe)
+and ADR-0012 (control loop and core semantics).
 
 ## Requirements this layer owns
 
 | Requirement | Implemented by |
 |---|---|
-| One elevator serving floors 1–10 | `Floor` value object (validated), `BuildingOptions` |
-| States `IDLE`, `MOVING_UP`, `MOVING_DOWN`, `DOOR_OPEN` | `ElevatorState` (+ `OutOfService`, see below) |
-| Pickup requests (floor + direction) and destination requests | `HallCall`, `CarCall` |
-| FIFO scheduling | `FifoSchedulingStrategy` behind `ISchedulingStrategy` |
-| Thread-safe handling of concurrent requests | `ElevatorController` intake channel + `Elevator` lock |
-| Logging of elevator actions | Domain events, logged by the application layer |
-| Invalid floor requests handled gracefully | `Floor.TryCreate` returning a result, never an exception |
-| Timeout for a stuck elevator | `ElevatorWatchdog` |
+| One elevator serving floors 1–10 | `Building` (`Default`, `Contains`, `Validate`, `CanTravel`), `Floor` |
+| States `IDLE`, `MOVING_UP`, `MOVING_DOWN`, `DOOR_OPEN` | `ElevatorState` (+ `OutOfService` with an `OutOfServiceReason`) |
+| Pickup requests (floor + direction) and destination requests | `HallCall`, `CarCall` (both `ElevatorCall`); `PassengerRequest` adds id and time |
+| FIFO scheduling | `FifoSchedulingStrategy` behind `ISchedulingStrategy` (`LookSchedulingStrategy` for comparison) |
+| Thread-safe handling of concurrent requests | `ElevatorController` intake channel + `Elevator` lock + `ElevatorSnapshot` |
+| Logging of elevator actions | Domain events, logged by `ElevatorControllerLog` (event IDs 1500–1999) |
+| Invalid floor requests handled gracefully | `Building.Validate` → `RequestRejectionReason`, never an exception |
+| Timeout for a stuck elevator | The trip watchdog in `ElevatorController` (`ElevatorControllerOptions.StuckTimeout`) |
 
 ## Names are part of the contract
 
 Keep these exact names; they map one-to-one to the system requirements:
 
 - `Elevator`: `CurrentFloor`, `State`, `TargetFloors`, `MoveUp()`, `MoveDown()`, `OpenDoor()`, `CloseDoor()`, `AddRequest(...)`
-- `ElevatorController`: `Elevator`, `RequestElevator(floor, direction)`, `ProcessRequests(...)`
+- `ElevatorController`: `Elevator`, `RequestElevator(floor, direction)`, `ProcessRequests(...)`, plus
+  `RequestDestination(floor)`, `EmergencyStop()`, `StartMaintenance()`, `ReturnToService()`
 
 ## State machine
 
-Movement is modelled floor by floor: `MoveUp()` advances exactly one floor.
+`MoveUp()`/`MoveDown()` commit the car to the adjacent floor. `CurrentFloor` then reports the floor
+being travelled to, and the drive performs the trip.
 
 | From ↓ / command → | `MoveUp` | `MoveDown` | `OpenDoor` | `CloseDoor` |
 |---|---|---|---|---|
 | `Idle` | `MovingUp`, floor + 1 | `MovingDown`, floor − 1 | `DoorOpen` | no-op |
-| `MovingUp` | `MovingUp`, floor + 1 | rejected | `DoorOpen` (stops at this floor) | no-op |
-| `MovingDown` | rejected | `MovingDown`, floor − 1 | `DoorOpen` (stops at this floor) | no-op |
-| `DoorOpen` | rejected | rejected | no-op | `Idle` |
-| `OutOfService` | rejected | rejected | rejected | rejected |
+| `MovingUp` | `MovingUp`, floor + 1 | refused | `DoorOpen` (stops at this floor) | no-op |
+| `MovingDown` | refused | `MovingDown`, floor − 1 | `DoorOpen` (stops at this floor) | no-op |
+| `DoorOpen` | refused | refused | no-op | `Idle` |
+| `OutOfService` | refused | refused | refused | refused |
 
-- `MoveUp` at floor 10 and `MoveDown` at floor 1 are rejected.
+- `MoveUp` at the top floor and `MoveDown` at the bottom floor are refused (`AtTopFloor`, `AtBottomFloor`).
 - A direction change always passes through `DoorOpen` → `CloseDoor` → `Idle`.
-- `TakeOutOfService(reason)` (reason: `Maintenance`, `Fault`, `EmergencyStop`) is allowed from
-  every state; `ReturnToService()` goes to `Idle` with the door closed, and only from `OutOfService`.
-- Rejected transitions return a failure result. They never throw and never change state.
+- `TakeOutOfService(reason)` is allowed from every state and **cancels every pending call** (they
+  are listed in `ElevatorTakenOutOfService.CancelledCalls`). `ReturnToService()` goes to `Idle`
+  with the door closed, and only from `OutOfService`.
+- Refused transitions return a `TransitionResult` with a `TransitionError`. They never throw and
+  never change state or `Version`.
 
-**Invariants** (the property-based tests check these):
-1. `1 ≤ CurrentFloor ≤ 10`, always.
-2. The car never moves while the door is open or while it's out of service.
-3. `TargetFloors` contains no duplicates.
-4. Each `MoveUp`/`MoveDown` changes the floor by exactly one.
+**Invariants** (checked after every step by `ElevatorInvariantTests`):
+1. The car never leaves the building.
+2. The car never moves while the door is open or while it's out of service, and each move covers exactly one floor.
+3. Pending calls are unique, valid, and at most `Building.MaxPendingCalls` (28).
+4. An out-of-service car holds no calls, and no call waits at a floor whose door is open.
+5. Every accepted request is pending, served or cancelled: exactly once.
 
 ## FIFO behaviour
 
-- Pending requests are served strictly in arrival order. The head of the queue is the target, and
-  the car travels to it **without stopping at other pending floors**. That is what FIFO means
-  here; `LookSchedulingStrategy` exists to show the alternative.
-- A request equal to one already pending (same floor and same kind/direction) is merged into it
-  and keeps its original position.
-- A hall call at the current floor while `Idle` opens the door straight away.
-- The pending set is bounded: at most 18 hall calls (no "up" at 10, no "down" at 1) plus 10 car
-  calls. Memory stays flat however many requests arrive.
+- Pending calls are served strictly in arrival order. The oldest call is the target, and the car
+  travels to it **without stopping at other pending floors**.
+- Opening the door at a floor **serves every pending call for that floor** (hall calls in either
+  direction and car calls). A call for the floor where the door is already open is served on
+  arrival (`AddRequestOutcome.ServedImmediately`).
+- A request equal to one already pending (same floor and same kind/direction) is merged into it.
+  It keeps its original position, and only `RequestCount` grows. Merged request IDs are not stored.
 
 ## Concurrency model
 
-- `RequestElevator` can be called from any thread. It validates input and writes to a bounded
-  `Channel<T>` (`SingleReader = true`). If the channel is full, the request is rejected with a
-  clear "busy" result. Never block the caller indefinitely.
-- `ProcessRequests(CancellationToken)` is the **only** consumer and the only code that changes the queue.
-- `Elevator` guards its state with a `System.Threading.Lock`. Each transition is check-and-set
-  inside the lock. Safety commands (emergency stop, maintenance) skip the channel and take the
-  lock directly, so they pre-empt queued work.
-- Readers get an immutable `ElevatorSnapshot` record taken inside the lock. The API and UI only
-  ever see snapshots.
-- Inside the lock: no `await`, no I/O, no logging and no event publishing. Collect the events,
-  release the lock, then publish them.
-- Time comes from `TimeProvider` only. Delays use `Task.Delay(delay, timeProvider, token)`.
+- `RequestElevator`/`RequestDestination` can be called from any thread. They validate and then
+  `TryWrite` to a bounded `Channel<T>` (`SingleReader = true`). A full channel is refused as `Busy`;
+  the caller is never blocked.
+- `ProcessRequests(CancellationToken)` is the **only** consumer. It is an event loop that sleeps
+  until a request arrives, the current trip or door cycle ends, or shutdown, so requests are
+  applied **even while the car is travelling**.
+- `Elevator` guards its state with `System.Threading.Lock`, and each transition is check-and-set
+  inside it. Safety commands go straight to the elevator's lock and cancel the operation in flight.
+- Readers get an immutable `ElevatorSnapshot`.
+- Inside the lock: no `await`, no I/O, no logging, no publishing. Transitions *return* their events.
+- The loop publishes each iteration's events **after** starting the next operation, so an observer
+  always finds the next timer scheduled. The simulated-time tests rely on this.
+- Time comes only from `TimeProvider`.
 
 ## Fail-safe behaviour
 
-- **Watchdog:** if the car makes no progress within `TravelTimePerFloor × StuckTolerance`, it calls
-  `TakeOutOfService(Fault)`, raises `ElevatorFaulted`, and rejects new requests with a reason
-  until an operator returns it to service.
-- **The control loop never waits on I/O.** Events go to an `IElevatorEventSink` backed by a
-  bounded buffer, so a slow broker or database can't stall the elevator.
-- **One failing command doesn't stop the loop.** Its exception is caught, logged and the command
-  rejected. A truly unhandled failure stops the host, the orchestrator restarts it, and state is
-  restored from the last snapshot (phase 3).
-
-## Logging
-
-Use `LoggerMessage` source-generated methods with stable event IDs: 1000–1499 for the domain,
-1500–1999 for the application layer. Log floors, states and request IDs. There is no personal
-data in this layer, so there is nothing personal to log.
+- **Trip watchdog:** every trip is awaited with `StuckTimeout` (`TravelTimePerFloor × StuckTolerance`).
+  A timeout or a drive failure leads to `TakeOutOfService(Fault)`, and new requests are refused as
+  `OutOfService` until `ReturnToService`.
+- **Containment:**
+  - a failing request is logged and dropped
+  - a failing event sink is logged and ignored
+  - any other loop failure takes the car out of service with `Fault`, and the loop keeps running
+- **Event sinks** (`IElevatorEventSink`) must be thread-safe and fast; never do I/O inline.
 
 ## Before you finish a change here
 
-- [ ] Transition-table tests cover every (state, command) pair that changed
+- [ ] Transition-table rows cover every (state, command) pair that changed
 - [ ] Property-based invariants still hold; add a regression test for any seed that found a bug
-- [ ] Concurrency test still passes (no lost or duplicated requests under parallel producers)
-- [ ] The names above are unchanged; ADR-0005/0007 updated if the behaviour changed
+- [ ] Concurrency tests still pass (no lost or duplicated requests; p99 assignment under 100 ms)
+- [ ] The names above are unchanged; ADR-0005/0007/0012 updated if the behaviour changed

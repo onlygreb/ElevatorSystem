@@ -13,15 +13,20 @@ An elevator control system built on .NET 10. It has:
 
 Security and LGPD compliance are part of the design from the first commit.
 
-> **Project status:** the foundation is in place: solution architecture, build and supply-chain
-> policies, CI/CD and the recorded architecture decisions. The elevator core is the current
-> milestone. See the [roadmap](#roadmap).
+> **Project status:** the elevator core works end to end and runs from the console demo:
+> - a thread-safe state machine
+> - FIFO and LOOK scheduling
+> - a controller with a stuck-car watchdog and safety commands
+> - 164 automated tests, including property-based and concurrency suites
+>
+> The API and live web UI are the current milestone. See the [roadmap](#roadmap).
 
 ---
 
 ## Contents
 
 - [What it does](#what-it-does)
+- [Requirements and where they are met](#requirements-and-where-they-are-met)
 - [Architecture](#architecture)
 - [Design highlights](#design-highlights)
 - [Technology](#technology)
@@ -48,6 +53,26 @@ ElevatorSystem controls an elevator serving floors 1 to 10 and gives passengers 
 | **Operations panel** | Live metrics, maintenance mode, emergency stop, strategy switch, tamper-evident audit log, user and role management. |
 | **Privacy** | Passengers are anonymous by design; staff data follows LGPD purpose, retention and data-subject-rights rules. |
 | **Languages** | English and Brazilian Portuguese. |
+
+## Requirements and where they are met
+
+Each core requirement maps to the code that implements it and the tests that prove it.
+
+| Requirement | Implementation | Proven by |
+|---|---|---|
+| One elevator serving floors 1–10 | [`Building`](src/ElevatorSystem.Domain/Building.cs), [`Elevator`](src/ElevatorSystem.Domain/Elevator.cs) | `BuildingTests`, `ElevatorTransitionTests` |
+| States `IDLE`, `MOVING_UP`, `MOVING_DOWN`, `DOOR_OPEN` | [`ElevatorState`](src/ElevatorSystem.Domain/ElevatorState.cs), plus `OUT_OF_SERVICE` for faults | All 20 state × command pairs in `ElevatorTransitionTests` |
+| `moveUp()`, `moveDown()`, `openDoor()`, `closeDoor()`, `addRequest()` | `Elevator.MoveUp`, `MoveDown`, `OpenDoor`, `CloseDoor`, `AddRequest` | `ElevatorTransitionTests`, `ElevatorRequestTests` |
+| `requestElevator(floor, direction)`, `processRequests()` | [`ElevatorController`](src/ElevatorSystem.Application/ElevatorController.cs)`.RequestElevator`, `ProcessRequests` (destinations: `RequestDestination`) | `ElevatorControllerRequestTests`, `ElevatorControllerJourneyTests` |
+| Pickup (floor + direction) and destination requests | `HallCall`, `CarCall` | `ElevatorRequestTests`, `ElevatorControllerJourneyTests` |
+| FIFO scheduling | [`FifoSchedulingStrategy`](src/ElevatorSystem.Domain/Scheduling/FifoSchedulingStrategy.cs) ([ADR-0005](docs/adr/0005-fifo-scheduling-semantics.md)) | `SchedulingPropertyTests` (1,000 random workloads), journey tests |
+| Locks, thread-safe collections, atomic state changes, no races in assignment | `System.Threading.Lock` in `Elevator`; bounded `Channel<T>` intake with a single consumer; immutable snapshots ([ADR-0004](docs/adr/0004-concurrency-model-and-time-abstraction.md)) | `ElevatorConcurrencyTests`, `ElevatorControllerConcurrencyTests` |
+| 100+ concurrent requests, assignment under 100 ms | Requests applied while the car travels ([ADR-0012](docs/adr/0012-elevator-control-loop.md)) | 2,000 simultaneous requests with the 99th percentile asserted under 100 ms |
+| Reasonable memory under load | Repeated calls merged: at most 28 pending calls | `ElevatorRequestTests`, concurrency tests |
+| Invalid floor requests handled gracefully | `Building.Validate` returns a `RequestRejectionReason` and never throws | `BuildingTests`, `ElevatorControllerRequestTests` |
+| Timeouts for stuck elevators | Trip watchdog → out of service (`Fault`) ([ADR-0007](docs/adr/0007-fail-safe-operation.md)) | `ElevatorControllerFailSafeTests` |
+| Exception handling for concurrent operations | Failures contained per request, per trip and per subscriber; the loop fails safe | `ElevatorControllerFailSafeTests` |
+| Logging of elevator actions | Source-generated messages with stable event IDs ([`ElevatorControllerLog`](src/ElevatorSystem.Application/ElevatorControllerLog.cs)) | Console demo with `--verbose` |
 
 ## Architecture
 
@@ -202,10 +227,24 @@ Run the whole system with the Aspire dashboard (logs, traces and metrics for eve
 dotnet run --project src/ElevatorSystem.AppHost
 ```
 
-Run only the elevator core in the terminal, with no infrastructure:
+Run only the elevator core in the terminal, with no infrastructure. A narrated tour of about
+15 seconds walks through each behaviour:
+- a pickup and a destination
+- FIFO order
+- merged button presses
+- invalid requests
+- a burst of 200 simultaneous requests
+- an emergency stop
+- the stuck-car watchdog
 
 ```bash
 dotnet run --project src/ElevatorSystem.ConsoleDemo
+```
+
+Or drive the elevator yourself (`call 5 up`, `go 3`, `stop`, `resume`, `jam`, `status`, `help`):
+
+```bash
+dotnet run --project src/ElevatorSystem.ConsoleDemo -- --interactive
 ```
 
 ## Repository layout
@@ -246,6 +285,11 @@ test strategy targets them directly ([ADR-0010](docs/adr/0010-testing-strategy.m
 | Load | 100+ concurrent requests within the assignment-latency budget |
 | Mutation testing | The tests actually detect injected faults |
 
+The architecture, domain and application suites run on every build today. Each remaining layer
+arrives with the feature it covers. The unit tests run in simulated time
+([`FakeTimeProvider`](https://learn.microsoft.com/dotnet/api/microsoft.extensions.time.testing.faketimeprovider)),
+so the suite never sleeps and never flakes on timing.
+
 Quality gates enforced by the build:
 - warnings are errors
 - code style is enforced
@@ -270,9 +314,9 @@ gh attestation verify oci://ghcr.io/onlygreb/elevatorsystem-api:<version> --owne
 ## Roadmap
 
 - [x] **Foundation:** solution architecture, build and supply-chain policies, CI/CD, architecture decisions
-- [ ] **Elevator core:** state machine, FIFO scheduling, thread-safe controller, console demo, domain test suite
+- [x] **Elevator core:** state machine, FIFO and LOOK scheduling, thread-safe controller with watchdog, console demo, domain and controller test suites
 - [ ] **API and live UI:** REST API, SignalR, Blazor passenger view, English and Portuguese
-- [ ] **Messaging and resilience:** RabbitMQ, PostgreSQL, state recovery, watchdog, failover
+- [ ] **Messaging and resilience:** RabbitMQ, PostgreSQL, state recovery, failover
 - [ ] **Operations and security:** authentication with 2FA, roles, operations panel, tamper-evident audit log
 - [ ] **Privacy and observability:** LGPD features and documents, dashboards, load, end-to-end and mutation testing
 

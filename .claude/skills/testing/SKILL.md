@@ -13,8 +13,8 @@ coverage. The mutation score is the quality signal; coverage is only a floor.
 | Project | What it proves | Tools | Phase |
 |---|---|---|---|
 | `ElevatorSystem.Architecture.Tests` | Dependency direction, package policy | xUnit, XML over project files | 0 ✅ |
-| `ElevatorSystem.Domain.Tests` | Every state transition, invariants, FIFO order | Table-driven theories, CsCheck | 1 |
-| `ElevatorSystem.Application.Tests` | Controller under concurrency and simulated time, watchdog | FakeTimeProvider, parallel producers | 1 |
+| `ElevatorSystem.Domain.Tests` | Every state transition, invariants, FIFO order | Table-driven theories, CsCheck | 1 ✅ |
+| `ElevatorSystem.Application.Tests` | Controller under concurrency and simulated time, watchdog | FakeTimeProvider, parallel producers | 1 ✅ |
 | `ElevatorSystem.Api.Tests` | Endpoints, authorization matrix, validation, rate limits, headers, OpenAPI | WebApplicationFactory, Verify | 2, 4 |
 | `ElevatorSystem.Web.Tests` | Component rendering and behaviour | bUnit | 2 |
 | `ElevatorSystem.Integration.Tests` | Real broker and database, failure scenarios, failover | Testcontainers | 3 |
@@ -23,6 +23,27 @@ coverage. The mutation score is the quality signal; coverage is only a floor.
 
 New test projects go under `tests/` and inherit `tests/Directory.Build.props` (xUnit v3 on
 Microsoft.Testing.Platform, Shouldly, code coverage). Don't add those packages again.
+
+## Helpers that already exist
+
+- `Domain.Tests/TestElevators`:
+  - `At(floor)`, `InState(state)` (reached through public transitions)
+  - `Hall`, `Car`, `Request`, `SnapshotAt`, `AllValidCalls`
+- `Domain.Tests/Scheduling/SynchronousDriver`: runs a strategy over a fixed workload with no time involved.
+- `Application.Tests/ControllerHarness`: a controller on `FakeTimeProvider` where every trip and door
+  cycle takes exactly one `Step`.
+  - `CallElevatorAsync` / `SelectFloorAsync` submit a request and wait until the loop has taken it in
+  - `NextAsync<T>` reads the next event without moving time
+  - `AdvanceUntilAsync<T>` and `RunUntilIdleAsync` step time forward
+  - for a trip that never arrives, advance `StuckTimeout` explicitly
+- `Application.Tests/EventProbe`: records events and waits for them, with a 10 s real-time guard that
+  fails with the events seen so far.
+
+## Prove a new test can fail
+
+Before trusting a new test, break the behaviour it covers, watch it fail, then restore the code.
+For example, remove the `DoorOpen` check from `Elevator.CheckMove` (the property test reports "the
+car never moves with its door open"), or drop the watchdog's `WaitAsync` (the stuck-car test times out).
 
 ## Conventions
 
@@ -74,7 +95,7 @@ Microsoft.Testing.Platform, Shouldly, code coverage). Don't add those packages a
 dotnet test --solution ElevatorSystem.slnx                                    # everything
 dotnet test --project tests/ElevatorSystem.Domain.Tests                       # one project
 dotnet test --solution ElevatorSystem.slnx --coverage --coverage-output-format cobertura --results-directory TestResults
-dotnet stryker --project ElevatorSystem.Domain.csproj                         # mutation testing (phase 1+, local tool)
+dotnet stryker --project ElevatorSystem.Domain.csproj                         # mutation testing (from phase 5, local tool)
 ```
 
 ## Quality gates

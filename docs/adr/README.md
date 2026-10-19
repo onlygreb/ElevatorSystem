@@ -17,3 +17,4 @@ supersedes the old one instead of editing it. New records start from [`template.
 | [0009](0009-privacy-by-design-for-lgpd.md) | Privacy by design for LGPD | Accepted |
 | [0010](0010-testing-strategy.md) | Testing strategy | Accepted |
 | [0011](0011-orchestration-and-delivery.md) | Local orchestration and container delivery | Accepted |
+| [0012](0012-elevator-control-loop.md) | Elevator control loop and core semantics | Accepted |
