@@ -17,6 +17,9 @@ public static class ApiRoutes
     /// <summary><c>GET</c> the <see cref="ElevatorConfigurationDto"/> (building and timings).</summary>
     public const string Configuration = Base + "/elevator/configuration";
 
+    /// <summary><c>GET</c> the current <see cref="BuildingOccupancyDto"/> (people waiting, riding and present).</summary>
+    public const string Occupancy = Base + "/building/occupancy";
+
     /// <summary>
     /// Name of the ProblemDetails extension that carries a <see cref="RejectionReason"/> when a request is refused.
     /// </summary>

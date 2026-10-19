@@ -72,6 +72,27 @@ public sealed record ElevatorActivityDto(
     int? CancelledCalls = null);
 
 /// <summary>
+/// How many passengers are where, counted from the calls they place (ADR-0017). Counts only:
+/// passengers are anonymous by design and nothing identifies an individual (ADR-0009).
+/// </summary>
+/// <param name="PassengersInCar">People riding the elevator now.</param>
+/// <param name="CarCapacity">The most people the car carries at once.</param>
+/// <param name="Floors">One entry per floor, lowest first.</param>
+/// <param name="PassengersDelivered">Trips completed since the engine started.</param>
+/// <param name="AverageWaitTime">Mean time from calling the elevator to boarding, over completed boardings; null before the first.</param>
+/// <param name="TakenAt">When the counts were taken.</param>
+public sealed record BuildingOccupancyDto(
+    int PassengersInCar,
+    int CarCapacity,
+    IReadOnlyList<FloorOccupancyDto> Floors,
+    int PassengersDelivered,
+    TimeSpan? AverageWaitTime,
+    DateTimeOffset TakenAt);
+
+/// <summary>People on one floor: <see cref="Waiting"/> for the elevator, and <see cref="Present"/> on the floor but not waiting.</summary>
+public sealed record FloorOccupancyDto(int Floor, int Waiting, int Present);
+
+/// <summary>
 /// What the hub sends to every connected client. A client receives <see cref="StatusChanged"/> right after
 /// connecting and after every change; <see cref="ActivityOccurred"/> narrates each step in order.
 /// </summary>
@@ -80,6 +101,9 @@ public interface IElevatorClient
     Task StatusChanged(ElevatorStatusDto status);
 
     Task ActivityOccurred(ElevatorActivityDto activity);
+
+    /// <summary>Sent on connect and whenever the passenger counts change (ADR-0017).</summary>
+    Task OccupancyChanged(BuildingOccupancyDto occupancy);
 }
 
 public enum CallDirection

@@ -87,6 +87,33 @@ public sealed class ElevatorController
     /// <summary>A destination request from inside the car. Safe to call from any thread; never blocks.</summary>
     public RequestResult RequestDestination(int floor) => Submit(new CarCall(new Floor(floor)));
 
+    /// <summary>
+    /// Submits a request created elsewhere, keeping its identifier and time: for example a command
+    /// received from the message bus, whose id the API already returned to the caller.
+    /// Safe to call from any thread; never blocks.
+    /// </summary>
+    public RequestResult Submit(PassengerRequest request)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        var call = request.Call;
+        var rejection = Elevator.Building.Validate(call)
+            ?? (Elevator.State == ElevatorState.OutOfService ? RequestRejectionReason.OutOfService : (RequestRejectionReason?)null);
+        if (rejection is { } invalid)
+        {
+            Log.RequestRejected(_logger, call, invalid);
+            return RequestResult.Rejected(invalid);
+        }
+
+        if (!_intake.Writer.TryWrite(request))
+        {
+            Log.RequestRejected(_logger, call, RequestRejectionReason.Busy);
+            return RequestResult.Rejected(RequestRejectionReason.Busy);
+        }
+
+        return RequestResult.Accepted(request.Id);
+    }
+
     /// <summary>Stops the car at once and takes it out of service, cancelling every pending call.</summary>
     public TransitionResult EmergencyStop() => TakeOutOfService(OutOfServiceReason.EmergencyStop);
 
@@ -176,25 +203,8 @@ public sealed class ElevatorController
         }
     }
 
-    private RequestResult Submit(ElevatorCall call)
-    {
-        var rejection = Elevator.Building.Validate(call)
-            ?? (Elevator.State == ElevatorState.OutOfService ? RequestRejectionReason.OutOfService : (RequestRejectionReason?)null);
-        if (rejection is { } invalid)
-        {
-            Log.RequestRejected(_logger, call, invalid);
-            return RequestResult.Rejected(invalid);
-        }
-
-        var request = new PassengerRequest(RequestId.New(_timeProvider), call, _timeProvider.GetUtcNow());
-        if (!_intake.Writer.TryWrite(request))
-        {
-            Log.RequestRejected(_logger, call, RequestRejectionReason.Busy);
-            return RequestResult.Rejected(RequestRejectionReason.Busy);
-        }
-
-        return RequestResult.Accepted(request.Id);
-    }
+    private RequestResult Submit(ElevatorCall call) =>
+        Submit(new PassengerRequest(RequestId.New(_timeProvider), call, _timeProvider.GetUtcNow()));
 
     private TransitionResult TakeOutOfService(OutOfServiceReason reason)
     {
