@@ -16,7 +16,9 @@ scheduled job that enforces this.
 
 Each row matches a row of the classification table in the `security-lgpd` skill, except
 aggregated request statistics and records of data subject requests, which follow from the
-passenger request and audit trail rows.
+passenger request and audit trail rows, and the engine's two operational records (the elevator
+snapshot and processed command IDs), which hold no personal data and exist only for recovery and
+deduplication ([ADR-0019](../adr/0019-postgresql-snapshots-deduplication-and-leader-lease.md)).
 
 | Data | Personal? | Retention (default) | Counted from | At expiry |
 |---|---|---|---|---|
@@ -30,6 +32,8 @@ passenger request and audit trail rows.
 | Database backups | Contain all of the above | `{{BACKUP_RETENTION}}` (recommended: 35 days or less) | Backup taken | **Purge** by the backup system's rotation; see [backups](#backups) |
 | Records of data subject requests (who asked, what, when, outcome) | Yes, pseudonymised | 1 year, as audit entries | Request closed | As the audit trail |
 | Incident records | May contain personal data | At least 5 years (Resolution CD/ANPD nº 15/2024) | Incident recorded | Reviewed by the encarregado, then purged ([incident runbook](incident-response.md#8-record-keeping)) |
+| Elevator snapshot (floor, state, direction, out-of-service reason, version, pending calls with their first request ID, time and count) | No: a request ID identifies a button press, never a person | Only the latest snapshot; each save replaces the previous one | | **Overwritten** on the next transition; nothing older is kept |
+| Processed command IDs (command ID, time processed) | No | 7 days (`Persistence:ProcessedCommandRetention`) | Command processed | **Purge**, at start-up and then hourly (`Persistence:ProcessedCommandPurgeInterval`), in batches; a redelivery after expiry would be applied again, so the period must outlast any redelivery |
 
 Proposed configuration keys (final names are set when the job is implemented):
 
@@ -172,3 +176,4 @@ for the controller ([RIPD, risk R9 and item O1](ripd.md#7-open-items-for-the-con
 |---|---|---|
 | 2026-10-19 | First draft, written ahead of phases 4 and 5 | Engineering; pending controller and counsel review |
 | 2026-10-19 | Every row now in the classification table; tombstone design recorded as ADR-0014 | Engineering; pending controller and counsel review |
+| 2026-10-19 | Elevator snapshot and processed command IDs added (ADR-0019) | Engineering; pending controller and counsel review |
