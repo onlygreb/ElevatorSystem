@@ -96,11 +96,11 @@ controller, in which case it fills one of the processor rows above.
 |---|---|
 | Purpose | Protect the service from request flooding by partitioning rate limits per client IP for anonymous calls. |
 | Legal basis (Art. 7) | **IX, legitimate interest** in the availability and security of the service, serving the Art. 46 security duty. |
-| Data categories | Client IP address, held **in memory only** for the life of the rate-limit window. It is never written to the database, logs, traces or metrics. |
+| Data categories | Client IP address, held **in memory only** for the life of the rate-limit window, as the key of a token bucket. IPv6 addresses are first reduced to their /64 network prefix. It is never written to the database, logs, traces or metrics. |
 | Data subjects | Anyone who uses the passenger screen or the API, including staff. |
 | Retention | Not stored. It disappears when the rate-limit window expires or the process restarts. |
 | Recipients | None. |
-| Security measures | In-memory only; logging of IP addresses is forbidden and covered by the log-capture test. |
+| Security measures | In-memory only; logging of IP addresses is forbidden and covered by the log-capture test (`LogPrivacyTests`, which captures every log category at `Trace`). |
 
 ## Out of scope of this record
 
