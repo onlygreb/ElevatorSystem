@@ -25,3 +25,4 @@ supersedes the old one instead of editing it. New records start from [`template.
 | [0017](0017-manual-passengers-occupancy-and-admin-service-control.md) | Manual passengers, occupancy counts and admin service control | Accepted |
 | [0018](0018-rabbitmq-messaging-adapter.md) | RabbitMQ messaging adapter: delivery, recovery and update fan-out | Accepted |
 | [0019](0019-postgresql-snapshots-deduplication-and-leader-lease.md) | Store snapshots, processed commands and the leader lease in PostgreSQL | Accepted |
+| [0020](0020-occupancy-counting-rules-and-traffic-generator.md) | Count passengers by explicit rules and mirror them in the traffic generator | Accepted |
