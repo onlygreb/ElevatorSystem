@@ -1,4 +1,6 @@
+using System.Net;
 using ElevatorSystem.Api.Hosting;
+using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
@@ -20,12 +22,18 @@ public sealed class ApiFactory : WebApplicationFactory<Program>
     public static readonly TimeSpan DoorTime = TimeSpan.FromMilliseconds(20);
     public static readonly DateTimeOffset StartTime = new(2026, 1, 5, 8, 0, 0, TimeSpan.Zero);
 
+    /// <summary>Test-only request header that sets the client address the host sees.</summary>
+    public const string ClientAddressHeader = "X-Test-Client-Address";
+
     private readonly Dictionary<string, string> _settings = new()
     {
         ["Elevator:TravelTimePerFloor"] = TravelTime.ToString("c"),
         ["Elevator:DoorOpenDuration"] = DoorTime.ToString("c"),
         // Generous, so a test host starved of CPU by its neighbours is never mistaken for a stuck car.
         ["Elevator:StuckTolerance"] = "100",
+        // Shared test hosts send many requests from one address; tests of the limits set their own.
+        ["RateLimiting:Passenger:TokenLimit"] = "100000",
+        ["RateLimiting:Read:TokenLimit"] = "100000",
     };
 
     private readonly List<Action<IServiceCollection>> _services = [];
@@ -89,10 +97,32 @@ public sealed class ApiFactory : WebApplicationFactory<Program>
         builder.ConfigureLogging(logging => logging.ClearProviders().AddFakeLogging());
         builder.ConfigureTestServices(services =>
         {
+            services.AddSingleton<IStartupFilter, ClientAddressStartupFilter>();
             foreach (var configure in _services)
             {
                 configure(services);
             }
         });
+    }
+
+    /// <summary>
+    /// The in-memory server has no client address; this lets a test pick one per request with the
+    /// <see cref="ClientAddressHeader"/> header, ahead of everything else in the pipeline.
+    /// </summary>
+    private sealed class ClientAddressStartupFilter : IStartupFilter
+    {
+        public Action<IApplicationBuilder> Configure(Action<IApplicationBuilder> next) => app =>
+        {
+            app.Use((context, nextMiddleware) =>
+            {
+                if (context.Request.Headers.TryGetValue(ClientAddressHeader, out var address))
+                {
+                    context.Connection.RemoteIpAddress = IPAddress.Parse(address.ToString());
+                }
+
+                return nextMiddleware(context);
+            });
+            next(app);
+        };
     }
 }
