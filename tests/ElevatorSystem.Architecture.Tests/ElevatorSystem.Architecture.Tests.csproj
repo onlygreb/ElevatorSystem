@@ -1,0 +1,6 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    Guards the solution's shape: project dependency rules and package policy.
+    Reads the project files directly, so it needs no project references.
+  -->
+</Project>

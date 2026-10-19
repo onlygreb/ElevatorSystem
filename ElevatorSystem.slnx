@@ -11,4 +11,7 @@
     <Project Path="src/ElevatorSystem.ServiceDefaults/ElevatorSystem.ServiceDefaults.csproj" />
     <Project Path="src/ElevatorSystem.Web/ElevatorSystem.Web.csproj" />
   </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/ElevatorSystem.Architecture.Tests/ElevatorSystem.Architecture.Tests.csproj" />
+  </Folder>
 </Solution>
