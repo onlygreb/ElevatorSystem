@@ -1,12 +1,18 @@
 using System.Globalization;
 using ElevatorSystem.Application;
+using ElevatorSystem.Application.Occupancy;
 using ElevatorSystem.Application.Simulation;
 using ElevatorSystem.Domain;
 
 namespace ElevatorSystem.ConsoleDemo;
 
 /// <summary>Reads commands from the console and applies them to the running elevator.</summary>
-internal sealed class InteractiveSession(ElevatorController controller, SimulatedElevatorDrive drive, ConsoleOutput output)
+internal sealed class InteractiveSession(
+    ElevatorController controller,
+    SimulatedElevatorDrive drive,
+    OccupancyTracker tracker,
+    ConsoleOccupancyView people,
+    ConsoleOutput output)
 {
     private const string Help = """
         Commands:
@@ -17,6 +23,7 @@ internal sealed class InteractiveSession(ElevatorController controller, Simulate
           resume                 return the elevator to service
           jam                    make the next trip get stuck, to see the watchdog react
           status                 show the elevator's state and queue
+          people                 show how many people wait, ride and are present on each floor
           help                   show this list
           quit                   exit
         """;
@@ -78,6 +85,9 @@ internal sealed class InteractiveSession(ElevatorController controller, Simulate
             case ["jam"]:
                 drive.SimulateStuckCar();
                 output.Result("The next trip will get stuck.");
+                return true;
+            case ["people"]:
+                people.PrintTable(tracker.Current);
                 return true;
             case ["status"]:
                 PrintStatus();
