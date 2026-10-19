@@ -1,0 +1,13 @@
+<Project Sdk="Aspire.AppHost.Sdk/13.6.1">
+  <!-- Local orchestration: `dotnet run` here starts every service plus the Aspire dashboard. -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <AspireUseCliBundle>true</AspireUseCliBundle>
+    <UserSecretsId>1f2b05bf-bf2c-41a7-885c-48d0222c830b</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ElevatorSystem.Api\ElevatorSystem.Api.csproj" />
+    <ProjectReference Include="..\ElevatorSystem.Engine\ElevatorSystem.Engine.csproj" />
+  </ItemGroup>
+</Project>

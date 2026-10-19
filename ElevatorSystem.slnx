@@ -1,6 +1,7 @@
 <Solution>
   <Folder Name="/src/">
     <Project Path="src/ElevatorSystem.Api/ElevatorSystem.Api.csproj" />
+    <Project Path="src/ElevatorSystem.AppHost/ElevatorSystem.AppHost.csproj" />
     <Project Path="src/ElevatorSystem.Application/ElevatorSystem.Application.csproj" />
     <Project Path="src/ElevatorSystem.ConsoleDemo/ElevatorSystem.ConsoleDemo.csproj" />
     <Project Path="src/ElevatorSystem.Contracts/ElevatorSystem.Contracts.csproj" />
