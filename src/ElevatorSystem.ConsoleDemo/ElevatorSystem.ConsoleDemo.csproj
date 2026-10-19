@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Runs the core scenario against Domain + Application only: no Docker, no broker, no database. -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ElevatorSystem.Application\ElevatorSystem.Application.csproj" />
+  </ItemGroup>
+</Project>

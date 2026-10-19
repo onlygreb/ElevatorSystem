@@ -1,0 +1,26 @@
+{
+  "version": 2,
+  "dependencies": {
+    "net10.0": {
+      "Microsoft.CodeAnalysis.BannedApiAnalyzers": {
+        "type": "Direct",
+        "requested": "[5.6.0, )",
+        "resolved": "5.6.0",
+        "contentHash": "Kcobt3pnOdO0A+6CKiMHZdTEluJpsfxiV20axtZdmfBQnDmiWTKPJADlgAfdTuKNAnVarrkJa0UEGwuOo91muw=="
+      },
+      "elevatorsystem.application": {
+        "type": "Project",
+        "dependencies": {
+          "ElevatorSystem.Contracts": "[1.0.0, )",
+          "ElevatorSystem.Domain": "[1.0.0, )"
+        }
+      },
+      "elevatorsystem.contracts": {
+        "type": "Project"
+      },
+      "elevatorsystem.domain": {
+        "type": "Project"
+      }
+    }
+  }
+}
