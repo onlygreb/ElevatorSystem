@@ -1,0 +1,16 @@
+<Project>
+  <!--
+    Central Package Management: every package version lives here and nowhere else.
+    Before adding a package, check its license against docs/adr/0008 (no commercially
+    licensed libraries); the architecture tests enforce the deny-list.
+  -->
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+    <!-- Also pins transitive dependencies listed here, so a vulnerable transitive package is patched in one place. -->
+    <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
+  </PropertyGroup>
+
+  <ItemGroup Label="Analyzers">
+    <PackageVersion Include="Microsoft.CodeAnalysis.BannedApiAnalyzers" Version="5.6.0" />
+  </ItemGroup>
+</Project>
