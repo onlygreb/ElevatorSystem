@@ -33,8 +33,9 @@ not answer:
    travelled to, if it was moving). They become present there and are counted as `Evacuated`, not
    delivered. Waiting people stay waiting, but every call was cancelled, so they are all left behind
    and must call again once the car is back. Events published after the out-of-service event (a
-   stop overtaken by the safety command) move nobody, and requests acknowledged in that window are
-   counted from the event's cancelled calls instead.
+   stop overtaken by the safety command) move nobody. Requests acknowledged in that window are
+   counted from the event's cancelled calls instead, each as one more person left behind, never
+   taken for someone already waiting, so the result does not depend on the order of the calls.
 4. **Inconsistent events are clamped and logged.** A car call that lets off more riders than are
    in the car only lets off those riding (event ID 1800). A served or cancelled hall call carrying
    requests the tracker never saw, for example restored after a restart, adds them as waiting people
@@ -44,7 +45,15 @@ not answer:
    same order and up to the same capacity (`OccupancyOptions`), including rule 2: a newcomer whose
    press is counted as a left-behind person's call presses again later. With the generator as the
    only source of calls, its people are exactly where the tracker counts them after every event,
-   and the tests check this event by event. People left behind press again when the door closes.
+   and the tests check this event by event.
+   - **Who presses again, and from where.** People left behind press again when a door closes,
+     from the control loop's own event. The loop then takes the press in before its next stop.
+     A press from the arrival timer, or from the thread that returned the car to service, could
+     reach the loop after the door opened at that floor. The person would board with the press
+     still in flight, and the loop would later take it for someone new. So the timer only presses
+     for people not counted yet (newcomers, and those whose press was taken for someone else).
+     After a return to service, one counted person calls the car back, and the rest press when its
+     door closes. The first runs on CI caught this race.
 6. **The generator keeps its own clock.** Arrival times are the running sum of gaps drawn from a
    seeded `Random`, checked by a one-shot `TimeProvider` timer. Arrivals do not depend on how the
    timer fires or how a test advances fake time, and the draws are independent of the elevator, so
