@@ -1,0 +1,535 @@
+/* Passenger view. Colours, sizes and durations come from tokens.css; nothing here hard-codes a colour. */
+
+html,
+body {
+    background: var(--es-color-bg);
+    color: var(--es-color-text);
+    font-family: var(--es-font);
+}
+
+/* ---------- Accessibility helpers ---------- */
+
+.visually-hidden {
+    position: absolute !important;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+    border: 0;
+}
+
+/* One focus indicator for everything, custom and MudBlazor alike (WCAG 2.4.7 / 2.4.11). */
+:focus-visible {
+    outline: 3px solid var(--es-color-focus) !important;
+    outline-offset: 2px;
+}
+
+h1:focus {
+    outline: none;
+}
+
+/* ---------- Page chrome ---------- */
+
+.es-appbar.mud-appbar {
+    background: var(--es-color-surface);
+    color: var(--es-color-text);
+    border-bottom: 1px solid var(--es-color-divider);
+}
+
+.es-brand {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--es-space-2);
+    font-weight: 600;
+    font-size: 1.125rem;
+    letter-spacing: 0.01em;
+}
+
+.es-brand svg {
+    width: 1.5rem;
+    height: 1.5rem;
+    color: var(--es-color-accent);
+}
+
+.es-page {
+    padding-block: var(--es-space-5) var(--es-space-6);
+}
+
+.es-panel.mud-paper {
+    background: var(--es-color-surface);
+    border: 1px solid var(--es-color-divider);
+    border-radius: var(--es-radius-lg);
+    box-shadow: var(--es-shadow);
+    padding: var(--es-space-5);
+}
+
+.es-panel__title {
+    margin: 0 0 var(--es-space-1);
+    font-size: 0.8125rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--es-color-text-muted);
+}
+
+.es-panel__hint {
+    margin: 0 0 var(--es-space-4);
+    font-size: 0.875rem;
+    color: var(--es-color-text-muted);
+}
+
+.es-stack {
+    display: flex;
+    flex-direction: column;
+    gap: var(--es-space-4);
+}
+
+.es-loading {
+    display: flex;
+    align-items: center;
+    gap: var(--es-space-3);
+    padding: var(--es-space-6) 0;
+    color: var(--es-color-text-muted);
+}
+
+/* ---------- Status line ---------- */
+
+.status-line {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--es-space-4) var(--es-space-6);
+}
+
+.status-line__floor {
+    display: flex;
+    align-items: baseline;
+    gap: var(--es-space-2);
+}
+
+.status-line__floor-label {
+    font-size: 0.875rem;
+    color: var(--es-color-text-muted);
+}
+
+.status-line__floor-number {
+    font-family: var(--es-font-numeric);
+    font-size: 3rem;
+    font-weight: 600;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+}
+
+.status-line__state {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--es-space-2);
+    font-size: 1.125rem;
+    font-weight: 500;
+}
+
+.status-line__state svg {
+    width: 1.25rem;
+    height: 1.25rem;
+}
+
+.status-line__out-of-service {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--es-space-2);
+    padding: var(--es-space-1) var(--es-space-3);
+    border-radius: var(--es-radius-sm);
+    background: var(--es-color-warning);
+    color: var(--es-color-on-warning);
+    font-weight: 600;
+}
+
+/* ---------- Building: landings and shaft ---------- */
+
+.building {
+    display: flex;
+    gap: var(--es-space-4);
+    align-items: flex-start;
+}
+
+.landings {
+    flex: 1 1 auto;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.landing {
+    display: flex;
+    align-items: center;
+    gap: var(--es-space-3);
+    height: var(--es-floor-height);
+    border-bottom: 1px solid var(--es-color-divider);
+}
+
+.landing:first-child {
+    border-top: 1px solid var(--es-color-divider);
+}
+
+.landing__number {
+    width: 2.25rem;
+    text-align: end;
+    font-family: var(--es-font-numeric);
+    font-size: 1.125rem;
+    font-variant-numeric: tabular-nums;
+    color: var(--es-color-text-muted);
+}
+
+/* The car's floor: bold and marked with a bar, not only a colour. */
+.landing--current .landing__number {
+    color: var(--es-color-text);
+    font-weight: 700;
+}
+
+.landing__marker {
+    width: 0.25rem;
+    height: 1.5rem;
+    border-radius: 2px;
+    background: transparent;
+}
+
+.landing--current .landing__marker {
+    background: var(--es-color-accent);
+}
+
+.hall-buttons {
+    display: flex;
+    gap: var(--es-space-2);
+}
+
+.hall-button,
+.hall-button-gap {
+    width: var(--es-button-size);
+    height: var(--es-button-size);
+    flex: 0 0 auto;
+}
+
+.hall-button {
+    display: grid;
+    place-items: center;
+    padding: 0;
+    border: 2px solid var(--es-color-outline);
+    border-radius: 50%;
+    background: var(--es-color-surface);
+    color: var(--es-color-text);
+    cursor: pointer;
+    transition: background-color 150ms ease, box-shadow 150ms ease;
+}
+
+.hall-button svg {
+    width: 0.875rem;
+    height: 0.875rem;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2.5;
+    stroke-linejoin: round;
+}
+
+.hall-button:hover {
+    background: var(--es-color-sunken);
+}
+
+/* Lit: lamp colour, a ring and a filled arrow, so the state also shows without colour. */
+.hall-button[aria-pressed="true"] {
+    background: var(--es-color-lamp);
+    border-color: var(--es-color-lamp-ring);
+    color: var(--es-color-on-lamp);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--es-color-lamp) 40%, transparent);
+}
+
+.hall-button[aria-pressed="true"] svg {
+    fill: currentColor;
+}
+
+.shaft {
+    position: relative;
+    flex: 0 0 calc(var(--es-car-width) + 2 * var(--es-space-2));
+    height: calc(var(--es-floor-count) * var(--es-floor-height));
+    border: 1px solid var(--es-color-divider);
+    border-radius: var(--es-radius-md);
+    background:
+        repeating-linear-gradient(
+            to top,
+            transparent 0,
+            transparent calc(var(--es-floor-height) - 1px),
+            var(--es-color-shaft-line) calc(var(--es-floor-height) - 1px),
+            var(--es-color-shaft-line) var(--es-floor-height)),
+        var(--es-color-sunken);
+    overflow: hidden;
+}
+
+.car {
+    position: absolute;
+    left: var(--es-space-2);
+    right: var(--es-space-2);
+    bottom: 0;
+    height: calc(var(--es-floor-height) - 2 * var(--es-space-1));
+    margin-bottom: var(--es-space-1);
+    display: flex;
+    flex-direction: column;
+    border-radius: var(--es-radius-sm);
+    background: var(--es-color-car);
+    color: var(--es-color-on-car);
+    box-shadow: var(--es-shadow);
+    transition-property: transform;
+    transition-timing-function: linear;
+    will-change: transform;
+}
+
+.car__display {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 0.125rem;
+    height: 1.125rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+}
+
+.car__display svg {
+    width: 0.625rem;
+    height: 0.625rem;
+    fill: currentColor;
+}
+
+.car__doorway {
+    position: relative;
+    flex: 1 1 auto;
+    margin: 0 var(--es-space-1) var(--es-space-1);
+    overflow: hidden;
+    border-radius: 3px;
+    background: var(--es-color-lamp);
+}
+
+.door {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 50%;
+    background: var(--es-color-door);
+    transition: transform var(--es-door-duration) var(--es-ease);
+}
+
+.door--left {
+    left: 0;
+    border-right: 1px solid var(--es-color-door-edge);
+}
+
+.door--right {
+    right: 0;
+    border-left: 1px solid var(--es-color-door-edge);
+}
+
+.car--doors-open .door--left {
+    transform: translateX(-100%);
+}
+
+.car--doors-open .door--right {
+    transform: translateX(100%);
+}
+
+/* Out of service: hatched and marked with a warning sign, not only recoloured. */
+.car--out-of-service .car__doorway::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(
+        -45deg,
+        var(--es-color-warning) 0 4px,
+        transparent 4px 8px);
+    opacity: 0.85;
+}
+
+/* ---------- Car panel ---------- */
+
+.car-panel {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--es-space-2);
+    max-width: 14rem;
+}
+
+.car-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--es-space-2);
+    min-height: 3rem;
+    padding: 0 var(--es-space-3);
+    border: 2px solid var(--es-color-outline);
+    border-radius: var(--es-radius-md);
+    background: var(--es-color-surface);
+    color: var(--es-color-text);
+    font: inherit;
+    font-family: var(--es-font-numeric);
+    font-size: 1.125rem;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    cursor: pointer;
+    transition: background-color 150ms ease, box-shadow 150ms ease;
+}
+
+.car-button:hover {
+    background: var(--es-color-sunken);
+}
+
+.car-button__lamp {
+    width: 0.625rem;
+    height: 0.625rem;
+    border: 2px solid currentColor;
+    border-radius: 50%;
+}
+
+.car-button[aria-pressed="true"] {
+    background: var(--es-color-lamp);
+    border-color: var(--es-color-lamp-ring);
+    color: var(--es-color-on-lamp);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--es-color-lamp) 40%, transparent);
+}
+
+.car-button[aria-pressed="true"] .car-button__lamp {
+    background: currentColor;
+}
+
+/* ---------- Queue ---------- */
+
+.queue {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--es-space-2);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.queue-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--es-space-2);
+    padding: var(--es-space-1) var(--es-space-3) var(--es-space-1) var(--es-space-1);
+    border: 1px solid var(--es-color-divider);
+    border-radius: 999px;
+    background: var(--es-color-sunken);
+    font-variant-numeric: tabular-nums;
+}
+
+.queue-chip__position {
+    display: grid;
+    place-items: center;
+    min-width: 1.5rem;
+    height: 1.5rem;
+    border-radius: 999px;
+    background: var(--es-color-accent);
+    color: var(--es-color-on-accent);
+    font-size: 0.75rem;
+    font-weight: 700;
+}
+
+.queue-chip__text {
+    font-weight: 500;
+}
+
+.queue-chip__count {
+    font-size: 0.8125rem;
+    color: var(--es-color-text-muted);
+}
+
+.es-empty {
+    margin: 0;
+    color: var(--es-color-text-muted);
+    font-size: 0.9375rem;
+}
+
+/* ---------- Activity feed ---------- */
+
+.activity-scroll {
+    max-height: 22rem;
+    overflow-y: auto;
+    border-radius: var(--es-radius-sm);
+}
+
+.activity {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.activity__item {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: var(--es-space-3);
+    padding: var(--es-space-2) 0;
+    border-bottom: 1px solid var(--es-color-divider);
+    font-size: 0.9375rem;
+}
+
+.activity__item:last-child {
+    border-bottom: 0;
+}
+
+.activity__time {
+    color: var(--es-color-text-muted);
+    font-variant-numeric: tabular-nums;
+}
+
+.activity__item--refused .activity__text::before {
+    content: "⚠ ";
+}
+
+/* ---------- Language picker ---------- */
+
+.culture-picker {
+    display: inline-flex;
+    border: 1px solid var(--es-color-outline);
+    border-radius: 999px;
+    overflow: hidden;
+}
+
+.culture-picker__option {
+    min-height: 2rem;
+    padding: 0 var(--es-space-3);
+    border: 0;
+    background: transparent;
+    color: var(--es-color-text);
+    font: inherit;
+    font-size: 0.875rem;
+    cursor: pointer;
+}
+
+.culture-picker__option[aria-pressed="true"] {
+    background: var(--es-color-accent);
+    color: var(--es-color-on-accent);
+    font-weight: 600;
+}
+
+/* ---------- Motion preferences ---------- */
+
+@media (prefers-reduced-motion: reduce) {
+    .car,
+    .door,
+    .hall-button,
+    .car-button {
+        transition-duration: 0s !important;
+    }
+}
+
+/* ---------- Small screens ---------- */
+
+@media (max-width: 600px) {
+    :root {
+        --es-floor-height: 3rem;
+    }
+
+    .status-line__floor-number {
+        font-size: 2.25rem;
+    }
+}

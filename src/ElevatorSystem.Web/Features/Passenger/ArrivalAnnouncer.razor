@@ -1,0 +1,23 @@
+@* Speaks like a real car: "Floor 5, doors opening". Polite, so it never interrupts the reader. *@
+@implements IDisposable
+@inject ElevatorStateStore Store
+@inject IStringLocalizer<SharedResource> L
+
+<div class="visually-hidden" aria-live="polite" aria-atomic="true" data-testid="announcer">@_message</div>
+
+@code {
+    private string? _message;
+
+    protected override void OnInitialized() => Store.ActivityReceived += OnActivity;
+
+    public void Dispose() => Store.ActivityReceived -= OnActivity;
+
+    private void OnActivity(object? sender, ElevatorActivityDto activity)
+    {
+        if (L.Announcement(activity) is { } message)
+        {
+            _message = message;
+            _ = InvokeAsync(StateHasChanged);
+        }
+    }
+}

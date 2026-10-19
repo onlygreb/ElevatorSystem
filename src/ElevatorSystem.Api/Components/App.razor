@@ -4,17 +4,23 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="light dark" />
     <base href="/" />
     <ResourcePreloader />
-    <link rel="stylesheet" href="@Assets["app.css"]" />
+    @* Static files only: the CSP allows no inline script and no third-party origin (ADR-0006). *@
+    <link rel="stylesheet" href="@Assets["_content/MudBlazor/MudBlazor.min.css"]" />
+    <link rel="stylesheet" href="@Assets["css/tokens.css"]" />
+    <link rel="stylesheet" href="@Assets["css/app.css"]" />
     <link rel="stylesheet" href="@Assets["ElevatorSystem.Api.styles.css"]" />
-    <ImportMap />
+    @* No <ImportMap />: it renders an inline <script type="importmap">, which script-src 'self' blocks. The
+       WebAssembly app loads without it (checked in a browser under the production CSP). *@
     <HeadOutlet @rendermode="RenderMode" />
 </head>
 
 <body>
     <Routes @rendermode="RenderMode" />
     <script src="@Assets["_framework/blazor.web.js"]"></script>
+    <script src="@Assets["_content/MudBlazor/MudBlazor.min.js"]"></script>
 </body>
 
 </html>

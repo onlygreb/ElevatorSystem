@@ -12,6 +12,195 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
+  <data name="AppTitle" xml:space="preserve">
+    <value>Elevador</value>
+  </data>
+  <data name="PageTitle" xml:space="preserve">
+    <value>Elevador · Visão do passageiro</value>
+  </data>
+  <data name="LanguageLabel" xml:space="preserve">
+    <value>Idioma</value>
+  </data>
+  <data name="LanguageEnglish" xml:space="preserve">
+    <value>English</value>
+  </data>
+  <data name="LanguagePortuguese" xml:space="preserve">
+    <value>Português (Brasil)</value>
+  </data>
+  <data name="UnhandledError" xml:space="preserve">
+    <value>Algo deu errado. Recarregue a página para continuar.</value>
+  </data>
+  <data name="Reload" xml:space="preserve">
+    <value>Recarregar</value>
+  </data>
+  <data name="Dismiss" xml:space="preserve">
+    <value>Fechar</value>
+  </data>
+  <data name="NotFoundTitle" xml:space="preserve">
+    <value>Página não encontrada</value>
+  </data>
+  <data name="NotFoundText" xml:space="preserve">
+    <value>Não há nada neste endereço.</value>
+  </data>
+  <data name="BackHome" xml:space="preserve">
+    <value>Voltar ao elevador</value>
+  </data>
+  <data name="Loading" xml:space="preserve">
+    <value>Conectando ao elevador…</value>
+  </data>
+  <data name="ConfigurationFailed" xml:space="preserve">
+    <value>Não foi possível acessar o elevador agora.</value>
+  </data>
+  <data name="TryAgain" xml:space="preserve">
+    <value>Tentar novamente</value>
+  </data>
+  <data name="Connecting" xml:space="preserve">
+    <value>Conectando às atualizações ao vivo…</value>
+  </data>
+  <data name="Reconnecting" xml:space="preserve">
+    <value>Reconectando… A tela mostra o último estado conhecido e será atualizada quando a conexão voltar.</value>
+  </data>
+  <data name="FloorsHeading" xml:space="preserve">
+    <value>Andares</value>
+  </data>
+  <data name="CarPanelHeading" xml:space="preserve">
+    <value>Dentro da cabine</value>
+  </data>
+  <data name="CarPanelHint" xml:space="preserve">
+    <value>Escolha seu andar.</value>
+  </data>
+  <data name="QueueHeading" xml:space="preserve">
+    <value>Fila de chamadas</value>
+  </data>
+  <data name="QueueHint" xml:space="preserve">
+    <value>Atendidas na ordem em que foram feitas (FIFO).</value>
+  </data>
+  <data name="QueueEmpty" xml:space="preserve">
+    <value>Nenhuma chamada pendente.</value>
+  </data>
+  <data name="ActivityHeading" xml:space="preserve">
+    <value>Atividade recente</value>
+  </data>
+  <data name="ActivityEmpty" xml:space="preserve">
+    <value>Nada aconteceu ainda.</value>
+  </data>
+  <data name="FloorLabel" xml:space="preserve">
+    <value>Andar {0}</value>
+  </data>
+  <data name="HallButtonsLabel" xml:space="preserve">
+    <value>Botões do andar {0}</value>
+  </data>
+  <data name="CallUpLabel" xml:space="preserve">
+    <value>Chamar elevador para subir no andar {0}</value>
+  </data>
+  <data name="CallDownLabel" xml:space="preserve">
+    <value>Chamar elevador para descer no andar {0}</value>
+  </data>
+  <data name="SelectFloorLabel" xml:space="preserve">
+    <value>Ir para o andar {0}</value>
+  </data>
+  <data name="CarDescription" xml:space="preserve">
+    <value>Cabine no andar {0}, {1}</value>
+  </data>
+  <data name="DoorsOpen" xml:space="preserve">
+    <value>portas abertas</value>
+  </data>
+  <data name="DoorsClosed" xml:space="preserve">
+    <value>portas fechadas</value>
+  </data>
+  <data name="StatusUnknown" xml:space="preserve">
+    <value>Aguardando o estado do elevador…</value>
+  </data>
+  <data name="StatusIdle" xml:space="preserve">
+    <value>Parado</value>
+  </data>
+  <data name="StatusMovingUp" xml:space="preserve">
+    <value>Subindo</value>
+  </data>
+  <data name="StatusMovingDown" xml:space="preserve">
+    <value>Descendo</value>
+  </data>
+  <data name="StatusDoorOpen" xml:space="preserve">
+    <value>Portas abertas</value>
+  </data>
+  <data name="StatusOutOfService" xml:space="preserve">
+    <value>Fora de serviço</value>
+  </data>
+  <data name="CauseMaintenance" xml:space="preserve">
+    <value>manutenção</value>
+  </data>
+  <data name="CauseFault" xml:space="preserve">
+    <value>falha</value>
+  </data>
+  <data name="CauseEmergencyStop" xml:space="preserve">
+    <value>parada de emergência</value>
+  </data>
+  <data name="OutOfServiceCause" xml:space="preserve">
+    <value>Causa: {0}</value>
+  </data>
+  <data name="QueueHallUp" xml:space="preserve">
+    <value>Andar {0}, subindo</value>
+  </data>
+  <data name="QueueHallDown" xml:space="preserve">
+    <value>Andar {0}, descendo</value>
+  </data>
+  <data name="QueueCar" xml:space="preserve">
+    <value>Andar {0}, pela cabine</value>
+  </data>
+  <data name="QueueMerged" xml:space="preserve">
+    <value>{0} chamadas</value>
+  </data>
+  <data name="CallHallUp" xml:space="preserve">
+    <value>andar {0} subindo</value>
+  </data>
+  <data name="CallHallDown" xml:space="preserve">
+    <value>andar {0} descendo</value>
+  </data>
+  <data name="CallCar" xml:space="preserve">
+    <value>andar {0} pela cabine</value>
+  </data>
+  <data name="ActivityCallQueued" xml:space="preserve">
+    <value>Chamada para {0} na fila, posição {1}.</value>
+  </data>
+  <data name="ActivityCallMerged" xml:space="preserve">
+    <value>Chamada para {0} unida a outra já na fila, posição {1}.</value>
+  </data>
+  <data name="ActivityRequestRejected" xml:space="preserve">
+    <value>Chamada para {0} recusada: {1}</value>
+  </data>
+  <data name="ActivityMoved" xml:space="preserve">
+    <value>Moveu-se do andar {0} para o andar {1}.</value>
+  </data>
+  <data name="ActivityDoorsOpened" xml:space="preserve">
+    <value>Portas abertas no andar {0}.</value>
+  </data>
+  <data name="ActivityCallServed" xml:space="preserve">
+    <value>Chamada para {0} atendida após {1:0.0} s.</value>
+  </data>
+  <data name="ActivityCallServedMerged" xml:space="preserve">
+    <value>Chamada para {0} atendida após {1:0.0} s; {2} chamadas foram unidas a ela.</value>
+  </data>
+  <data name="ActivityDoorsClosed" xml:space="preserve">
+    <value>Portas fechadas no andar {0}.</value>
+  </data>
+  <data name="ActivityOutOfService" xml:space="preserve">
+    <value>Fora de serviço no andar {0}: {1}. Chamadas canceladas: {2}.</value>
+  </data>
+  <data name="ActivityReturnedToService" xml:space="preserve">
+    <value>De volta ao serviço no andar {0}.</value>
+  </data>
+  <data name="AnnounceDoorsOpening" xml:space="preserve">
+    <value>Andar {0}, portas abrindo</value>
+  </data>
+  <data name="AnnounceOutOfService" xml:space="preserve">
+    <value>Elevador fora de serviço: {0}</value>
+  </data>
+  <data name="AnnounceBackInService" xml:space="preserve">
+    <value>Elevador de volta ao serviço no andar {0}</value>
+  </data>
+  <data name="RequestRefusedTitle" xml:space="preserve">
+    <value>Chamada não aceita</value>
+  </data>
   <data name="RefusedInvalidFloor" xml:space="preserve">
     <value>Este elevador não atende esse andar.</value>
   </data>
@@ -32,5 +221,11 @@
   </data>
   <data name="RefusedUnexpected" xml:space="preserve">
     <value>Não foi possível concluir sua chamada. Tente novamente.</value>
+  </data>
+  <data name="FloorCaption" xml:space="preserve">
+    <value>Andar</value>
+  </data>
+  <data name="FloorsHint" xml:space="preserve">
+    <value>Toque em ▲ ou ▼ no seu andar para chamar o elevador.</value>
   </data>
 </root>

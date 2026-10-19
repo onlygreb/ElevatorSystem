@@ -1,0 +1,30 @@
+@* One landing button. Lit (aria-pressed="true") while the server reports a matching hall call. *@
+@inject IStringLocalizer<SharedResource> L
+
+<button type="button"
+        class="hall-button hall-button--@Direction.ToString().ToLowerInvariant()"
+        aria-pressed="@(Lit ? "true" : "false")"
+        aria-label="@Label"
+        data-floor="@Floor"
+        data-direction="@Direction"
+        @onclick="() => OnPress.InvokeAsync(new HallCallRequest(Floor, Direction))">
+    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+        <path d="@(Direction == CallDirection.Up ? "M12 5 20 18H4Z" : "M12 19 4 6H20Z")" />
+    </svg>
+</button>
+
+@code {
+    [Parameter, EditorRequired]
+    public int Floor { get; set; }
+
+    [Parameter, EditorRequired]
+    public CallDirection Direction { get; set; }
+
+    [Parameter]
+    public bool Lit { get; set; }
+
+    [Parameter]
+    public EventCallback<HallCallRequest> OnPress { get; set; }
+
+    private string Label => L[Direction == CallDirection.Up ? Text.CallUpLabel : Text.CallDownLabel, Floor];
+}

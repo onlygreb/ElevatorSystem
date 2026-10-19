@@ -178,7 +178,8 @@
         "dependencies": {
           "ElevatorSystem.Contracts": "[1.0.0, )",
           "Microsoft.AspNetCore.Components.WebAssembly": "[10.0.13, )",
-          "Microsoft.AspNetCore.SignalR.Client": "[10.0.13, )"
+          "Microsoft.AspNetCore.SignalR.Client": "[10.0.13, )",
+          "MudBlazor": "[9.11.0, )"
         }
       },
       "Microsoft.AspNetCore.Components.WebAssembly": {
@@ -218,6 +219,12 @@
         "dependencies": {
           "Microsoft.Extensions.ServiceDiscovery.Abstractions": "10.11.0"
         }
+      },
+      "MudBlazor": {
+        "type": "CentralTransitive",
+        "requested": "[9.11.0, )",
+        "resolved": "9.11.0",
+        "contentHash": "hboxF5cQuMYjB0w6+tScmNt0ACuoCu35TGPsCmCq8OeQgvtPtzQ1s9auAOrINj/J6I/ZyBB1rmUzrcMKj14RFA=="
       },
       "OpenTelemetry.Exporter.OpenTelemetryProtocol": {
         "type": "CentralTransitive",

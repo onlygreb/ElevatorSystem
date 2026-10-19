@@ -7,4 +7,9 @@
   <ItemGroup>
     <PackageReference Include="bunit" />
   </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Bunit" />
+    <Using Include="Microsoft.Extensions.DependencyInjection" />
+  </ItemGroup>
 </Project>

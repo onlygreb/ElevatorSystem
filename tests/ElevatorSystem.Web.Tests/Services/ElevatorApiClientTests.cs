@@ -14,7 +14,7 @@ public sealed class ElevatorApiClientTests
         var handler = new StubHandler(Accepted(Guid.NewGuid()));
         var client = ClientFor(handler);
 
-        await client.RequestElevatorAsync(3, CallDirection.Up, TestContext.Current.CancellationToken);
+        await client.RequestElevatorAsync(3, CallDirection.Up, Xunit.TestContext.Current.CancellationToken);
 
         handler.Requests.ShouldHaveSingleItem();
         handler.Requests[0].Method.ShouldBe(HttpMethod.Post);
@@ -28,7 +28,7 @@ public sealed class ElevatorApiClientTests
         var handler = new StubHandler(Accepted(Guid.NewGuid()));
         var client = ClientFor(handler);
 
-        await client.RequestDestinationAsync(7, TestContext.Current.CancellationToken);
+        await client.RequestDestinationAsync(7, Xunit.TestContext.Current.CancellationToken);
 
         handler.Requests[0].Uri.AbsolutePath.ShouldBe(ApiRoutes.CarCalls);
         handler.Requests[0].Body.ShouldBe("""{"floor":7}""");
@@ -40,7 +40,7 @@ public sealed class ElevatorApiClientTests
         var requestId = Guid.NewGuid();
         var client = ClientFor(new StubHandler(Accepted(requestId)));
 
-        var outcome = await client.RequestElevatorAsync(3, CallDirection.Up, TestContext.Current.CancellationToken);
+        var outcome = await client.RequestElevatorAsync(3, CallDirection.Up, Xunit.TestContext.Current.CancellationToken);
 
         outcome.IsAccepted.ShouldBeTrue();
         outcome.RequestId.ShouldBe(requestId);
@@ -57,7 +57,7 @@ public sealed class ElevatorApiClientTests
         using var culture = TestLocalisation.Culture("en-US");
         var client = ClientFor(new StubHandler(Problem(HttpStatusCode.Conflict, reason.ToString())));
 
-        var outcome = await client.RequestElevatorAsync(3, CallDirection.Up, TestContext.Current.CancellationToken);
+        var outcome = await client.RequestElevatorAsync(3, CallDirection.Up, Xunit.TestContext.Current.CancellationToken);
 
         outcome.IsAccepted.ShouldBeFalse();
         outcome.Reason.ShouldBe(reason);
@@ -74,7 +74,7 @@ public sealed class ElevatorApiClientTests
         using var culture = TestLocalisation.Culture("pt-BR");
         var client = ClientFor(new StubHandler(Problem(HttpStatusCode.BadRequest, reason.ToString())));
 
-        var outcome = await client.RequestDestinationAsync(3, TestContext.Current.CancellationToken);
+        var outcome = await client.RequestDestinationAsync(3, Xunit.TestContext.Current.CancellationToken);
 
         outcome.Message.ShouldBe(expected);
     }
@@ -88,7 +88,7 @@ public sealed class ElevatorApiClientTests
         using var culture = TestLocalisation.Culture("en-US");
         var client = ClientFor(new StubHandler(Problem(HttpStatusCode.BadRequest, reason)));
 
-        var outcome = await client.RequestElevatorAsync(3, CallDirection.Up, TestContext.Current.CancellationToken);
+        var outcome = await client.RequestElevatorAsync(3, CallDirection.Up, Xunit.TestContext.Current.CancellationToken);
 
         outcome.Reason.ShouldBeNull(because);
         outcome.Message.ShouldBe("Your call couldn't be completed. Please try again.");
@@ -100,7 +100,7 @@ public sealed class ElevatorApiClientTests
         using var culture = TestLocalisation.Culture("en-US");
         var client = ClientFor(new StubHandler(new HttpResponseMessage(HttpStatusCode.TooManyRequests)));
 
-        var outcome = await client.RequestElevatorAsync(3, CallDirection.Up, TestContext.Current.CancellationToken);
+        var outcome = await client.RequestElevatorAsync(3, CallDirection.Up, Xunit.TestContext.Current.CancellationToken);
 
         outcome.Message.ShouldBe("Too many presses in a short time. Please wait a moment and try again.");
     }
@@ -115,7 +115,7 @@ public sealed class ElevatorApiClientTests
         };
         var client = ClientFor(new StubHandler(response));
 
-        var outcome = await client.RequestElevatorAsync(3, CallDirection.Up, TestContext.Current.CancellationToken);
+        var outcome = await client.RequestElevatorAsync(3, CallDirection.Up, Xunit.TestContext.Current.CancellationToken);
 
         outcome.Message.ShouldBe("The elevator service can't be reached. Please try again.");
     }
@@ -126,7 +126,7 @@ public sealed class ElevatorApiClientTests
         using var culture = TestLocalisation.Culture("en-US");
         var client = ClientFor(new StubHandler(new HttpRequestException("connection refused")));
 
-        var outcome = await client.RequestElevatorAsync(3, CallDirection.Up, TestContext.Current.CancellationToken);
+        var outcome = await client.RequestElevatorAsync(3, CallDirection.Up, Xunit.TestContext.Current.CancellationToken);
 
         outcome.IsAccepted.ShouldBeFalse();
         outcome.Message.ShouldBe("The elevator service can't be reached. Please try again.");
@@ -149,7 +149,7 @@ public sealed class ElevatorApiClientTests
         var handler = new StubHandler(Json(json));
         var client = ClientFor(handler);
 
-        var configuration = await client.GetConfigurationAsync(TestContext.Current.CancellationToken);
+        var configuration = await client.GetConfigurationAsync(Xunit.TestContext.Current.CancellationToken);
 
         handler.Requests[0].Uri.AbsolutePath.ShouldBe(ApiRoutes.Configuration);
         configuration.ShouldBe(TestData.Configuration(travelSecondsPerFloor: 2));
@@ -165,7 +165,7 @@ public sealed class ElevatorApiClientTests
             """;
         var client = ClientFor(new StubHandler(Json(StatusJson)));
 
-        var status = await client.GetStatusAsync(TestContext.Current.CancellationToken);
+        var status = await client.GetStatusAsync(Xunit.TestContext.Current.CancellationToken);
 
         status.Status.ShouldBe(ElevatorStatus.MovingUp);
         status.PendingCalls.ShouldHaveSingleItem().Call.Direction.ShouldBe(CallDirection.Down);

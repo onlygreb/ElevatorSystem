@@ -1,7 +1,15 @@
 @page "/"
+@inject IStringLocalizer<SharedResource> L
 
-<PageTitle>Elevator System</PageTitle>
+<PageTitle>@L[Text.PageTitle]</PageTitle>
 
-<h1>Elevator System</h1>
+<h1 class="visually-hidden" tabindex="-1">@L[Text.PageTitle]</h1>
 
-<p>The passenger view and admin panel are built in phase 2.</p>
+<ErrorBoundary>
+    <ChildContent>
+        <PassengerView />
+    </ChildContent>
+    <ErrorContent>
+        <MudAlert Severity="Severity.Error" Variant="Variant.Filled" role="alert">@L[Text.UnhandledError]</MudAlert>
+    </ErrorContent>
+</ErrorBoundary>
