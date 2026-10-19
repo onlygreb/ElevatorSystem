@@ -23,4 +23,5 @@ supersedes the old one instead of editing it. New records start from [`template.
 | [0015](0015-real-time-fan-out-through-a-lossy-buffer.md) | Real-time fan-out through a lossy buffer | Accepted |
 | [0016](0016-keep-the-browser-view-in-step-with-the-server.md) | Keep the browser view in step with the server | Accepted |
 | [0017](0017-manual-passengers-occupancy-and-admin-service-control.md) | Manual passengers, occupancy counts and admin service control | Accepted |
+| [0018](0018-rabbitmq-messaging-adapter.md) | RabbitMQ messaging adapter: delivery, recovery and update fan-out | Accepted |
 | [0019](0019-postgresql-snapshots-deduplication-and-leader-lease.md) | Store snapshots, processed commands and the leader lease in PostgreSQL | Accepted |
