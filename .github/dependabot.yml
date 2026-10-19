@@ -1,0 +1,33 @@
+version: 2
+
+updates:
+  - package-ecosystem: nuget
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 10
+    commit-message:
+      prefix: build
+      include: scope
+    groups:
+      aspnetcore-and-extensions:
+        patterns: ['Microsoft.AspNetCore.*', 'Microsoft.Extensions.*']
+      opentelemetry:
+        patterns: ['OpenTelemetry*']
+      aspire:
+        patterns: ['Aspire.*']
+      testing:
+        patterns: ['xunit*', 'Shouldly', 'Microsoft.Testing.*']
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    commit-message:
+      prefix: ci
+      include: scope
+    groups:
+      actions:
+        patterns: ['*']
