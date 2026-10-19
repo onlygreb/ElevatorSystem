@@ -75,6 +75,8 @@ public sealed class ElevatorController
 
     public ISchedulingStrategy Strategy => _strategy;
 
+    public ElevatorControllerOptions Options => _options;
+
     /// <summary>
     /// A pickup request from a landing: a passenger on <paramref name="floor"/> wants to go in
     /// <paramref name="direction"/>. Safe to call from any thread; never blocks.
