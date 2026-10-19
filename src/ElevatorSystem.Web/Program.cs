@@ -1,12 +1,14 @@
 using ElevatorSystem.Contracts;
 using ElevatorSystem.Web.Services;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
+using MudBlazor.Services;
 
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
 
 var baseAddress = new Uri(builder.HostEnvironment.BaseAddress);
 
 builder.Services.AddLocalization();
+builder.Services.AddMudServices();
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddSingleton<ElevatorStateStore>();
 // Same origin as the page: the browser sends the session cookie itself and no token ever reaches this code (ADR-0006).

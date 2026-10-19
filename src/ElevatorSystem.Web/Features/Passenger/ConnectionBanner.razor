@@ -1,0 +1,23 @@
+@* Shown while live updates are not flowing. The view keeps the last known status underneath. *@
+@inject IStringLocalizer<SharedResource> L
+
+@switch (State)
+{
+    case ConnectionState.Connecting:
+        <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Dense="true" Class="connection-banner" role="status"
+                  data-testid="connection-banner" data-state="@State">
+            @L[Text.Connecting]
+        </MudAlert>
+        break;
+    case ConnectionState.Reconnecting:
+        <MudAlert Severity="Severity.Warning" Variant="Variant.Filled" Class="connection-banner" role="status"
+                  data-testid="connection-banner" data-state="@State">
+            @L[Text.Reconnecting]
+        </MudAlert>
+        break;
+}
+
+@code {
+    [Parameter]
+    public ConnectionState State { get; set; }
+}

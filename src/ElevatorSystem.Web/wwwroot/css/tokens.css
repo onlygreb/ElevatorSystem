@@ -1,0 +1,98 @@
+/*
+  Design tokens for the elevator UI. Every colour, size and duration the custom CSS uses is defined here.
+  The MudBlazor theme (Shared/AppTheme.cs) uses the same colour values; tests check that the two agree
+  and that every text pair below reaches WCAG AA contrast (4.5:1).
+*/
+
+:root {
+    color-scheme: light;
+
+    /* Surfaces */
+    --es-color-bg: #f4f6f8;
+    --es-color-surface: #ffffff;
+    --es-color-sunken: #e8ecf0;
+    --es-color-divider: #dce2e8;
+    --es-color-outline: #66717e;
+
+    /* Text */
+    --es-color-text: #17202a;
+    --es-color-text-muted: #4b5663;
+
+    /* Brand and state */
+    --es-color-accent: #0f6b74;
+    --es-color-on-accent: #ffffff;
+    --es-color-focus: #1d4ed8;
+    --es-color-lamp: #ffc94d;
+    --es-color-on-lamp: #3a2a00;
+    --es-color-lamp-ring: #8a5a00;
+    --es-color-warning: #8a5a00;
+    --es-color-on-warning: #ffffff;
+    --es-color-error: #b3261e;
+    --es-color-on-error: #ffffff;
+    --es-color-success: #1e6b3a;
+
+    /* The car */
+    --es-color-car: #2b3743;
+    --es-color-on-car: #ffffff;
+    --es-color-door: #8c99a6;
+    --es-color-door-edge: #5e6b78;
+    --es-color-shaft-line: #c3ccd5;
+
+    /* Shape and rhythm */
+    --es-font: "Segoe UI Variable", "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+    --es-font-numeric: "Segoe UI Variable Display", "Segoe UI", system-ui, -apple-system, Arial, sans-serif;
+    --es-space-1: 0.25rem;
+    --es-space-2: 0.5rem;
+    --es-space-3: 0.75rem;
+    --es-space-4: 1rem;
+    --es-space-5: 1.5rem;
+    --es-space-6: 2rem;
+    --es-radius-sm: 6px;
+    --es-radius-md: 10px;
+    --es-radius-lg: 16px;
+    --es-shadow: 0 1px 2px rgb(16 24 32 / 0.06), 0 4px 16px rgb(16 24 32 / 0.06);
+
+    /* The shaft: one floor's height, the button size (at least 24x24 px, WCAG 2.5.8) */
+    --es-floor-height: 3.5rem;
+    --es-button-size: 2.25rem;
+    --es-car-width: 4.5rem;
+
+    /* Motion. The car's travel time comes from the server configuration, set inline per move. */
+    --es-door-duration: 600ms;
+    --es-ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        color-scheme: dark;
+
+        --es-color-bg: #0e1419;
+        --es-color-surface: #161e26;
+        --es-color-sunken: #1d2731;
+        --es-color-divider: #2a3541;
+        --es-color-outline: #8996a3;
+
+        --es-color-text: #e7ecf1;
+        --es-color-text-muted: #aab5c0;
+
+        --es-color-accent: #5cc6cf;
+        --es-color-on-accent: #0e1419;
+        --es-color-focus: #8ab4ff;
+        --es-color-lamp: #ffc94d;
+        --es-color-on-lamp: #3a2a00;
+        --es-color-lamp-ring: #ffc94d;
+        --es-color-warning: #ffc94d;
+        --es-color-on-warning: #0e1419;
+        --es-color-error: #ffb4ab;
+        --es-color-on-error: #0e1419;
+        --es-color-success: #7fd69b;
+
+        --es-color-car: #3a4857;
+        --es-color-on-car: #ffffff;
+        --es-color-door: #6b7886;
+        --es-color-door-edge: #9aa6b2;
+        --es-color-shaft-line: #2f3b47;
+
+        --es-shadow: 0 1px 2px rgb(0 0 0 / 0.4), 0 4px 16px rgb(0 0 0 / 0.3);
+    }
+}

@@ -1,0 +1,154 @@
+@* The passenger view: loads the building, connects to the hub and renders whatever the store holds. *@
+@implements IDisposable
+@inject ElevatorStateStore Store
+@inject IElevatorApiClient Api
+@inject IElevatorHubClient Hub
+@inject IStringLocalizer<SharedResource> L
+
+<ArrivalAnnouncer />
+
+@if (Store.Configuration is not { } configuration)
+{
+    @if (_loadFailed)
+    {
+        <MudAlert Severity="Severity.Error" Variant="Variant.Filled" role="alert" data-testid="load-failed">
+            <span>@L[Text.ConfigurationFailed]</span>
+        </MudAlert>
+        <MudButton Variant="Variant.Outlined" Color="Color.Primary" Class="mt-4" OnClick="LoadAsync">@L[Text.TryAgain]</MudButton>
+    }
+    else
+    {
+        <div class="es-loading" role="status">
+            <MudProgressCircular Indeterminate="true" Size="Size.Small" aria-hidden="true" />
+            <span>@L[Text.Loading]</span>
+        </div>
+    }
+}
+else
+{
+    <div class="es-stack">
+        <ConnectionBanner State="Store.Connection" />
+
+        @if (_refusal is { } refusal)
+        {
+            <MudAlert Severity="Severity.Error" Variant="Variant.Filled" role="alert" data-testid="refusal" data-reason="@refusal.Reason">
+                <div class="d-flex align-center gap-4">
+                    <span><strong>@L[Text.RequestRefusedTitle].</strong> @refusal.Message</span>
+                    <MudButton Variant="Variant.Text" Color="Color.Inherit" Size="Size.Small" OnClick="DismissRefusal">@L[Text.Dismiss]</MudButton>
+                </div>
+            </MudAlert>
+        }
+
+        <MudPaper Class="es-panel" Elevation="0">
+            <StatusLine Status="Store.Status" />
+        </MudPaper>
+
+        <MudGrid Spacing="4">
+            <MudItem xs="12" md="7">
+                <MudPaper Class="es-panel" Elevation="0">
+                    <section aria-labelledby="floors-heading">
+                        <h2 id="floors-heading" class="es-panel__title">@L[Text.FloorsHeading]</h2>
+                        <p class="es-panel__hint">@L[Text.FloorsHint]</p>
+                        <ElevatorShaft Configuration="configuration" Status="Store.Status" OnHallCall="RequestElevatorAsync" />
+                    </section>
+                </MudPaper>
+            </MudItem>
+            <MudItem xs="12" md="5">
+                <div class="es-stack">
+                    <MudPaper Class="es-panel" Elevation="0">
+                        <section aria-labelledby="car-heading">
+                            <h2 id="car-heading" class="es-panel__title">@L[Text.CarPanelHeading]</h2>
+                            <p class="es-panel__hint">@L[Text.CarPanelHint]</p>
+                            <CarPanel Configuration="configuration" Status="Store.Status" OnSelectFloor="RequestDestinationAsync" LabelledBy="car-heading" />
+                        </section>
+                    </MudPaper>
+                    <MudPaper Class="es-panel" Elevation="0">
+                        <section aria-labelledby="queue-heading">
+                            <h2 id="queue-heading" class="es-panel__title">@L[Text.QueueHeading]</h2>
+                            <p class="es-panel__hint">@L[Text.QueueHint]</p>
+                            <RequestQueue Status="Store.Status" LabelledBy="queue-heading" />
+                        </section>
+                    </MudPaper>
+                    <MudPaper Class="es-panel" Elevation="0">
+                        <section aria-labelledby="activity-heading">
+                            <h2 id="activity-heading" class="es-panel__title">@L[Text.ActivityHeading]</h2>
+                            <ActivityFeed Activity="Store.Activity" LabelledBy="activity-heading" />
+                        </section>
+                    </MudPaper>
+                </div>
+            </MudItem>
+        </MudGrid>
+    </div>
+}
+
+@code {
+    // Calls whose request is still on its way, so holding Enter on a button sends one request, not dozens.
+    private readonly HashSet<CallDto> _inFlight = [];
+    private bool _loadFailed;
+    private RequestOutcome? _refusal;
+
+    protected override async Task OnInitializedAsync()
+    {
+        Store.Changed += OnStoreChanged;
+        await LoadAsync();
+    }
+
+    public void Dispose() => Store.Changed -= OnStoreChanged;
+
+    private async Task LoadAsync()
+    {
+        _loadFailed = false;
+        try
+        {
+            Store.SetConfiguration(await Api.GetConfigurationAsync());
+        }
+        catch (Exception exception) when (IsTransportFailure(exception))
+        {
+            _loadFailed = true;
+            return;
+        }
+
+        await Hub.StartAsync();
+        try
+        {
+            // The hub sends a status on connect too; whichever is newer wins in the store.
+            Store.ApplyStatus(await Api.GetStatusAsync());
+        }
+        catch (Exception exception) when (IsTransportFailure(exception))
+        {
+            // The hub's status will fill in; the view already shows the building.
+        }
+    }
+
+    private Task RequestElevatorAsync(HallCallRequest call) =>
+        SubmitAsync(new CallDto(CallKind.Hall, call.Floor, call.Direction), () => Api.RequestElevatorAsync(call.Floor, call.Direction));
+
+    private Task RequestDestinationAsync(int floor) =>
+        SubmitAsync(new CallDto(CallKind.Car, floor, null), () => Api.RequestDestinationAsync(floor));
+
+    private async Task SubmitAsync(CallDto call, Func<Task<RequestOutcome>> send)
+    {
+        if (!_inFlight.Add(call))
+        {
+            return;
+        }
+
+        try
+        {
+            var outcome = await send();
+            _refusal = outcome.IsAccepted ? null : outcome;
+        }
+        finally
+        {
+            _inFlight.Remove(call);
+        }
+    }
+
+    private void DismissRefusal() => _refusal = null;
+
+    private void OnStoreChanged(object? sender, EventArgs e) => _ = InvokeAsync(StateHasChanged);
+
+    private static bool IsTransportFailure(Exception exception) =>
+        exception is HttpRequestException or System.Text.Json.JsonException or InvalidOperationException or NotSupportedException
+            or TaskCanceledException;
+}

@@ -1,0 +1,37 @@
+@* The buttons inside the car, top floor first. A button stays lit while the server reports its car call as pending. *@
+@inject IStringLocalizer<SharedResource> L
+
+<div class="car-panel" role="group" aria-labelledby="@LabelledBy">
+    @for (var floor = Configuration.HighestFloor; floor >= Configuration.LowestFloor; floor--)
+    {
+        var target = floor;
+        var lit = IsCarCallPending(target);
+        <button type="button"
+                class="car-button"
+                aria-pressed="@(lit ? "true" : "false")"
+                aria-label="@L[Text.SelectFloorLabel, target]"
+                data-floor="@target"
+                @onclick="() => OnSelectFloor.InvokeAsync(target)">
+            <span class="car-button__lamp" aria-hidden="true"></span>
+            <span>@target</span>
+        </button>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public ElevatorConfigurationDto Configuration { get; set; } = default!;
+
+    [Parameter]
+    public ElevatorStatusDto? Status { get; set; }
+
+    [Parameter]
+    public EventCallback<int> OnSelectFloor { get; set; }
+
+    /// <summary>Id of the heading that names the panel.</summary>
+    [Parameter]
+    public string? LabelledBy { get; set; }
+
+    private bool IsCarCallPending(int floor) =>
+        Status?.PendingCalls.Any(pending => pending.Call.Kind == CallKind.Car && pending.Call.Floor == floor) == true;
+}

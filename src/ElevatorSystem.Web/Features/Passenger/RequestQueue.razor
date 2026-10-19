@@ -1,0 +1,35 @@
+@* The FIFO queue as ordered chips, oldest first, so passengers can see why the car passes a floor. *@
+@inject IStringLocalizer<SharedResource> L
+
+@if (Status is null || Status.PendingCalls.Count == 0)
+{
+    <p class="es-empty">@L[Text.QueueEmpty]</p>
+}
+else
+{
+    <ol class="queue" aria-labelledby="@LabelledBy">
+        @foreach (var (pending, index) in Status.PendingCalls.Select((pending, index) => (pending, index)))
+        {
+            <li class="queue-chip queue-chip--@pending.Call.Kind.ToString().ToLowerInvariant()"
+                data-floor="@pending.Call.Floor"
+                data-kind="@pending.Call.Kind"
+                data-direction="@pending.Call.Direction">
+                <span class="queue-chip__position" aria-hidden="true">@(index + 1)</span>
+                <span class="queue-chip__text">@L.QueuedCall(pending.Call)</span>
+                @if (pending.RequestCount > 1)
+                {
+                    <span class="queue-chip__count">@L[Text.QueueMerged, pending.RequestCount]</span>
+                }
+            </li>
+        }
+    </ol>
+}
+
+@code {
+    [Parameter]
+    public ElevatorStatusDto? Status { get; set; }
+
+    /// <summary>Id of the heading that names the list.</summary>
+    [Parameter]
+    public string? LabelledBy { get; set; }
+}

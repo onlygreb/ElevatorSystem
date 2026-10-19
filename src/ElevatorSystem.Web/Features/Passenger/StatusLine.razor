@@ -1,0 +1,46 @@
+@* Where the car is and what it is doing, in words and icons, never colour alone. *@
+@inject IStringLocalizer<SharedResource> L
+
+<div class="status-line">
+    @if (Status is null)
+    {
+        <p class="es-empty">@L[Text.StatusUnknown]</p>
+    }
+    else
+    {
+        <p class="status-line__floor" data-testid="status-floor">
+            <span class="status-line__floor-label">@L[Text.FloorCaption]</span>
+            <span class="status-line__floor-number">@Status.CurrentFloor</span>
+        </p>
+        <p class="status-line__state" data-testid="status-state">
+            @switch (Status.Status)
+            {
+                case ElevatorStatus.MovingUp:
+                    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="currentColor"><path d="M12 5 20 18H4Z" /></svg>
+                    break;
+                case ElevatorStatus.MovingDown:
+                    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="currentColor"><path d="M12 19 4 6H20Z" /></svg>
+                    break;
+                case ElevatorStatus.DoorOpen:
+                    <MudIcon Icon="@Icons.Material.Outlined.SensorDoor" aria-hidden="true" />
+                    break;
+                case ElevatorStatus.Idle:
+                    <MudIcon Icon="@Icons.Material.Outlined.PauseCircle" aria-hidden="true" />
+                    break;
+            }
+            <span>@L.State(Status.Status)</span>
+        </p>
+        @if (Status.Status == ElevatorStatus.OutOfService)
+        {
+            <p class="status-line__out-of-service" data-testid="status-out-of-service">
+                <MudIcon Icon="@Icons.Material.Filled.WarningAmber" aria-hidden="true" />
+                <span>@L[Text.OutOfServiceCause, L.Cause(Status.OutOfServiceCause)]</span>
+            </p>
+        }
+    }
+</div>
+
+@code {
+    [Parameter]
+    public ElevatorStatusDto? Status { get; set; }
+}

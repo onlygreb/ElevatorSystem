@@ -12,6 +12,195 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
+  <data name="AppTitle" xml:space="preserve">
+    <value>Elevator</value>
+  </data>
+  <data name="PageTitle" xml:space="preserve">
+    <value>Elevator · Passenger view</value>
+  </data>
+  <data name="LanguageLabel" xml:space="preserve">
+    <value>Language</value>
+  </data>
+  <data name="LanguageEnglish" xml:space="preserve">
+    <value>English</value>
+  </data>
+  <data name="LanguagePortuguese" xml:space="preserve">
+    <value>Português (Brasil)</value>
+  </data>
+  <data name="UnhandledError" xml:space="preserve">
+    <value>Something went wrong. Reload the page to continue.</value>
+  </data>
+  <data name="Reload" xml:space="preserve">
+    <value>Reload</value>
+  </data>
+  <data name="Dismiss" xml:space="preserve">
+    <value>Dismiss</value>
+  </data>
+  <data name="NotFoundTitle" xml:space="preserve">
+    <value>Page not found</value>
+  </data>
+  <data name="NotFoundText" xml:space="preserve">
+    <value>There is nothing at this address.</value>
+  </data>
+  <data name="BackHome" xml:space="preserve">
+    <value>Back to the elevator</value>
+  </data>
+  <data name="Loading" xml:space="preserve">
+    <value>Connecting to the elevator…</value>
+  </data>
+  <data name="ConfigurationFailed" xml:space="preserve">
+    <value>The elevator can't be reached right now.</value>
+  </data>
+  <data name="TryAgain" xml:space="preserve">
+    <value>Try again</value>
+  </data>
+  <data name="Connecting" xml:space="preserve">
+    <value>Connecting to live updates…</value>
+  </data>
+  <data name="Reconnecting" xml:space="preserve">
+    <value>Reconnecting… The view shows the last known state and updates when the connection returns.</value>
+  </data>
+  <data name="FloorsHeading" xml:space="preserve">
+    <value>Floors</value>
+  </data>
+  <data name="CarPanelHeading" xml:space="preserve">
+    <value>Inside the car</value>
+  </data>
+  <data name="CarPanelHint" xml:space="preserve">
+    <value>Choose your floor.</value>
+  </data>
+  <data name="QueueHeading" xml:space="preserve">
+    <value>Request queue</value>
+  </data>
+  <data name="QueueHint" xml:space="preserve">
+    <value>Served in the order they were made (FIFO).</value>
+  </data>
+  <data name="QueueEmpty" xml:space="preserve">
+    <value>No pending calls.</value>
+  </data>
+  <data name="ActivityHeading" xml:space="preserve">
+    <value>Recent activity</value>
+  </data>
+  <data name="ActivityEmpty" xml:space="preserve">
+    <value>Nothing has happened yet.</value>
+  </data>
+  <data name="FloorLabel" xml:space="preserve">
+    <value>Floor {0}</value>
+  </data>
+  <data name="HallButtonsLabel" xml:space="preserve">
+    <value>Hall buttons, floor {0}</value>
+  </data>
+  <data name="CallUpLabel" xml:space="preserve">
+    <value>Call elevator going up from floor {0}</value>
+  </data>
+  <data name="CallDownLabel" xml:space="preserve">
+    <value>Call elevator going down from floor {0}</value>
+  </data>
+  <data name="SelectFloorLabel" xml:space="preserve">
+    <value>Go to floor {0}</value>
+  </data>
+  <data name="CarDescription" xml:space="preserve">
+    <value>Car at floor {0}, {1}</value>
+  </data>
+  <data name="DoorsOpen" xml:space="preserve">
+    <value>doors open</value>
+  </data>
+  <data name="DoorsClosed" xml:space="preserve">
+    <value>doors closed</value>
+  </data>
+  <data name="StatusUnknown" xml:space="preserve">
+    <value>Waiting for the elevator's status…</value>
+  </data>
+  <data name="StatusIdle" xml:space="preserve">
+    <value>Idle</value>
+  </data>
+  <data name="StatusMovingUp" xml:space="preserve">
+    <value>Going up</value>
+  </data>
+  <data name="StatusMovingDown" xml:space="preserve">
+    <value>Going down</value>
+  </data>
+  <data name="StatusDoorOpen" xml:space="preserve">
+    <value>Doors open</value>
+  </data>
+  <data name="StatusOutOfService" xml:space="preserve">
+    <value>Out of service</value>
+  </data>
+  <data name="CauseMaintenance" xml:space="preserve">
+    <value>maintenance</value>
+  </data>
+  <data name="CauseFault" xml:space="preserve">
+    <value>fault</value>
+  </data>
+  <data name="CauseEmergencyStop" xml:space="preserve">
+    <value>emergency stop</value>
+  </data>
+  <data name="OutOfServiceCause" xml:space="preserve">
+    <value>Cause: {0}</value>
+  </data>
+  <data name="QueueHallUp" xml:space="preserve">
+    <value>Floor {0}, going up</value>
+  </data>
+  <data name="QueueHallDown" xml:space="preserve">
+    <value>Floor {0}, going down</value>
+  </data>
+  <data name="QueueCar" xml:space="preserve">
+    <value>Floor {0}, from the car</value>
+  </data>
+  <data name="QueueMerged" xml:space="preserve">
+    <value>{0} requests</value>
+  </data>
+  <data name="CallHallUp" xml:space="preserve">
+    <value>floor {0} going up</value>
+  </data>
+  <data name="CallHallDown" xml:space="preserve">
+    <value>floor {0} going down</value>
+  </data>
+  <data name="CallCar" xml:space="preserve">
+    <value>floor {0} from the car</value>
+  </data>
+  <data name="ActivityCallQueued" xml:space="preserve">
+    <value>Call for {0} queued at position {1}.</value>
+  </data>
+  <data name="ActivityCallMerged" xml:space="preserve">
+    <value>Call for {0} joined a waiting call at position {1}.</value>
+  </data>
+  <data name="ActivityRequestRejected" xml:space="preserve">
+    <value>Call for {0} refused: {1}</value>
+  </data>
+  <data name="ActivityMoved" xml:space="preserve">
+    <value>Moved from floor {0} to floor {1}.</value>
+  </data>
+  <data name="ActivityDoorsOpened" xml:space="preserve">
+    <value>Doors opened at floor {0}.</value>
+  </data>
+  <data name="ActivityCallServed" xml:space="preserve">
+    <value>Served call for {0} after {1:0.0} s.</value>
+  </data>
+  <data name="ActivityCallServedMerged" xml:space="preserve">
+    <value>Served call for {0} after {1:0.0} s; {2} requests were merged into it.</value>
+  </data>
+  <data name="ActivityDoorsClosed" xml:space="preserve">
+    <value>Doors closed at floor {0}.</value>
+  </data>
+  <data name="ActivityOutOfService" xml:space="preserve">
+    <value>Out of service at floor {0}: {1}. Calls cancelled: {2}.</value>
+  </data>
+  <data name="ActivityReturnedToService" xml:space="preserve">
+    <value>Back in service at floor {0}.</value>
+  </data>
+  <data name="AnnounceDoorsOpening" xml:space="preserve">
+    <value>Floor {0}, doors opening</value>
+  </data>
+  <data name="AnnounceOutOfService" xml:space="preserve">
+    <value>Elevator out of service: {0}</value>
+  </data>
+  <data name="AnnounceBackInService" xml:space="preserve">
+    <value>Elevator back in service at floor {0}</value>
+  </data>
+  <data name="RequestRefusedTitle" xml:space="preserve">
+    <value>Request not accepted</value>
+  </data>
   <data name="RefusedInvalidFloor" xml:space="preserve">
     <value>That floor isn't served by this elevator.</value>
   </data>
@@ -32,5 +221,11 @@
   </data>
   <data name="RefusedUnexpected" xml:space="preserve">
     <value>Your call couldn't be completed. Please try again.</value>
+  </data>
+  <data name="FloorCaption" xml:space="preserve">
+    <value>Floor</value>
+  </data>
+  <data name="FloorsHint" xml:space="preserve">
+    <value>Press ▲ or ▼ on your floor to call the elevator.</value>
   </data>
 </root>

@@ -1,9 +1,46 @@
 @inherits LayoutComponentBase
+@inject IStringLocalizer<SharedResource> L
 
-@Body
+<MudThemeProvider @ref="_themeProvider" Theme="AppTheme.Theme" @bind-IsDarkMode="_isDarkMode" />
 
-<div id="blazor-error-ui" data-nosnippet>
-    An unhandled error has occurred.
-    <a href="." class="reload">Reload</a>
-    <span class="dismiss">🗙</span>
+<MudLayout>
+    <MudAppBar Elevation="0" Class="es-appbar" Dense="true">
+        <span class="es-brand">
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round">
+                <rect x="4" y="2.5" width="16" height="19" rx="2" />
+                <path d="M12 2.5v19" />
+                <path d="M7.5 9 9 7l1.5 2M13.5 15 15 17l1.5-2" />
+            </svg>
+            <span>@L[Text.AppTitle]</span>
+        </span>
+        <MudSpacer />
+    </MudAppBar>
+    <MudMainContent>
+        <MudContainer MaxWidth="MaxWidth.Large" Class="es-page">
+            <main>
+                @Body
+            </main>
+        </MudContainer>
+    </MudMainContent>
+</MudLayout>
+
+<div id="blazor-error-ui" data-nosnippet role="alert">
+    @L[Text.UnhandledError]
+    <a href="." class="reload">@L[Text.Reload]</a>
+    <button type="button" class="dismiss" aria-label="@L[Text.Dismiss]">×</button>
 </div>
+
+@code {
+    private MudThemeProvider? _themeProvider;
+    private bool _isDarkMode;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        // Follow the operating system's light or dark preference, like tokens.css does.
+        if (firstRender && _themeProvider is not null)
+        {
+            _isDarkMode = await _themeProvider.GetSystemDarkModeAsync();
+            StateHasChanged();
+        }
+    }
+}

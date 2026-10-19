@@ -1,0 +1,32 @@
+@* Recent activity, newest first, rendered from the hub's ElevatorActivityDto stream. *@
+@inject IStringLocalizer<SharedResource> L
+
+@if (Activity.Count == 0)
+{
+    <p class="es-empty">@L[Text.ActivityEmpty]</p>
+}
+else
+{
+    @* Scrollable, so it must be reachable by keyboard (WCAG 2.1.1). *@
+    <div class="activity-scroll" tabindex="0" role="region" aria-labelledby="@LabelledBy">
+        <ol class="activity">
+            @foreach (var activity in Activity)
+            {
+                <li class="activity__item@(activity.Kind == ElevatorActivityKind.RequestRejected ? " activity__item--refused" : null)"
+                    data-kind="@activity.Kind">
+                    <time class="activity__time" datetime="@activity.OccurredAt.ToString("O", CultureInfo.InvariantCulture)">@Narration.Time(activity)</time>
+                    <span class="activity__text">@L.Describe(activity)</span>
+                </li>
+            }
+        </ol>
+    </div>
+}
+
+@code {
+    [Parameter]
+    public IReadOnlyList<ElevatorActivityDto> Activity { get; set; } = [];
+
+    /// <summary>Id of the heading that names the feed.</summary>
+    [Parameter]
+    public string? LabelledBy { get; set; }
+}
