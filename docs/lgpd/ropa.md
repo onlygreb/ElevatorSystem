@@ -28,7 +28,7 @@ controller, in which case it fills one of the processor rows above.
 | # | Operation | Personal data? | Legal basis (Art. 7) | Default retention | Phase |
 |---|---|---|---|---|---|
 | 1 | [Staff accounts and authentication](#1-staff-accounts-and-authentication) | Yes | V (contract) or IX (legitimate interest) | While active + 6 months | 4 |
-| 2 | [Audit trail](#2-audit-trail) | Yes, pseudonymised | IX (legitimate interest), supporting the security duty of Art. 46 | 1 year | 4 |
+| 2 | [Audit trail](#2-audit-trail) | Yes, pseudonymised | IX (legitimate interest), serving the Art. 46 security duty | 1 year | 4 |
 | 3 | [Technical logs, traces and metrics](#3-technical-logs-traces-and-metrics) | No, by design and by test | n/a | 30 days | 2 onwards |
 | 4 | [Passenger requests](#4-passenger-requests-not-personal-data) | No | n/a | 90 days, then aggregated | 1 onwards |
 | 5 | [Transient use of client IP addresses for rate limiting](#5-transient-use-of-client-ip-addresses-for-rate-limiting) | Yes, in memory only | IX (legitimate interest) | Not stored | 2 onwards |
@@ -95,7 +95,7 @@ controller, in which case it fills one of the processor rows above.
 | Field | Entry |
 |---|---|
 | Purpose | Protect the service from request flooding by partitioning rate limits per client IP for anonymous calls. |
-| Legal basis (Art. 7) | **IX, legitimate interest** in the availability and security of the service (Art. 46). |
+| Legal basis (Art. 7) | **IX, legitimate interest** in the availability and security of the service, serving the Art. 46 security duty. |
 | Data categories | Client IP address, held **in memory only** for the life of the rate-limit window. It is never written to the database, logs, traces or metrics. |
 | Data subjects | Anyone who uses the passenger screen or the API, including staff. |
 | Retention | Not stored. It disappears when the rate-limit window expires or the process restarts. |
@@ -117,3 +117,4 @@ around it, for example:
 | Date | Change | Reviewed by |
 |---|---|---|
 | 2026-10-19 | First draft, written ahead of phases 4 and 5 | Engineering; pending controller and counsel review |
+| 2026-10-19 | Legal basis wording of operations 2 and 5 aligned with the classification table | Engineering; pending controller and counsel review |

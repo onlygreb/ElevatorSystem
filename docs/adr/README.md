@@ -18,3 +18,5 @@ supersedes the old one instead of editing it. New records start from [`template.
 | [0010](0010-testing-strategy.md) | Testing strategy | Accepted |
 | [0011](0011-orchestration-and-delivery.md) | Local orchestration and container delivery | Accepted |
 | [0012](0012-elevator-control-loop.md) | Elevator control loop and core semantics | Accepted |
+| [0013](0013-ui-culture-preference-in-browser-storage.md) | Keep the UI culture preference in browser storage (amends 0009) | Accepted |
+| [0014](0014-audit-tombstones-and-chain-checkpoints.md) | Anonymise audit entries with salted personal digests and purge with checkpoints | Proposed |

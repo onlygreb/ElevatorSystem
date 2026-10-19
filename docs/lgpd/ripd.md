@@ -106,7 +106,7 @@ Status for every measure: planned, in the delivery phase shown. Phase 0 (foundat
 | R1 | Mandatory TOTP for administrators; lockout after 5 failed attempts; password policy; `HttpOnly`, `Secure`, `SameSite=Strict` cookies with a 20-minute sliding expiry; antiforgery tokens; deny-by-default authorization with an authorization-matrix test for every endpoint; every privileged action audited | [ADR-0006](../adr/0006-blazor-webassembly-ui-hosted-by-the-api.md), [ADR-0010](../adr/0010-testing-strategy.md) | 4 |
 | R2 | ASP.NET Core Identity password hashing; TOTP secret encrypted with Data Protection; Data Protection key ring protected at rest by the deployment environment; TLS; encryption at rest by the hosting environment; least-privilege database credentials; incident runbook treats this as relevant risk by default | [ADR-0009](../adr/0009-privacy-by-design-for-lgpd.md), [ADR-0011](../adr/0011-orchestration-and-delivery.md) | 3, 4 |
 | R3 | Purpose limitation stated in the ROPA and the privacy notice; audit viewer restricted to the `Auditor` role and administrators; no reports or exports of audit data by person and time beyond what an investigation needs; the controller adopts an internal policy forbidding performance monitoring through the audit trail | [ADR-0009](../adr/0009-privacy-by-design-for-lgpd.md) | 4, 5 (policy: controller) |
-| R4 | Append-only, hash-chained audit entries with a verification endpoint; tombstones instead of deletion so the chain stays verifiable; audit writer consumes events from its own queue | [ADR-0009](../adr/0009-privacy-by-design-for-lgpd.md), [ADR-0003](../adr/0003-rabbitmq-as-message-broker.md) | 4 |
+| R4 | Append-only, hash-chained audit entries with a verification endpoint; tombstones instead of deletion so the chain stays verifiable, using salted personal digests, with checkpoints when the oldest entries are purged; audit writer consumes events from its own queue | [ADR-0009](../adr/0009-privacy-by-design-for-lgpd.md), [ADR-0014](../adr/0014-audit-tombstones-and-chain-checkpoints.md), [ADR-0003](../adr/0003-rabbitmq-as-message-broker.md) | 4 |
 | R5 | `Microsoft.Extensions.Compliance` classification and automatic redaction; `LoggerMessage` methods only; no request bodies, headers, cookies or IPs in logs; ProblemDetails without internals; a log-capture test fails on any known personal value; 30-day telemetry retention | [ADR-0009](../adr/0009-privacy-by-design-for-lgpd.md), [ADR-0010](../adr/0010-testing-strategy.md) | 2, 5 |
 | R6 | No identifier attached to requests; requests never joined to other data; individual requests aggregated after 90 days; passenger screen shows only live state | [ADR-0009](../adr/0009-privacy-by-design-for-lgpd.md) | 1, 3, 5 |
 | R7 | Retention job records every run (start, end, counts, outcome) in the audit trail; a health check and an alert fire when the last successful run is older than expected; integration test proves expired data is anonymised or purged ([retention schedule](retention.md#3-the-retention-job)) | [ADR-0009](../adr/0009-privacy-by-design-for-lgpd.md), [ADR-0010](../adr/0010-testing-strategy.md) | 5 |
@@ -145,7 +145,7 @@ its purposes, provided the open items below are closed before the system goes in
 | O3 | Record the legitimate interest assessments (Art. 10) for operations 1 (contractors), 2 and 5 of the [ROPA](ropa.md). |
 | O4 | Name the hosting, e-mail and telemetry processors and their regions, and sign data processing agreements with them. |
 | O5 | Adopt an internal policy limiting use of the audit trail to security and accountability (risk R3). |
-| O6 | Decide the rotation period of the HMAC key used to pseudonymise IP addresses, which bounds how long pseudonyms stay linkable. |
+| O6 | Decide the rotation period of the HMAC key used to pseudonymise IP addresses, which bounds how long pseudonyms stay linkable. It appears as `{{HMAC_KEY_ROTATION_PERIOD}}` in the classification table and the [retention schedule](retention.md#1-schedule). |
 | O7 | Appoint the encarregado and publish their contact (Art. 41 §1). |
 
 ## 8. Approval
@@ -161,3 +161,4 @@ its purposes, provided the open items below are closed before the system goes in
 | Date | Change | Reviewed by |
 |---|---|---|
 | 2026-10-19 | First draft, written ahead of phases 4 and 5 | Engineering; pending controller and counsel review |
+| 2026-10-19 | R4 mitigation and item O6 linked to ADR-0014 and the classification table | Engineering; pending controller and counsel review |

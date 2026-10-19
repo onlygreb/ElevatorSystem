@@ -1,6 +1,6 @@
 # 0009. Privacy by design for LGPD
 
-- **Status:** Accepted
+- **Status:** Accepted; the cookie list in Consequences is amended by [0013](0013-ui-culture-preference-in-browser-storage.md)
 - **Date:** 2026-10-19
 
 ## Context
