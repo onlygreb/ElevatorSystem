@@ -1,0 +1,4 @@
+# Migrations are written by `dotnet ef migrations add` (see ElevatorDbContextDesignTimeFactory) and kept
+# as generated, so regenerating them never needs hand edits to satisfy the style rules.
+[*.cs]
+generated_code = true
