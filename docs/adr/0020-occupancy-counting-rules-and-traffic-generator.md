@@ -45,7 +45,12 @@ not answer:
    same order and up to the same capacity (`OccupancyOptions`), including rule 2: a newcomer whose
    press is counted as a left-behind person's call presses again later. With the generator as the
    only source of calls, its people are exactly where the tracker counts them after every event,
-   and the tests check this event by event.
+   and the tests check this event by event. Because the tracker only knows floors, the generator
+   applies the rule per floor too. Every press it sees taken in (even one by someone who has
+   since boarded) becomes the call of someone left behind on that floor if there is anyone.
+   Otherwise it counts one more person there: the presser if not counted yet, else another of its
+   people on that floor not counted yet. So the counts do not depend on which of two racing presses
+   the loop takes in first. A test delivers every pair of acknowledgements swapped to check this.
    - **Who presses again, and from where.** People left behind press again when a door closes,
      from the control loop's own event. The loop then takes the press in before its next stop.
      A press from the arrival timer, or from the thread that returned the car to service, could

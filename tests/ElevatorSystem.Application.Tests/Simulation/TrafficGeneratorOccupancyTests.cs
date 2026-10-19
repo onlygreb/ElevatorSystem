@@ -62,6 +62,22 @@ public sealed class TrafficGeneratorOccupancyTests
         simulation.Tracker.Totals.PeopleCounted.ShouldBeLessThanOrEqualTo(80, "calling again never counts a new person");
     }
 
+    [Theory]
+    [InlineData(7, 3)]
+    [InlineData(9, 1)]
+    [InlineData(11, 2)]
+    public async Task Run_WithAcknowledgementsArrivingSwapped_StaysInStep(int seed, int capacity)
+    {
+        await using var simulation = TrafficSimulation.Create(BusyMorning with { Seed = seed }, capacity, swapAcknowledgements: true);
+        simulation.Generator.Start(simulation.Harness.Controller);
+
+        await simulation.RunUntilDoneAsync();
+
+        simulation.Check.FirstMismatch.ShouldBeNull("the counts must not depend on which of two racing presses is taken in first");
+        simulation.Check.MostLeftBehind.ShouldBeGreaterThan(0);
+        (simulation.Generator.Statistics.Delivered + simulation.Generator.Statistics.Abandoned).ShouldBe(80);
+    }
+
     [Fact]
     public async Task Run_WithAnOutageInTheMiddle_StaysInStepAndFinishes()
     {
