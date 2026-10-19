@@ -43,6 +43,44 @@ public sealed class Elevator
         _currentFloor = startFloor;
     }
 
+    /// <summary>
+    /// Recreates an elevator from a snapshot saved before a restart (ADR-0007). A car that was moving or
+    /// had its door open comes back idle at the recorded floor: after a restart it has stopped. An
+    /// out-of-service car stays out of service, so a fault survives a restart until it is cleared.
+    /// Pending calls are restored in order; calls that are invalid for <paramref name="building"/>,
+    /// duplicated, or without requests are dropped.
+    /// </summary>
+    /// <exception cref="ArgumentOutOfRangeException">The recorded floor is outside <paramref name="building"/>.</exception>
+    public static Elevator Restore(Building building, TimeProvider timeProvider, ElevatorSnapshot snapshot)
+    {
+        ArgumentNullException.ThrowIfNull(snapshot);
+
+        var elevator = new Elevator(building, timeProvider, snapshot.CurrentFloor)
+        {
+            _travelDirection = snapshot.TravelDirection,
+            _version = snapshot.Version,
+        };
+
+        if (snapshot.State == ElevatorState.OutOfService)
+        {
+            elevator._state = ElevatorState.OutOfService;
+            elevator._outOfServiceReason = snapshot.OutOfServiceReason ?? OutOfServiceReason.Fault;
+            return elevator;
+        }
+
+        foreach (var pending in snapshot.PendingCalls)
+        {
+            if (pending.RequestCount > 0
+                && building.Validate(pending.Call) is null
+                && !elevator._pendingCalls.Exists(existing => existing.Call == pending.Call))
+            {
+                elevator._pendingCalls.Add(pending);
+            }
+        }
+
+        return elevator;
+    }
+
     public Building Building { get; }
 
     /// <summary>The floor the car is at, or travelling to while it is moving.</summary>
