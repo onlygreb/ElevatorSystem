@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Time.Testing;
 
 namespace ElevatorSystem.Api.Tests;
@@ -81,6 +82,9 @@ public sealed class ApiFactory : WebApplicationFactory<Program>
             builder.UseSetting(key, value);
         }
 
+        // Logs go to memory, not the console: tests can inspect them, and dozens of hosts running in
+        // parallel don't contend for one console writer.
+        builder.ConfigureLogging(logging => logging.ClearProviders().AddFakeLogging());
         builder.ConfigureTestServices(services =>
         {
             foreach (var configure in _services)

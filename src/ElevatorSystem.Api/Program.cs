@@ -1,5 +1,6 @@
 using ElevatorSystem.Api.Components;
 using ElevatorSystem.Api.Hosting;
+using ElevatorSystem.Api.RealTime;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -7,6 +8,7 @@ builder.AddServiceDefaults();
 builder.WebHost.ConfigureKestrel(options => options.AddServerHeader = false);
 
 builder.AddElevator();
+builder.AddElevatorRealTime();
 
 builder.Services.AddProblemDetails();
 builder.Services.AddHsts(options =>
@@ -35,6 +37,7 @@ app.UseAntiforgery();
 
 app.MapStaticAssets();
 app.MapDefaultEndpoints();
+app.MapElevatorHub();
 app.MapRazorComponents<App>()
     .AddInteractiveWebAssemblyRenderMode()
     .AddAdditionalAssemblies(typeof(ElevatorSystem.Web._Imports).Assembly);

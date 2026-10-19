@@ -11,6 +11,7 @@ namespace ElevatorSystem.Api.Hosting;
 /// <summary>
 /// Composes the elevator core inside the API process. Phase 2 has no broker, so the control loop runs
 /// here as a hosted service; phase 3 moves it to the engine behind RabbitMQ (ADR-0003).
+/// The <see cref="IElevatorEventSink"/> it publishes to is registered by the real-time fan-out.
 /// </summary>
 internal static class ElevatorHostingExtensions
 {
@@ -34,7 +35,6 @@ internal static class ElevatorHostingExtensions
         services.AddSingleton<IElevatorDrive>(provider => new SimulatedElevatorDrive(
             provider.GetRequiredService<ElevatorControllerOptions>().TravelTimePerFloor,
             provider.GetRequiredService<TimeProvider>()));
-        services.TryAddSingleton<IElevatorEventSink, NullElevatorEventSink>();
         services.AddSingleton<ElevatorController>();
 
         services.AddSingleton<ControlLoopStatus>();
@@ -59,14 +59,6 @@ internal static class ElevatorHostingExtensions
             {
                 return ValidateOptionsResult.Fail($"Configuration section '{ElevatorSection}' is invalid: {exception.Message}");
             }
-        }
-    }
-
-    /// <summary>Used until a real-time sink is registered; discards every event.</summary>
-    private sealed class NullElevatorEventSink : IElevatorEventSink
-    {
-        public void Publish(Domain.Events.ElevatorEvent elevatorEvent)
-        {
         }
     }
 }
