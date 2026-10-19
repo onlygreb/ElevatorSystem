@@ -50,6 +50,10 @@ dotnet run --project src/ElevatorSystem.ConsoleDemo   # core only
 
 ## Working agreements
 
+- `main` changes only through pull requests. Branch from an up-to-date `main` as
+  `<type>/<short-description>` (for example `feat/elevator-state-machine`), push the branch,
+  open a PR that fills in the template, and merge only when CI and CodeQL are green.
+  Dependabot PRs follow the same rule. Keep each PR to one concern so it stays reviewable.
 - Commits follow Conventional Commits (`feat`, `fix`, `test`, `docs`, `build`, `ci`, `refactor`,
   `chore`), one logical change each, code and its tests together.
 - Public API names in the domain mirror the system requirements (`MoveUp`, `OpenDoor`,
