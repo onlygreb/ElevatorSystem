@@ -94,6 +94,54 @@ being travelled to, and the drive performs the trip.
   - any other loop failure takes the car out of service with `Fault`, and the loop keeps running
 - **Event sinks** (`IElevatorEventSink`) must be thread-safe and fast; never do I/O inline.
 
+## Occupancy
+
+Decisions: ADR-0017 (passengers are counted from their calls) and ADR-0020 (the exact rules).
+Code: `Application/Occupancy` (`OccupancyTracker`, `OccupancyOptions`, `IOccupancyObserver`,
+`CompositeElevatorEventSink`) and `Application/Simulation` (`TrafficGenerator`, `ArrivalSchedule`).
+Passengers are anonymous counts; nothing identifies a person (ADR-0009).
+
+**Counting rules** (`OccupancyTracker`, an `IElevatorEventSink`):
+
+- A hall call (queued, merged, or served on the spot) is one person waiting on its floor, taken
+  from `Present` there if anyone is present. If someone on that floor was left behind, the call is
+  theirs, placed again, and nobody new is counted.
+- While the door is open at a floor, the people waiting there board oldest first, up to
+  `OccupancyOptions.CarCapacity` (default 8). This happens on `DoorsOpened` and again after each
+  served car call, so riders always get off before anyone boards.
+- People who don't fit stay waiting with no pending call (`LeftBehind`) and must call again.
+- A served car call lets `RequestCount` riders off: they become present on that floor and count as
+  delivered.
+- The wait runs from the request's `RequestedAt` to boarding, averaged over everyone who boarded.
+- **Out of service:** riders get off at the car's floor (present, counted as `Evacuated`, not
+  delivered). Waiting people stay waiting, but their calls were cancelled, so they are all left
+  behind until they call again. Events published after the out-of-service event move nobody.
+- Nothing goes negative: an inconsistent event is clamped, logged (event IDs 1800–1803) and
+  counted in `OccupancyTotals.Corrections`.
+- Invariant (property-tested): `Waiting + LeftBehind + Riding + Present == PeopleCounted`, and
+  `Riding == Boarded − Delivered − Evacuated ≤ CarCapacity`.
+
+**Wiring** (the host does this):
+
+- Create one tracker per elevator and put it first in a `CompositeElevatorEventSink` passed to the
+  controller, ahead of the real-time fan-out. A sink that throws is logged (1806) and skipped.
+- `Current` gives the `BuildingOccupancyDto`. The `IOccupancyObserver` is told about every change,
+  in order, under the tracker's lock, so it must be fast and thread-safe: hand the counts to the
+  bus or the hub, never do I/O inline.
+
+**Traffic generator** (a test and load tool, off by default):
+
+- Simulated people press buttons through `ElevatorController` like real people. They follow the
+  tracker's rules with the same capacity, so with no other traffic they are exactly where the
+  tracker counts them, after every event.
+- It is seeded and driven by `TimeProvider`, so the same seed gives the same calls at the same
+  simulated times.
+- It caps the people in the building at once (`MaxActivePeople`) and, optionally, in total
+  (`MaxPeople`).
+- It must also receive the elevator's events (add it to the composite sink), and it is started
+  with `Start(controller)`.
+- Event IDs 1820–1839.
+
 ## Before you finish a change here
 
 - [ ] Transition-table rows cover every (state, command) pair that changed
