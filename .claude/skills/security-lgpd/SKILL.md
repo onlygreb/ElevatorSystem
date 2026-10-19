@@ -5,7 +5,8 @@ description: Security and LGPD (Brazilian General Data Protection Law) rules for
 
 # Security and LGPD
 
-Decisions behind this skill: ADR-0008 (supply chain) and ADR-0009 (privacy by design).
+Decisions behind this skill: ADR-0008 (supply chain), ADR-0009 (privacy by design), ADR-0013
+(culture preference in browser storage) and ADR-0014 (audit tombstones and chain checkpoints).
 Detailed documents: `docs/security/` (threat model) and `docs/lgpd/` (processing record, impact
 report, retention, incident response). These are written as each phase introduces the data.
 
@@ -40,10 +41,16 @@ report, retention, incident response). These are written as each phase introduce
 |---|---|---|---|---|
 | Hall and car requests (floor, direction, timestamps) | Not personal | n/a | 90 days, then aggregated | Never linked to a user, device, IP or card |
 | Staff account (name, e-mail, role, password hash, 2FA secret) | Personal | Contract performance / legitimate interest (V, IX) | While active + 6 months | Identity hashing; 2FA secret encrypted with Data Protection |
-| Audit trail (staff ID, action, timestamp, pseudonymised IP) | Personal, pseudonymised | Legitimate interest + security duty (IX, Art. 46) | 1 year | IP stored only as HMAC-SHA256 with a rotating key |
+| Audit trail (staff ID, action, timestamp, pseudonymised IP) | Personal, pseudonymised | Legitimate interest (IX), serving the Art. 46 security duty | 1 year | IP stored only as HMAC-SHA256 with a rotating key; tombstones and checkpoints per ADR-0014 |
+| Client IP for anonymous rate limiting | Personal | Legitimate interest (IX), serving the Art. 46 security duty | Not stored: memory only, for the rate-limit window | Never written to the database, logs, traces or metrics |
 | Technical logs and traces | Must contain no personal data | n/a | 30 days | Redaction enforced by tests |
+| HMAC key that pseudonymises IPs | Secret; links pseudonyms to each other | n/a (security measure) | Rotated every `{{HMAC_KEY_ROTATION_PERIOD}}`; retired keys destroyed after `{{HMAC_KEY_RETENTION}}` | Storage location still open (threat model OQ-13); the controller sets the periods (RIPD item O6) |
+| Database backups | Contain everything above | Same as the data they copy | `{{BACKUP_RETENTION}}` (recommended: 35 days or less) | Encrypted; the deletion ledger is re-applied after any restore |
+| Incident records | May contain personal data | Legal obligation (II): Resolution CD/ANPD nº 15/2024 | At least 5 years | Kept outside the system, readable only by the encarregado, the controller and counsel |
 
 Retention periods are defaults in configuration and must be confirmed by the data controller.
+`{{PLACEHOLDERS}}` are decisions the controller has not made yet. `docs/lgpd/retention.md` has
+the full schedule, including what happens at expiry.
 **Adding any personal field means updating this table, the processing record (ROPA) and the
 impact report (RIPD) in the same change.**
 
@@ -53,7 +60,7 @@ impact report (RIPD) in the same change.**
   identifies who called the elevator.
 - **Data subject rights (Art. 18):** staff can export their data as JSON (access and portability)
   and request deletion. Deletion anonymises audit entries with a tombstone instead of deleting
-  them, which keeps the hash chain verifiable.
+  them, which keeps the hash chain verifiable (ADR-0014).
 - **Retention and end of processing (Art. 15–16):** a scheduled job anonymises or purges data
   past its retention period and records that it ran.
 - **Security (Art. 46):**
@@ -62,7 +69,8 @@ impact report (RIPD) in the same change.**
   - least-privilege roles
   - audit of every privileged action
 - **Transparency (Art. 9):** a privacy notice page in the UI names the controller and the DPO
-  contact (both configurable) and the purposes of processing. Only strictly necessary cookies are
+  contact (both configurable) and the purposes of processing. Only strictly necessary cookies
+  (authentication, antiforgery) and browser storage (the language preference, ADR-0013) are
   used, so no consent banner is needed, but the notice says so.
 - **Incident response (Art. 48, ANPD Resolution CD/ANPD nº 15/2024):** the runbook in
   `docs/lgpd/incident-response.md` covers notifying ANPD and data subjects within 3 business days

@@ -34,7 +34,7 @@ document here:
 | Personal data is limited to staff accounts and the audit trail, each with a legal basis and retention period | [ROPA, operations 1 and 2](ropa.md#1-staff-accounts-and-authentication); [retention schedule](retention.md#1-schedule) |
 | Logs and traces contain no personal data | [ROPA, operation 3](ropa.md#3-technical-logs-traces-and-metrics); [RIPD, risk R5](ripd.md#4-risks-to-data-subjects) |
 | Retention is enforced by a scheduled job | [Retention schedule, the retention job](retention.md#3-the-retention-job) |
-| Data subject rights: export and deletion, with audit tombstones that keep the hash chain verifiable | [Privacy notice, rights](privacy-notice.md#your-rights); [retention schedule, tombstones](retention.md#4-audit-tombstones-and-the-hash-chain) |
+| Data subject rights: export and deletion, with audit tombstones that keep the hash chain verifiable | [Privacy notice, rights](privacy-notice.md#your-rights); [retention schedule, tombstones](retention.md#4-audit-tombstones-and-the-hash-chain); [ADR-0014](../adr/0014-audit-tombstones-and-chain-checkpoints.md) |
 | Transparency and accountability: privacy notice, encarregado contact, ROPA, RIPD, incident runbook | This folder |
 
 The data classification table in the `security-lgpd` skill

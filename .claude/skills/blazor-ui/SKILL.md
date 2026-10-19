@@ -58,8 +58,8 @@ wwwroot/css/         tokens.css (design tokens), app.css
 
 ## Localisation
 
-- Cultures: `en-US` (default) and `pt-BR`. The picker stores the choice in `localStorage`.
-  It's a preference only, never anything sensitive.
+- Cultures: `en-US` (default) and `pt-BR`. The picker stores the choice in `localStorage`, not
+  in a cookie (ADR-0013). It's a preference only, never anything sensitive.
 - `BlazorWebAssemblyLoadAllGlobalizationData` is enabled, and dates and numbers are formatted
   with the current culture.
 

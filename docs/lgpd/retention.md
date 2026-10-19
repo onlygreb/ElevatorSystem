@@ -14,7 +14,9 @@ scheduled job that enforces this.
 
 ## 1. Schedule
 
-The first four rows match the classification table in the `security-lgpd` skill.
+Each row matches a row of the classification table in the `security-lgpd` skill, except
+aggregated request statistics and records of data subject requests, which follow from the
+passenger request and audit trail rows.
 
 | Data | Personal? | Retention (default) | Counted from | At expiry |
 |---|---|---|---|---|
@@ -119,7 +121,8 @@ that the run record was written.
 The audit trail is append-only and hash-chained: each entry's hash covers the previous entry's
 hash, so changing or removing any entry breaks verification of everything after it. Personal
 data, on the other hand, must be removable. The design below reconciles the two. ADR-0009 fixes
-the outcome (tombstones that keep the chain verifiable); the exact mechanism here is the proposal
+the outcome (tombstones that keep the chain verifiable);
+[ADR-0014](../adr/0014-audit-tombstones-and-chain-checkpoints.md) proposes the mechanism below
 for phase 4.
 
 **Separate the personal part from what the chain covers.** Each entry stores:
@@ -168,3 +171,4 @@ for the controller ([RIPD, risk R9 and item O1](ripd.md#7-open-items-for-the-con
 | Date | Change | Reviewed by |
 |---|---|---|
 | 2026-10-19 | First draft, written ahead of phases 4 and 5 | Engineering; pending controller and counsel review |
+| 2026-10-19 | Every row now in the classification table; tombstone design recorded as ADR-0014 | Engineering; pending controller and counsel review |
