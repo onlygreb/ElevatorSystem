@@ -21,7 +21,8 @@ public sealed class HostingTests
         await Eventually.HoldsAsync(
             () => controller.Elevator.Snapshot() is { CurrentFloor.Number: 4, State: ElevatorState.DoorOpen },
             "the car to open its door at floor 4",
-            factory.Time);
+            factory.Time,
+            cancellationToken: TestContext.Current.CancellationToken);
     }
 
     [Fact]

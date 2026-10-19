@@ -13,6 +13,16 @@
           "Microsoft.Extensions.Hosting": "10.0.13"
         }
       },
+      "Microsoft.AspNetCore.SignalR.Client": {
+        "type": "Direct",
+        "requested": "[10.0.13, )",
+        "resolved": "10.0.13",
+        "contentHash": "17fMUI5gkRwR9qXXTELd5OChcFn3lkgWpiblaaELQ45zOL7VuU7HJYAYnMk+Irjf2jpRxHT7b0imy+NVIFyoYQ==",
+        "dependencies": {
+          "Microsoft.AspNetCore.Http.Connections.Client": "10.0.13",
+          "Microsoft.AspNetCore.SignalR.Client.Core": "10.0.13"
+        }
+      },
       "Microsoft.Extensions.Diagnostics.Testing": {
         "type": "Direct",
         "requested": "[10.11.0, )",
@@ -908,16 +918,6 @@
         "contentHash": "EeFVBmuxdbvNcjty7Jkvck9LG1hGjFnRaJUKDrGfoMKmHJF7iRXcp4rx85Qhm+JmRKKIm4vZMUdv2i2KNsR5JQ==",
         "dependencies": {
           "Microsoft.AspNetCore.Components.WebAssembly": "10.0.13"
-        }
-      },
-      "Microsoft.AspNetCore.SignalR.Client": {
-        "type": "CentralTransitive",
-        "requested": "[10.0.13, )",
-        "resolved": "10.0.13",
-        "contentHash": "17fMUI5gkRwR9qXXTELd5OChcFn3lkgWpiblaaELQ45zOL7VuU7HJYAYnMk+Irjf2jpRxHT7b0imy+NVIFyoYQ==",
-        "dependencies": {
-          "Microsoft.AspNetCore.Http.Connections.Client": "10.0.13",
-          "Microsoft.AspNetCore.SignalR.Client.Core": "10.0.13"
         }
       },
       "Microsoft.Extensions.Hosting.Abstractions": {

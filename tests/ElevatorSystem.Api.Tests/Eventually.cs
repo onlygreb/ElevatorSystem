@@ -11,9 +11,16 @@ internal static class Eventually
     private static readonly TimeSpan Guard = TimeSpan.FromSeconds(10);
     private static readonly TimeSpan PollInterval = TimeSpan.FromMilliseconds(5);
 
-    public static async Task HoldsAsync(Func<bool> condition, string because, FakeTimeProvider? time = null, TimeSpan? step = null)
+    /// <param name="condition">What must become true.</param>
+    /// <param name="because">What is awaited, for the failure message.</param>
+    /// <param name="time">A fake clock to advance by <paramref name="step"/> between polls, if the condition needs time to pass.</param>
+    /// <param name="step">How far to advance <paramref name="time"/> per poll (default 100 ms).</param>
+    /// <param name="cancellationToken">Ends the wait early, for example when the test times out.</param>
+    public static async Task HoldsAsync(
+        Func<bool> condition, string because, FakeTimeProvider? time = null, TimeSpan? step = null, CancellationToken cancellationToken = default)
     {
-        using var guard = new CancellationTokenSource(Guard);
+        using var guard = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        guard.CancelAfter(Guard);
         while (!condition())
         {
             if (guard.IsCancellationRequested)
