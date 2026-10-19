@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- PostgreSQL persistence against a real database (Testcontainers): snapshots, processed commands, leader election, migrations. -->
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\ElevatorSystem.Infrastructure\ElevatorSystem.Infrastructure.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Testcontainers.PostgreSql" />
+    <PackageReference Include="Microsoft.Extensions.TimeProvider.Testing" />
+  </ItemGroup>
+</Project>
