@@ -1,0 +1,15 @@
+# LF everywhere (repository and working tree) so formatting checks behave the same on Windows and Linux CI.
+* text=auto eol=lf
+
+*.cs      text diff=csharp
+*.razor   text
+*.csproj  text
+*.props   text
+*.slnx    text
+*.md      text diff=markdown
+*.sh      text eol=lf
+
+*.png     binary
+*.jpg     binary
+*.ico     binary
+*.woff2   binary
