@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- ElevatorController, use cases and ports (interfaces) implemented by Infrastructure. -->
+  <ItemGroup>
+    <ProjectReference Include="..\ElevatorSystem.Domain\ElevatorSystem.Domain.csproj" />
+    <ProjectReference Include="..\ElevatorSystem.Contracts\ElevatorSystem.Contracts.csproj" />
+  </ItemGroup>
+</Project>

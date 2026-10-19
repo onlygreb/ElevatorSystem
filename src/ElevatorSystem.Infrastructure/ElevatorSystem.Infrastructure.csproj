@@ -1,0 +1,6 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Adapters for the Application ports: RabbitMQ, PostgreSQL (EF Core), audit log, retention jobs. -->
+  <ItemGroup>
+    <ProjectReference Include="..\ElevatorSystem.Application\ElevatorSystem.Application.csproj" />
+  </ItemGroup>
+</Project>

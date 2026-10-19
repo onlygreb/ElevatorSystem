@@ -1,0 +1,6 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    Wire contracts shared by the API, the engine and the Blazor UI: HTTP DTOs and message types.
+    No project or package references allowed; contracts are versioned, never changed in place.
+  -->
+</Project>

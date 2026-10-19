@@ -1,0 +1,6 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    Pure domain model: Elevator, states, requests, scheduling strategies.
+    No project or package references allowed (enforced by ElevatorSystem.Architecture.Tests).
+  -->
+</Project>
