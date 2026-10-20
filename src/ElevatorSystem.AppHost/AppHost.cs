@@ -12,6 +12,11 @@ var adminEmail = builder.AddParameter("admin-email", "admin@elevator.local");
 var adminPassword = builder.AddParameter("admin-password", secret: true)
     .WithDescription("Password of the first admin account: at least 12 characters, with at least 4 different ones.");
 
+// A test admin that signs in with its password only, no authenticator app (ADR-0030). The default password is public:
+// it is for trying the system out. Set the parameter to an empty value to turn the test account off.
+var testAdminPassword = builder.AddParameter("test-admin-password", "elevator-test-account")
+    .WithDescription("Password of the test admin tester@elevator.local, who signs in without a second factor; empty turns it off.");
+
 // HMAC key that pseudonymises client addresses in the audit trail: 44 base64 characters, 33 bytes. Generated per run
 // unless set in user secrets, so locally pseudonyms link only within one run (ADR-0023).
 var auditPseudonymKey = builder.AddParameter(
@@ -47,6 +52,8 @@ builder.AddProject<Projects.ElevatorSystem_Api>("api")
     .WithEnvironment("Staff__Accounts__0__Email", adminEmail)
     .WithEnvironment("Staff__Accounts__0__Password", adminPassword)
     .WithEnvironment("Staff__Accounts__0__Role", "Admin")
+    .WithEnvironment("Staff__TestAccount__Email", "tester@elevator.local")
+    .WithEnvironment("Staff__TestAccount__Password", testAdminPassword)
     .WithEnvironment("Audit__ClientPseudonymKey", auditPseudonymKey)
     .WithReference(messaging)
     .WithReference(database)

@@ -36,9 +36,14 @@ package manager, non-root. Data lives in the `rabbitmq-data` and `postgres-data`
    docker compose -f deploy/compose.yaml up --build --detach
    ```
 
-Open https://localhost:8443 to ride the elevator. For the admin view, open `/admin` and sign in as `ADMIN_EMAIL` with
-`ADMIN_PASSWORD`; the first sign-in asks you to register an authenticator app and shows recovery codes. Then start a
-demo scenario and watch the building fill up.
+Open https://localhost:8443 to ride the elevator. For the admin view, open `/admin` and either:
+- sign in as the test admin, `tester@elevator.local` with `elevator-test-account` (from `.env.example`), with no
+  authenticator app; it is a test account with a public password, so set `TEST_ADMIN_PASSWORD` empty wherever others
+  can reach the system (ADR-0030); or
+- sign in as `ADMIN_EMAIL` with `ADMIN_PASSWORD`; the first sign-in asks you to register an authenticator app and shows
+  recovery codes.
+
+Then start a demo scenario and watch the building fill up.
 
 ## Day to day
 

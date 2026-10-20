@@ -102,6 +102,9 @@ services:
       Staff__Accounts__0__Email: ${ADMIN_EMAIL:-admin@elevator.local}
       Staff__Accounts__0__Password: ${ADMIN_PASSWORD:?set ADMIN_PASSWORD in deploy/.env}
       Staff__Accounts__0__Role: Admin
+      # A test admin that signs in with its password only (ADR-0030); leave TEST_ADMIN_PASSWORD empty to turn it off.
+      Staff__TestAccount__Email: ${TEST_ADMIN_EMAIL:-tester@elevator.local}
+      Staff__TestAccount__Password: ${TEST_ADMIN_PASSWORD:-}
       Audit__ClientPseudonymKey: ${AUDIT_PSEUDONYM_KEY:?set AUDIT_PSEUDONYM_KEY in deploy/.env}
     ports:
       - "8080:8080"
