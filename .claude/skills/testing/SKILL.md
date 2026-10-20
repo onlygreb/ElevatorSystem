@@ -18,7 +18,7 @@ coverage. The mutation score is the quality signal; coverage is only a floor.
 | `ElevatorSystem.Api.Tests` | Endpoints, authorization matrix, validation, rate limits, headers, OpenAPI | WebApplicationFactory, Verify | 2, 4 |
 | `ElevatorSystem.Web.Tests` | Component rendering and behaviour | bUnit | 2 |
 | `ElevatorSystem.Integration.Tests` | Real broker and database, failure scenarios, failover | Testcontainers | 3 |
-| `ElevatorSystem.E2E.Tests` | Main user flows in a browser, accessibility | Playwright, Deque axe | 2+ |
+| `ElevatorSystem.E2E.Tests` | Main user flows in a browser, accessibility | Playwright, Deque axe | 5 ✅ |
 | `tests/load` | 100+ concurrent requests, p95 assignment under 100 ms | k6 | 5 |
 
 New test projects go under `tests/` and inherit `tests/Directory.Build.props` (xUnit v3 on
@@ -38,6 +38,13 @@ Microsoft.Testing.Platform, Shouldly, code coverage). Don't add those packages a
   - for a trip that never arrives, advance `StuckTimeout` explicitly
 - `Application.Tests/EventProbe`: records events and waits for them, with a 10 s real-time guard that
   fails with the events seen so far.
+- `E2E.Tests/BrowserFixture`: one API process (`ApiServer`: single-process mode, HTTPS with the development
+  certificate, short car timings, demo scenarios on, a test admin) and one headless Chromium for the whole run.
+  - `NewPageAsync(locale)` opens a fresh context (own cookies and storage), so each test starts outside
+  - the test classes share the `OneElevator` collection and run one at a time: they share one car
+  - `PassengerJourneyTests.BoardAsync` walks into the car wherever it is; `AdminTests.SignInAsync` registers
+    the authenticator on first use (`Totp`) and never replays a code
+  - `AccessibilityTests` run axe with the WCAG 2.2 A and AA tags and expect no violation
 
 ## Prove a new test can fail
 
@@ -95,6 +102,7 @@ car never moves with its door open"), or drop the watchdog's `WaitAsync` (the st
 dotnet test --solution ElevatorSystem.slnx                                    # everything
 dotnet test --project tests/ElevatorSystem.Domain.Tests                       # one project
 dotnet test --solution ElevatorSystem.slnx --coverage --coverage-output-format cobertura --results-directory TestResults
+dotnet test --project tests/ElevatorSystem.E2E.Tests                          # browser flows; needs dotnet dev-certs https
 dotnet stryker --project ElevatorSystem.Domain.csproj                         # mutation testing (from phase 5, local tool)
 ```
 

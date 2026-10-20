@@ -44,6 +44,12 @@ jobs:
       - name: Build
         run: dotnet build ElevatorSystem.slnx --configuration Release --no-restore
 
+      # The end-to-end tests serve the UI over HTTPS (the staff cookie is Secure) and drive it in Chromium.
+      - name: Prepare end-to-end tests
+        run: |
+          dotnet dev-certs https
+          pwsh tests/ElevatorSystem.E2E.Tests/bin/Release/net10.0/playwright.ps1 install --with-deps chromium
+
       - name: Test
         run: >-
           dotnet test --solution ElevatorSystem.slnx --configuration Release --no-build
