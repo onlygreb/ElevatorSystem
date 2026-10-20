@@ -12,8 +12,35 @@ namespace ElevatorSystem.Api.RealTime;
 internal sealed class ElevatorUpdateSubscriptionService(
     IElevatorUpdateSubscriber subscriber, ElevatorStateCache cache, ElevatorEventBuffer buffer) : BackgroundService
 {
-    protected override Task ExecuteAsync(CancellationToken stoppingToken) =>
-        subscriber.SubscribeAsync(OnElevatorUpdate, OnOccupancyUpdate, stoppingToken);
+    private readonly CancellationTokenSource _stopping = new();
+    private Task? _subscription;
+
+    /// <summary>
+    /// Subscribes before returning. Since .NET 10 a <see cref="BackgroundService"/> runs all of
+    /// <see cref="ExecuteAsync"/> on the thread pool, and the in-memory bus delivers only to subscribers already
+    /// registered, so an in-process engine starting next could otherwise publish its opening status before anyone
+    /// listened, leaving the API without a status until the next refresh. Hosts call <c>StartAsync</c> in
+    /// registration order, and the real-time services are registered before the engine.
+    /// </summary>
+    public override Task StartAsync(CancellationToken cancellationToken)
+    {
+        _subscription = subscriber.SubscribeAsync(OnElevatorUpdate, OnOccupancyUpdate, _stopping.Token);
+        return base.StartAsync(cancellationToken);
+    }
+
+    public override async Task StopAsync(CancellationToken cancellationToken)
+    {
+        await _stopping.CancelAsync();
+        await base.StopAsync(cancellationToken);
+    }
+
+    public override void Dispose()
+    {
+        _stopping.Dispose();
+        base.Dispose();
+    }
+
+    protected override Task ExecuteAsync(CancellationToken stoppingToken) => _subscription ?? Task.CompletedTask;
 
     private Task OnElevatorUpdate(ElevatorUpdateV1 update, CancellationToken cancellationToken)
     {
