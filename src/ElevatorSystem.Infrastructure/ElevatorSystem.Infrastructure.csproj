@@ -20,4 +20,8 @@
     <!-- Design-time only: lets `dotnet ef` create migrations; never shipped. -->
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" PrivateAssets="all" IncludeAssets="runtime; build; native; contentfiles; analyzers; buildtransitive" />
   </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="ElevatorSystem.Messaging.Tests" />
+  </ItemGroup>
 </Project>

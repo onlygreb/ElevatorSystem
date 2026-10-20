@@ -33,6 +33,7 @@ internal static class RabbitMqEnvelope
         ServiceCommandV1 => "service.v1",
         PassengerCommandV1 => "passenger.v1",
         ScenarioCommandV1 => "scenario.v1",
+        SchedulingCommandV1 => "scheduling.v1",
         _ => throw new ArgumentException($"Unknown command type {command.GetType().Name}.", nameof(command)),
     };
 
@@ -106,6 +107,7 @@ internal static class RabbitMqEnvelope
             PassengerCommandV1 passenger => passenger.PassengerId != Guid.Empty && Enum.IsDefined(passenger.Action)
                 && (passenger.Direction is null || Enum.IsDefined(passenger.Direction.Value)),
             ScenarioCommandV1 scenario => scenario.Scenario is null || Enum.IsDefined(scenario.Scenario.Value),
+            SchedulingCommandV1 scheduling => Enum.IsDefined(scheduling.Scheduling),
             _ => false,
         };
 
