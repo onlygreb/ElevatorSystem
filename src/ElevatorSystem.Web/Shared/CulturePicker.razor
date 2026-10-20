@@ -14,7 +14,9 @@
                 aria-pressed="@(selected ? "true" : "false")"
                 data-culture="@option.Name"
                 @onclick="() => ChooseAsync(option)">
-            @L[option == CulturePreference.Portuguese ? Text.LanguagePortuguese : Text.LanguageEnglish]
+            <span class="culture-picker__name">@L[option == CulturePreference.Portuguese ? Text.LanguagePortuguese : Text.LanguageEnglish]</span>
+            @* Narrow screens show only the language code; the full name stays the button's accessible name. *@
+            <span class="culture-picker__code" aria-hidden="true">@option.TwoLetterISOLanguageName.ToUpperInvariant()</span>
         </button>
     }
 </div>

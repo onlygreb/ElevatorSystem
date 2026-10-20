@@ -755,15 +755,15 @@ h1:focus {
 }
 
 .cabin__riders .person {
-    width: 0.5rem;
-    height: 0.5rem;
+    width: 0.625rem;
+    height: 0.625rem;
 }
 
 .cabin__riders .person--more,
 .cabin__riders .person--you {
     width: auto;
     height: auto;
-    font-size: 0.5rem;
+    font-size: 0.625rem;
     padding: 0 0.25rem;
 }
 
@@ -1095,6 +1095,8 @@ h1:focus {
 
 .culture-picker__option {
     min-height: 2rem;
+    position: relative;
+    white-space: nowrap;
     padding: 0 var(--es-space-3);
     border: 0;
     background: transparent;
@@ -1110,6 +1112,10 @@ h1:focus {
     font-weight: 700;
 }
 
+.culture-picker__code {
+    display: none;
+}
+
 /* ---------- Navigation ---------- */
 
 .es-nav {
@@ -1120,6 +1126,7 @@ h1:focus {
 
 .es-nav__link {
     padding: var(--es-space-1) var(--es-space-3);
+    white-space: nowrap;
     border-radius: 999px;
     color: var(--es-color-on-chrome);
     font-size: 0.875rem;
@@ -1278,7 +1285,41 @@ h1:focus {
         display: none;
     }
 
+    /* The app bar keeps one row: the logo stands in for the title, and the links tighten. */
+    .es-brand > span {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip-path: inset(50%);
+        white-space: nowrap;
+    }
+
+    .es-nav {
+        margin-right: var(--es-space-2);
+    }
+
     .es-nav__link {
         padding-inline: var(--es-space-2);
+        font-size: 0.8125rem;
+    }
+
+    .culture-picker__option {
+        padding-inline: var(--es-space-2);
+        font-size: 0.8125rem;
+    }
+
+    .culture-picker__name {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip-path: inset(50%);
+        white-space: nowrap;
+    }
+
+    .culture-picker__code {
+        display: inline;
+        font-weight: 700;
     }
 }
