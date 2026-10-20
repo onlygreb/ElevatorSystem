@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.Security.Claims;
 using ElevatorSystem.Api.Hosting;
 using ElevatorSystem.Application.Audit;
 using ElevatorSystem.Contracts;
@@ -92,6 +93,12 @@ internal sealed class StaffStartupService(
             await SeedAsync(users, seed);
         }
 
+        if (options.Value.ConfiguredTestAccount is { } testAccount)
+        {
+            await SeedAsync(users, testAccount, isTestAccount: true);
+            ApiLog.TestAccountEnabled(logger);
+        }
+
         if (pseudonymizer.IsEphemeral)
         {
             ApiLog.EphemeralPseudonymKey(logger);
@@ -117,7 +124,7 @@ internal sealed class StaffStartupService(
         }
     }
 
-    private async Task SeedAsync(UserManager<StaffUser> users, StaffAccountSeed seed)
+    private async Task SeedAsync(UserManager<StaffUser> users, StaffAccountSeed seed, bool isTestAccount = false)
     {
         var problems = new List<ValidationResult>();
         if (!Validator.TryValidateObject(seed, new ValidationContext(seed), problems, validateAllProperties: true))
@@ -133,6 +140,12 @@ internal sealed class StaffStartupService(
         var user = new StaffUser { UserName = seed.Email, Email = seed.Email, EmailConfirmed = true, LockoutEnabled = true };
         Require(await users.CreateAsync(user, seed.Password), "create a configured staff account");
         Require(await users.AddToRoleAsync(user, seed.Role.ToString()), "give a configured staff account its role");
+        if (isTestAccount)
+        {
+            // Only an account created as the test account can sign in without a second factor (ADR-0030).
+            Require(await users.AddClaimAsync(user, new Claim(StaffPolicies.TestAccountClaim, "true")), "mark the test account");
+        }
+
         ApiLog.StaffAccountCreated(logger, seed.Role);
     }
 

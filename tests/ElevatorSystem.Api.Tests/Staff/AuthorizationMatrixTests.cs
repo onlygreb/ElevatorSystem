@@ -18,16 +18,22 @@ public sealed class AuthorizationMatrixTests : IAsyncLifetime
         AdminWithPasswordOnly,
         AuditorWithTwoFactors,
         AdminWithTwoFactors,
+        TestAccount,
     }
 
     private const HttpStatusCode Allowed = HttpStatusCode.OK;
 
     private static readonly StaffAccount SecondAdmin = new("second.admin@elevator.test", "a second admin passphrase", StaffRole.Admin);
 
+    /// <summary>The configured test account (ADR-0030): password only, yet every staff capability.</summary>
+    internal static readonly StaffAccount TestAdmin = new("test.admin@elevator.test", "a test account passphrase", StaffRole.Admin);
+
     private readonly ApiFactory _factory = new ApiFactory()
         .WithSetting("Staff:Accounts:2:Email", SecondAdmin.Email)
         .WithSetting("Staff:Accounts:2:Password", SecondAdmin.Password)
-        .WithSetting("Staff:Accounts:2:Role", "Admin");
+        .WithSetting("Staff:Accounts:2:Role", "Admin")
+        .WithSetting("Staff:TestAccount:Email", TestAdmin.Email)
+        .WithSetting("Staff:TestAccount:Password", TestAdmin.Password);
     private readonly Dictionary<Caller, StaffClient> _clients = [];
 
     public static TheoryData<string, string, Caller, HttpStatusCode> Matrix => new()
@@ -36,16 +42,19 @@ public sealed class AuthorizationMatrixTests : IAsyncLifetime
         { "GET", ApiRoutes.Occupancy, Caller.AdminWithPasswordOnly, HttpStatusCode.Forbidden },
         { "GET", ApiRoutes.Occupancy, Caller.AuditorWithTwoFactors, Allowed },
         { "GET", ApiRoutes.Occupancy, Caller.AdminWithTwoFactors, Allowed },
+        { "GET", ApiRoutes.Occupancy, Caller.TestAccount, Allowed },
 
         { "POST", ApiRoutes.ServiceActions, Caller.Anonymous, HttpStatusCode.Unauthorized },
         { "POST", ApiRoutes.ServiceActions, Caller.AdminWithPasswordOnly, HttpStatusCode.Forbidden },
         { "POST", ApiRoutes.ServiceActions, Caller.AuditorWithTwoFactors, HttpStatusCode.Forbidden },
         { "POST", ApiRoutes.ServiceActions, Caller.AdminWithTwoFactors, HttpStatusCode.Accepted },
+        { "POST", ApiRoutes.ServiceActions, Caller.TestAccount, HttpStatusCode.Accepted },
 
         { "POST", ApiRoutes.Scenarios, Caller.Anonymous, HttpStatusCode.Unauthorized },
         { "POST", ApiRoutes.Scenarios, Caller.AdminWithPasswordOnly, HttpStatusCode.Forbidden },
         { "POST", ApiRoutes.Scenarios, Caller.AuditorWithTwoFactors, HttpStatusCode.Forbidden },
         { "POST", ApiRoutes.Scenarios, Caller.AdminWithTwoFactors, HttpStatusCode.Accepted },
+        { "POST", ApiRoutes.Scenarios, Caller.TestAccount, HttpStatusCode.Accepted },
         { "POST", ApiRoutes.ScenariosStop, Caller.Anonymous, HttpStatusCode.Unauthorized },
         { "POST", ApiRoutes.ScenariosStop, Caller.AuditorWithTwoFactors, HttpStatusCode.Forbidden },
         { "POST", ApiRoutes.ScenariosStop, Caller.AdminWithTwoFactors, HttpStatusCode.Accepted },
@@ -55,6 +64,7 @@ public sealed class AuthorizationMatrixTests : IAsyncLifetime
         { "GET", ApiRoutes.AuditEntries, Caller.AdminWithPasswordOnly, HttpStatusCode.Forbidden },
         { "GET", ApiRoutes.AuditEntries, Caller.AuditorWithTwoFactors, Allowed },
         { "GET", ApiRoutes.AuditEntries, Caller.AdminWithTwoFactors, Allowed },
+        { "GET", ApiRoutes.AuditEntries, Caller.TestAccount, Allowed },
 
         { "GET", ApiRoutes.AuditVerification, Caller.Anonymous, HttpStatusCode.Unauthorized },
         { "GET", ApiRoutes.AuditVerification, Caller.AdminWithPasswordOnly, HttpStatusCode.Forbidden },
@@ -77,6 +87,7 @@ public sealed class AuthorizationMatrixTests : IAsyncLifetime
         _clients[Caller.AdminWithPasswordOnly] = await StaffClient.SignedInWithPasswordAsync(_factory, SecondAdmin);
         _clients[Caller.AuditorWithTwoFactors] = await StaffClient.SignedInWithTwoFactorsAsync(_factory, StaffAccounts.Auditor);
         _clients[Caller.AdminWithTwoFactors] = await StaffClient.SignedInWithTwoFactorsAsync(_factory, StaffAccounts.Admin);
+        _clients[Caller.TestAccount] = await StaffClient.SignedInWithPasswordAsync(_factory, TestAdmin);
         await _factory.StatusAsync();
     }
 

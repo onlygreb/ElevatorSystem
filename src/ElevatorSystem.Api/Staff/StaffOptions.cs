@@ -18,6 +18,17 @@ public sealed class StaffOptions
     /// secret store (Aspire parameters, user secrets), never from <c>appsettings</c>.
     /// </summary>
     public IList<StaffAccountSeed> Accounts { get; } = [];
+
+    /// <summary>
+    /// A test account that signs in with its password only, for demonstrations and testing (ADR-0030); off unless both the
+    /// e-mail and the password are set. It is marked as a test account when it is created, so an existing account is never
+    /// exempted, and it loses the exemption as soon as this setting is removed.
+    /// </summary>
+    public StaffAccountSeed? TestAccount { get; set; }
+
+    /// <summary>The test account, when one is configured.</summary>
+    public StaffAccountSeed? ConfiguredTestAccount =>
+        TestAccount is { Email.Length: > 0, Password.Length: > 0 } account ? account : null;
 }
 
 /// <summary>An account to create at start-up.</summary>
