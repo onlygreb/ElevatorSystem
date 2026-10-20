@@ -278,13 +278,19 @@ Press Ctrl+C in the terminal to stop. The database and broker volumes keep the c
 
 ### 2C. The API alone
 
-```bash
-dotnet run --project src/ElevatorSystem.Api
-```
+1. Trust the .NET development certificate once, so the browser accepts https://localhost (staff sign-in needs HTTPS):
+   ```bash
+   dotnet dev-certs https --trust
+   ```
+2. Start the API:
+   ```bash
+   dotnet run --project src/ElevatorSystem.Api
+   ```
+3. Open https://localhost:7104 (http://localhost:5251 redirects there).
 
 The engine runs inside the API over in-memory messaging and storage (`Hosting:Mode=SingleProcess`, the
 Development default; [ADR-0021](docs/adr/0021-engine-hosting-topology-and-single-process-mode.md)). Staff accounts
-live in memory too: create one for the session with `dotnet user-secrets` on the API project
+live in memory too. The test admin below is ready; for a real one, use `dotnet user-secrets` on the API project
 (`Staff:Accounts:0:Email`, `Staff:Accounts:0:Password`, `Staff:Accounts:0:Role` = `Admin` or `Auditor`).
 
 ### 2D. The console demo
@@ -312,7 +318,7 @@ dotnet run --project src/ElevatorSystem.ConsoleDemo -- --interactive
 
 - **Ride the elevator.** On the home page, enter the building (everyone starts on floor 1), call the car,
   walk in while its doors are open, choose a floor, and walk out when the doors open there, or ride on.
-- **Administer it.** Open `/admin`. To look around quickly (A and B), sign in as the **test admin**: e-mail
+- **Administer it.** Open `/admin`. To look around quickly, sign in as the **test admin**: e-mail
   `tester@elevator.local`, password `elevator-test-account`. It needs no authenticator app, and the page says it is a
   test account. The password is public, so turn the account off wherever others can reach the system: an empty
   `TEST_ADMIN_PASSWORD` in `deploy/.env`, or an empty `test-admin-password` parameter in Aspire
