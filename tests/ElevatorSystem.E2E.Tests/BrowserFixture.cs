@@ -24,8 +24,20 @@ public sealed class BrowserFixture : IAsyncLifetime
     /// <summary>The 30-second step of the last authenticator code used, so none is used twice.</summary>
     public long LastCodeStep { get; set; } = -1;
 
+    /// <summary>
+    /// <c>ELEVATOR_E2E=defer</c> skips these tests: CI runs them in a step of their own, after the other suites, because
+    /// containers starting in parallel change the network interfaces and Chromium aborts requests in flight when that
+    /// happens (<c>net::ERR_NETWORK_CHANGED</c>).
+    /// </summary>
+    public static bool Deferred { get; } = Environment.GetEnvironmentVariable("ELEVATOR_E2E") == "defer";
+
     public async ValueTask InitializeAsync()
     {
+        if (Deferred)
+        {
+            return;
+        }
+
         // Downloads Chromium the first time only; a no-op when it is already installed.
         var installed = Microsoft.Playwright.Program.Main(["install", "chromium"]);
         if (installed != 0)
@@ -126,6 +138,11 @@ public sealed class BrowserFixture : IAsyncLifetime
     /// <summary>A fresh browser (its own cookies and storage), on the given culture.</summary>
     public async Task<IPage> NewPageAsync(string locale = "en-US")
     {
+        if (Deferred)
+        {
+            Assert.Skip("Deferred: ELEVATOR_E2E=defer runs the browser tests in a step of their own.");
+        }
+
         var context = await Browser.NewContextAsync(new()
         {
             BaseURL = BaseAddress.ToString(),
