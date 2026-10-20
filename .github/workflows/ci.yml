@@ -83,6 +83,29 @@ jobs:
           if-no-files-found: warn
           retention-days: 14
 
+  compose:
+    name: Compose images
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    # Placeholders only: the file and the images are checked here, never run with these values.
+    env:
+      MESSAGING_PASSWORD: ci-placeholder
+      DATABASE_PASSWORD: ci-placeholder
+      ADMIN_PASSWORD: ci-placeholder
+      AUDIT_PSEUDONYM_KEY: ci-placeholder
+      CERTIFICATE_PASSWORD: ci-placeholder
+    steps:
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Validate the Compose file
+        run: docker compose -f deploy/compose.yaml config --quiet
+
+      - name: Build the API and engine images
+        run: docker compose -f deploy/compose.yaml build
+
   dependency-review:
     name: Dependency review
     if: github.event_name == 'pull_request'
