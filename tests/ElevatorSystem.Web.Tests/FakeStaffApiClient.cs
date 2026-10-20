@@ -86,6 +86,16 @@ internal sealed class FakeStaffApiClient : IStaffApiClient
 
     public List<DemoScenario?> Scenarios { get; } = [];
 
+    public List<Scheduling> SchedulingChanges { get; } = [];
+
+    public StaffResult<SchedulingAcceptedResponse>? SchedulingAnswer { get; set; }
+
+    public Task<StaffResult<SchedulingAcceptedResponse>> ChangeSchedulingAsync(Scheduling scheduling, CancellationToken cancellationToken = default)
+    {
+        SchedulingChanges.Add(scheduling);
+        return Task.FromResult(SchedulingAnswer ?? StaffResult.Ok(new SchedulingAcceptedResponse(Guid.NewGuid(), scheduling)));
+    }
+
     public StaffResult<ScenarioAcceptedResponse> ScenarioAnswer { get; set; } = StaffResult.Ok(new ScenarioAcceptedResponse(Guid.NewGuid()));
 
     public Task<StaffResult<ScenarioAcceptedResponse>> StartScenarioAsync(DemoScenario scenario, CancellationToken cancellationToken = default)

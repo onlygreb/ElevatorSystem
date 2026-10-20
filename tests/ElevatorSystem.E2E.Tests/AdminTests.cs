@@ -40,6 +40,29 @@ public sealed class AdminTests(BrowserFixture fixture)
         await Expect(page.GetByTestId("car")).ToHaveAttributeAsync("data-floor", "1", new() { Timeout = 30_000 });
     }
 
+    [Fact]
+    public async Task Admin_SwitchesToLook_OnlyWhileTheCarIsOutOfService()
+    {
+        var page = await fixture.NewPageAsync();
+        await SignInAsync(page, fixture);
+        await Expect(page.GetByTestId("scheduling-Look")).ToBeDisabledAsync();
+
+        await page.GetByTestId("action-StartMaintenance").ClickAsync();
+        await page.GetByTestId("confirm-yes").ClickAsync();
+        await Expect(page.GetByTestId("scheduling-Look")).ToBeEnabledAsync();
+        await page.GetByTestId("scheduling-Look").ClickAsync();
+
+        await Expect(page.GetByTestId("scheduling-Look")).ToHaveAttributeAsync("aria-checked", "true");
+        await Expect(page.GetByTestId("scheduling")).ToHaveTextAsync("with LOOK scheduling");
+
+        // Back to FIFO, as the other tests expect, and back in service.
+        await page.GetByTestId("scheduling-Fifo").ClickAsync();
+        await Expect(page.GetByTestId("scheduling-Fifo")).ToHaveAttributeAsync("aria-checked", "true");
+        await page.GetByTestId("action-ReturnToService").ClickAsync();
+        await page.GetByTestId("confirm-yes").ClickAsync();
+        await Expect(page.GetByTestId("scheduling-Fifo")).ToBeDisabledAsync();
+    }
+
     /// <summary>
     /// Registers the test admin's authenticator: the first sign-in with a password asks for it, then shows recovery
     /// codes. The fixture does this once, before any test, with a generous timeout.

@@ -54,6 +54,7 @@ else
         ElevatorActivityKind.CallServed or ElevatorActivityKind.ReturnedToService => "good",
         ElevatorActivityKind.SpeedChanged => "move",
         ElevatorActivityKind.RequestsCleared => "alert",
+        ElevatorActivityKind.SchedulingChanged => "call",
         >= ElevatorActivityKind.PassengerJoined => "person",
         _ => "call",
     };
@@ -73,6 +74,7 @@ else
         ElevatorActivityKind.PassengerRemoved => "−",
         ElevatorActivityKind.SpeedChanged => "»",
         ElevatorActivityKind.RequestsCleared => "✕",
+        ElevatorActivityKind.SchedulingChanged => "⇅",
         _ => "•",
     };
 }

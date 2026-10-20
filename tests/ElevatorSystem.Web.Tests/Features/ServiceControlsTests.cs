@@ -28,6 +28,38 @@ public sealed class ServiceControlsTests : WebTestContext
     }
 
     [Fact]
+    public void SchedulingSwitch_InService_IsDisabled_AndSaysWhy()
+    {
+        var controls = Render<ServiceControls>(parameters => parameters.Add(component => component.Status, TestData.Status() with { Scheduling = Scheduling.Fifo }));
+
+        controls.Find("[data-testid=scheduling-Fifo]").GetAttribute("aria-checked").ShouldBe("true");
+        controls.Find("[data-testid=scheduling-Look]").HasAttribute("disabled").ShouldBeTrue();
+        controls.Find("#scheduling-hint").TextContent.ShouldBe("Take the car out of service to switch how it schedules its calls.");
+    }
+
+    [Fact]
+    public void SchedulingSwitch_OutOfService_SendsTheChoice()
+    {
+        var controls = Render<ServiceControls>(parameters => parameters.Add(component => component.Status, OutOfService() with { Scheduling = Scheduling.Fifo }));
+
+        controls.Find("[data-testid=scheduling-Look]").Click();
+
+        Staff.SchedulingChanges.ShouldBe([Scheduling.Look]);
+        controls.Find("[data-testid=action-message]").TextContent.ShouldBe("Switching to LOOK.");
+    }
+
+    [Fact]
+    public void SchedulingSwitch_RefusedBecauseTheCarIsBackInService_SaysSo()
+    {
+        Staff.SchedulingAnswer = StaffResult.Fail<SchedulingAcceptedResponse>(StaffFailure.Conflict);
+        var controls = Render<ServiceControls>(parameters => parameters.Add(component => component.Status, OutOfService() with { Scheduling = Scheduling.Fifo }));
+
+        controls.Find("[data-testid=scheduling-Look]").Click();
+
+        controls.Find("[data-testid=action-message]").TextContent.ShouldBe("Take the car out of service to switch how it schedules its calls.");
+    }
+
+    [Fact]
     public void EmergencyStop_IsSentOnlyAfterConfirming()
     {
         var controls = Render<ServiceControls>(parameters => parameters.Add(component => component.Status, TestData.Status()));

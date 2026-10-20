@@ -37,6 +37,7 @@ public sealed record ElevatorConfigurationDto(
 /// How many times faster than normal the car runs: 1, or more while a demo fast-forwards the building (ADR-0031).
 /// Divide the configured travel time and door countdown by it.
 /// </param>
+/// <param name="Scheduling">The order the car serves its calls in right now (ADR-0033); null from an engine that does not say.</param>
 public sealed record ElevatorStatusDto(
     int CurrentFloor,
     ElevatorStatus Status,
@@ -47,7 +48,18 @@ public sealed record ElevatorStatusDto(
     long Version,
     DateTimeOffset TakenAt,
     DateTimeOffset? DoorsCloseAt = null,
-    double Speed = 1);
+    double Speed = 1,
+    Scheduling? Scheduling = null);
+
+/// <summary>The order the car serves its calls in (ADR-0005, ADR-0033).</summary>
+public enum Scheduling
+{
+    /// <summary>First in, first out: the oldest call first, without stopping on the way.</summary>
+    Fifo,
+
+    /// <summary>LOOK: every call in the current direction, then reverse.</summary>
+    Look,
+}
 
 /// <summary>A call: a hall call has a <see cref="Direction"/>, a car call does not.</summary>
 public sealed record CallDto(CallKind Kind, int Floor, CallDirection? Direction);
@@ -64,6 +76,7 @@ public sealed record PendingCallDto(CallDto Call, int RequestCount, DateTimeOffs
 /// <item><c>CallServed</c>: <see cref="Call"/>, <see cref="RequestId"/> (the first request), <see cref="RequestCount"/>, <see cref="WaitTime"/>.</item>
 /// <item><c>OutOfService</c>: <see cref="OutOfServiceCause"/>, <see cref="CancelledCalls"/>.</item>
 /// <item><c>RequestsCleared</c> (ADR-0032): <see cref="CancelledCalls"/>; <see cref="Floor"/> is where the car is.</item>
+/// <item><c>SchedulingChanged</c> (ADR-0033): the new <see cref="Scheduling"/>; <see cref="Floor"/> is where the car is.</item>
 /// <item><c>DoorsOpened</c>, <c>DoorsClosed</c>, <c>ReturnedToService</c>: <see cref="Floor"/> only.</item>
 /// <item>Passenger kinds (ADR-0026): <see cref="PassengerId"/>, <see cref="Simulated"/> and the <see cref="RequestId"/> of the step;
 /// <c>PassengerCalled</c> adds <see cref="Direction"/>, <c>PassengerChoseFloor</c> the chosen floor as <see cref="Floor"/>,
@@ -90,7 +103,8 @@ public sealed record ElevatorActivityDto(
     bool? Simulated = null,
     PassengerAction? PassengerAction = null,
     PassengerRefusalReason? PassengerRefusal = null,
-    double? Speed = null);
+    double? Speed = null,
+    Scheduling? Scheduling = null);
 
 /// <summary>
 /// How many passengers are where (ADR-0026). Counts only:
@@ -184,4 +198,5 @@ public enum ElevatorActivityKind
     PassengerRefused,
     SpeedChanged,
     RequestsCleared,
+    SchedulingChanged,
 }

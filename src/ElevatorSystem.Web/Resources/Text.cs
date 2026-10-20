@@ -213,6 +213,13 @@ internal static class Text
     public const string ActivitySpeedFast = nameof(ActivitySpeedFast);
     public const string ActivitySpeedNormal = nameof(ActivitySpeedNormal);
     public const string ActivityRequestsCleared = nameof(ActivityRequestsCleared);
+    public const string ActivitySchedulingChanged = nameof(ActivitySchedulingChanged);
+    public const string SchedulingHeading = nameof(SchedulingHeading);
+    public const string SchedulingFifo = nameof(SchedulingFifo);
+    public const string SchedulingLook = nameof(SchedulingLook);
+    public const string SchedulingHintInService = nameof(SchedulingHintInService);
+    public const string SchedulingHintOutOfService = nameof(SchedulingHintOutOfService);
+    public const string SchedulingRequested = nameof(SchedulingRequested);
     public const string SchedulingNote = nameof(SchedulingNote);
     public const string DemoStop = nameof(DemoStop);
     public const string DemoStarted = nameof(DemoStarted);

@@ -67,6 +67,9 @@ public static class AuditActions
     public const string TwoFactorEnabled = "staff.two-factor-enabled";
     public const string ServiceAction = "elevator.service-action";
     public const string DemoScenario = "elevator.demo-scenario";
+
+    /// <summary>An admin switched the scheduling strategy (ADR-0033).</summary>
+    public const string Scheduling = "elevator.scheduling";
     public const string EntriesAnonymised = "audit.entries-anonymised";
 }
 

@@ -348,6 +348,25 @@ public sealed class ElevatorEngineTests
     }
 
     [Fact]
+    public async Task SchedulingCommand_OutOfService_SwitchesAndSaysSo_InServiceChangesNothing()
+    {
+        await using var harness = new EngineHarness();
+        var leader = await harness.StartLeaderAsync();
+
+        await harness.SendAsync(new SchedulingCommandV1(Guid.CreateVersion7(), DateTimeOffset.UnixEpoch.AddYears(56), Scheduling.Look));
+        await harness.SendAsync(EngineHarness.Service(ServiceAction.StartMaintenance));
+        await harness.Updates.WaitForAsync(update => update.Activity.Kind == ElevatorActivityKind.OutOfService);
+        leader.Engine.Controller!.Scheduling.ShouldBe(SchedulingPolicy.Fifo, "refused while the car was in service");
+
+        await harness.SendAsync(new SchedulingCommandV1(Guid.CreateVersion7(), DateTimeOffset.UnixEpoch.AddYears(56), Scheduling.Look));
+        var switched = await harness.Updates.WaitForAsync(update => update.Activity.Kind == ElevatorActivityKind.SchedulingChanged);
+
+        switched.Activity.Scheduling.ShouldBe(Scheduling.Look);
+        switched.Status.Scheduling.ShouldBe(Scheduling.Look);
+        harness.Logs.Entries.ShouldContain(entry => entry.EventId.Id == 2022, "the refusal is logged");
+    }
+
+    [Fact]
     public async Task RunAsync_Twice_IsRefused()
     {
         await using var harness = new EngineHarness();

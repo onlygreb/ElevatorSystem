@@ -648,4 +648,25 @@
   <data name="ActivityRequestsCleared" xml:space="preserve">
     <value>Queue cleared: {0} calls cancelled.</value>
   </data>
+  <data name="SchedulingHeading" xml:space="preserve">
+    <value>Scheduling</value>
+  </data>
+  <data name="SchedulingFifo" xml:space="preserve">
+    <value>FIFO: first come, first served</value>
+  </data>
+  <data name="SchedulingLook" xml:space="preserve">
+    <value>LOOK: sweep up, then down</value>
+  </data>
+  <data name="SchedulingHintInService" xml:space="preserve">
+    <value>Take the car out of service to switch how it schedules its calls.</value>
+  </data>
+  <data name="SchedulingHintOutOfService" xml:space="preserve">
+    <value>Choose how the car serves its calls once it is back in service.</value>
+  </data>
+  <data name="SchedulingRequested" xml:space="preserve">
+    <value>Switching to {0}.</value>
+  </data>
+  <data name="ActivitySchedulingChanged" xml:space="preserve">
+    <value>Scheduling switched to {0}.</value>
+  </data>
 </root>

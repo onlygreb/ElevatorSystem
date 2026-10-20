@@ -49,7 +49,17 @@ internal sealed class EngineEventSink(Elevator elevator, SnapshotPersister persi
     }
 
     /// <summary>The status now, with the controller's door countdown and speed.</summary>
-    public ElevatorStatusDto CurrentStatus() => ElevatorContractMapper.ToStatus(elevator.Snapshot(), Controller?.DoorsCloseAt, Controller?.Speed ?? 1);
+    public ElevatorStatusDto CurrentStatus() =>
+        ElevatorContractMapper.ToStatus(elevator.Snapshot(), Controller?.DoorsCloseAt, Controller?.Speed ?? 1, Controller?.Scheduling);
+
+    /// <summary>Tells subscribers the scheduling strategy changed (ADR-0033), with the status as it is.</summary>
+    public void PublishSchedulingChanged(SchedulingPolicy policy)
+    {
+        var status = CurrentStatus();
+        var activity = new ElevatorActivityDto(
+            timeProvider.GetUtcNow(), ElevatorActivityKind.SchedulingChanged, status.CurrentFloor, Scheduling: ElevatorContractMapper.ToContract(policy));
+        forwarder.Enqueue(new ElevatorUpdateV1(Guid.CreateVersion7(timeProvider.GetUtcNow()), activity, status));
+    }
 
     /// <summary>Tells subscribers the car's speed changed (ADR-0031): not an elevator event, so it carries the status as it is.</summary>
     public void PublishSpeedChanged(double speed)

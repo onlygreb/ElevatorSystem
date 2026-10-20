@@ -36,7 +36,7 @@ public sealed class ElevatorController
     public const double MaxSpeed = 10;
 
     private readonly Channel<Intake> _intake;
-    private readonly ISchedulingStrategy _strategy;
+    private ISchedulingStrategy _strategy;
     private readonly IElevatorDrive _drive;
     private readonly IElevatorEventSink _eventSink;
     private readonly ElevatorControllerOptions _options;
@@ -85,7 +85,13 @@ public sealed class ElevatorController
 
     public Elevator Elevator { get; }
 
-    public ISchedulingStrategy Strategy => _strategy;
+    public ISchedulingStrategy Strategy => Volatile.Read(ref _strategy);
+
+    /// <summary>The order the car serves its calls in now: LOOK when the strategy is LOOK, FIFO otherwise.</summary>
+    public SchedulingPolicy Scheduling => Strategy is LookSchedulingStrategy ? SchedulingPolicy.Look : SchedulingPolicy.Fifo;
+
+    /// <summary>Raised with the new policy after <see cref="ChangeScheduling"/> changes it. Handlers must be fast and thread-safe.</summary>
+    public event EventHandler<SchedulingPolicy>? SchedulingChanged;
 
     public ElevatorControllerOptions Options => _options;
 
@@ -198,6 +204,41 @@ public sealed class ElevatorController
         return _intake.Writer.TryWrite(new ClearOrder(keep, thenGoTo));
     }
 
+    /// <summary>
+    /// Switches the scheduling strategy (ADR-0033). Only while the car is out of service: it then holds no calls, so no
+    /// call is ever planned by two strategies. Lasts until the engine restarts; then the configured one applies.
+    /// </summary>
+    /// <returns><see langword="false"/> when the car is in service; nothing changes then.</returns>
+    public bool ChangeScheduling(SchedulingPolicy policy)
+    {
+        if (!Enum.IsDefined(policy))
+        {
+            throw new ArgumentOutOfRangeException(nameof(policy), policy, "Choose Fifo or Look.");
+        }
+
+        if (Elevator.State != ElevatorState.OutOfService)
+        {
+            return false;
+        }
+
+        if (policy != Scheduling)
+        {
+            Volatile.Write(ref _strategy, (_options with { Scheduling = policy }).CreateStrategy());
+            Log.SchedulingChanged(_logger, policy);
+            try
+            {
+                SchedulingChanged?.Invoke(this, policy);
+            }
+            // A failing subscriber must never stop the elevator (ADR-0007).
+            catch (Exception exception)
+            {
+                Log.EventSinkFailed(_logger, exception, nameof(SchedulingChanged));
+            }
+        }
+
+        return true;
+    }
+
     /// <summary>Stops the car at once and takes it out of service, cancelling every pending call.</summary>
     public TransitionResult EmergencyStop() => TakeOutOfService(OutOfServiceReason.EmergencyStop);
 
@@ -225,7 +266,7 @@ public sealed class ElevatorController
             throw new InvalidOperationException("The control loop is already running; an elevator has exactly one.");
         }
 
-        Log.ControlLoopStarted(_logger, Elevator.CurrentFloor, _strategy.Name);
+        Log.ControlLoopStarted(_logger, Elevator.CurrentFloor, Strategy.Name);
         var events = new List<ElevatorEvent>();
         Operation? operation = null;
         Task<bool>? requestArrival = null;
@@ -347,7 +388,7 @@ public sealed class ElevatorController
                 return null;
             case ElevatorState.DoorOpen when _doorHeld:
                 // Held open with nowhere to go: a call that gives the car somewhere to go starts the countdown.
-                if (_strategy.SelectTarget(snapshot) is null)
+                if (Strategy.SelectTarget(snapshot) is null)
                 {
                     return null;
                 }
@@ -359,7 +400,7 @@ public sealed class ElevatorController
         }
 
         var isMoving = snapshot.State is ElevatorState.MovingUp or ElevatorState.MovingDown;
-        if (_strategy.SelectTarget(snapshot) is not { } target)
+        if (Strategy.SelectTarget(snapshot) is not { } target)
         {
             // Nothing left to serve: a moving car stops at the floor it is reaching; an idle car opens and waits.
             return isMoving ? OpenDoorHere(events, loopToken) : _options.HoldDoorOpenWhenIdle ? HoldDoorOpenHere(events) : null;
@@ -415,7 +456,7 @@ public sealed class ElevatorController
         }
 
         events.AddRange(opened.Events);
-        if (_options.HoldDoorOpenWhenIdle && _strategy.SelectTarget(Elevator.Snapshot()) is null)
+        if (_options.HoldDoorOpenWhenIdle && Strategy.SelectTarget(Elevator.Snapshot()) is null)
         {
             // The stop served everything: no countdown, the car waits here with its door open.
             _doorHeld = true;
@@ -483,7 +524,7 @@ public sealed class ElevatorController
         if (operation.Kind == OperationKind.DoorCycle)
         {
             SetDoorsCloseAt(null);
-            if (_options.HoldDoorOpenWhenIdle && _strategy.SelectTarget(Elevator.Snapshot()) is null)
+            if (_options.HoldDoorOpenWhenIdle && Strategy.SelectTarget(Elevator.Snapshot()) is null)
             {
                 // Nowhere to go: the door stays open until a call arrives (ADR-0025).
                 _doorHeld = true;

@@ -68,6 +68,9 @@ public static class ApiRoutes
     /// <summary><c>POST</c> a <see cref="ServiceActionRequest"/> (admins); answers <c>202</c> with a <see cref="ServiceActionAcceptedResponse"/>.</summary>
     public const string ServiceActions = Base + "/admin/service-actions";
 
+    /// <summary>Switch between FIFO and LOOK scheduling while the car is out of service (ADR-0033).</summary>
+    public const string Scheduling = Base + "/admin/scheduling";
+
     /// <summary><c>GET</c> an <see cref="AuditPageDto"/>; query <c>before</c> and <c>limit</c>.</summary>
     public const string AuditEntries = Base + "/admin/audit/entries";
 

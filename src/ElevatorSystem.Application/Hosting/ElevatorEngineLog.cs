@@ -1,3 +1,4 @@
+using ElevatorSystem.Contracts;
 using ElevatorSystem.Domain;
 using Microsoft.Extensions.Logging;
 
@@ -74,4 +75,7 @@ internal static partial class ElevatorEngineLog
 
     [LoggerMessage(2021, LogLevel.Information, "Service command {CommandId} applied: {Action}")]
     public static partial void ServiceCommandApplied(ILogger logger, Guid commandId, string action);
+
+    [LoggerMessage(2022, LogLevel.Warning, "Scheduling command {CommandId} ({Scheduling}) refused: the car is in service")]
+    public static partial void SchedulingRefused(ILogger logger, Guid commandId, Scheduling scheduling);
 }

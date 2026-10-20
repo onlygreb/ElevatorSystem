@@ -72,6 +72,13 @@ internal sealed class EngineCommandHandler(
             case ScenarioCommandV1 { Scenario: { } scenario } when Enum.IsDefined(scenario):
                 scenarios.Start(scenario);
                 break;
+            case SchedulingCommandV1 scheduling when Enum.IsDefined(scheduling.Scheduling):
+                if (!controller.ChangeScheduling(ElevatorContractMapper.ToDomain(scheduling.Scheduling)))
+                {
+                    Log.SchedulingRefused(logger, command.CommandId, scheduling.Scheduling);
+                }
+
+                break;
             default:
                 Log.UnknownCommand(logger, command.CommandId, type);
                 break;
@@ -192,6 +199,7 @@ internal sealed class EngineCommandHandler(
         ServiceCommandV1 => "service.v1",
         PassengerCommandV1 => "passenger.v1",
         ScenarioCommandV1 => "scenario.v1",
+        SchedulingCommandV1 => "scheduling.v1",
         _ => command.GetType().Name,
     };
 }

@@ -1,4 +1,5 @@
 using System.Globalization;
+using ElevatorSystem.Api.RealTime;
 using ElevatorSystem.Api.Security;
 using ElevatorSystem.Api.Staff;
 using ElevatorSystem.Application.Audit;
@@ -42,6 +43,17 @@ internal static class AdminEndpoints
             .ProducesProblem(StatusCodes.Status422UnprocessableEntity)
             .ProducesProblem(StatusCodes.Status429TooManyRequests)
             .ProducesProblem(StatusCodes.Status503ServiceUnavailable);
+
+        admin.MapPost(ApiRoutes.Scheduling, ChangeSchedulingAsync)
+            .RequireAuthorization(StaffPolicies.ServiceControl)
+            .WithName("ChangeScheduling")
+            .WithSummary("Switch between FIFO and LOOK scheduling while the car is out of service")
+            .WithDescription("Admins signed in with two factors (ADR-0033). 409 while the car is in service: take it out of service first. Written to the audit trail before it is sent; the engine checks the car is still out of service, and reports the switch on the hub as a SchedulingChanged activity.")
+            .RequireRateLimiting(RateLimiting.StaffPolicy)
+            .WithRequestSizeLimit()
+            .RequireAntiforgeryToken()
+            .ProducesScenarioRefusals()
+            .ProducesProblem(StatusCodes.Status422UnprocessableEntity);
 
         admin.MapPost(ApiRoutes.Scenarios, StartScenarioAsync)
             .RequireAuthorization(StaffPolicies.ServiceControl)
@@ -162,7 +174,53 @@ internal static class AdminEndpoints
         Enum.IsDefined(request.Scenario)
             ? SendScenarioAsync(request.Scenario, publisher, audit, users, configuration, timeProvider, context, cancellationToken)
             : Task.FromResult<Results<Accepted<ScenarioAcceptedResponse>, ProblemHttpResult>>(
-                Invalid("Unknown scenario", "The scenario must be MorningRush, LunchBreak or BusyDay."));
+                Invalid("Unknown scenario", "The scenario must be MorningRush, LunchBreak, BusyDay or HugeLoad."));
+
+    internal static async Task<Results<Accepted<SchedulingAcceptedResponse>, ProblemHttpResult>> ChangeSchedulingAsync(
+        SchedulingRequest request,
+        IElevatorCommandPublisher publisher,
+        AuditTrail audit,
+        ElevatorStateCache state,
+        UserManager<StaffUser> users,
+        TimeProvider timeProvider,
+        HttpContext context,
+        CancellationToken cancellationToken)
+    {
+        // The JSON options refuse unknown names, but an enum also reads from a number.
+        if (!Enum.IsDefined(request.Scheduling))
+        {
+            return Invalid("Unknown scheduling", "The scheduling must be Fifo or Look.");
+        }
+
+        if (state.Status is not { Status: ElevatorStatus.OutOfService })
+        {
+            return TypedResults.Problem(
+                detail: "Take the car out of service before switching how it schedules its calls.",
+                statusCode: StatusCodes.Status409Conflict,
+                title: "The car is in service");
+        }
+
+        var accountId = StaffAuthEndpoints.AccountId(users, context.User)
+            ?? throw new InvalidOperationException("An authorised staff request has no account ID.");
+        var now = timeProvider.GetUtcNow();
+        var command = new SchedulingCommandV1(Guid.CreateVersion7(now), now, request.Scheduling);
+        var target = string.Create(CultureInfo.InvariantCulture, $"{request.Scheduling} command {command.CommandId}");
+        var address = context.Connection.RemoteIpAddress;
+
+        // Like a service action: audited before it is sent, and a refusal is audited too (ADR-0023).
+        await audit.RecordAsync(new AuditRecord(AuditActions.Scheduling, target, AuditOutcomes.Requested, accountId, address), cancellationToken);
+        try
+        {
+            await publisher.PublishAsync(command, cancellationToken);
+        }
+        catch (MessagingUnavailableException)
+        {
+            await audit.RecordAsync(new AuditRecord(AuditActions.Scheduling, target, AuditOutcomes.Refused, accountId, address), cancellationToken);
+            return Unavailable(context);
+        }
+
+        return TypedResults.Accepted((string?)null, new SchedulingAcceptedResponse(command.CommandId, request.Scheduling));
+    }
 
     internal static Task<Results<Accepted<ScenarioAcceptedResponse>, ProblemHttpResult>> StopScenariosAsync(
         IElevatorCommandPublisher publisher,

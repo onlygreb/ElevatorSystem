@@ -73,6 +73,7 @@ internal static class Narration
             text[Text.ActivitySpeedFast, activity.Speed.Value.ToString("0.#", CultureInfo.CurrentCulture)],
         ElevatorActivityKind.SpeedChanged => text[Text.ActivitySpeedNormal],
         ElevatorActivityKind.RequestsCleared => text[Text.ActivityRequestsCleared, activity.CancelledCalls ?? 0],
+        ElevatorActivityKind.SchedulingChanged => text[Text.ActivitySchedulingChanged, activity.Scheduling?.ToString().ToUpperInvariant() ?? string.Empty],
         _ => activity.Kind.ToString(),
     };
 

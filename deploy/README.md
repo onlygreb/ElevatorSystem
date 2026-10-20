@@ -43,9 +43,9 @@ Open https://localhost:8443 to ride the elevator. For the admin view, open `/adm
 - sign in as `ADMIN_EMAIL` with `ADMIN_PASSWORD`; the first sign-in asks you to register an authenticator app and shows
   recovery codes.
 
-Then start a demo scenario and watch the building fill up. To compare scheduling strategies, set
-`ELEVATOR_SCHEDULING=Look` in `deploy/.env`, run `up --detach` again, and compare the average wait in the admin view
-with the same scenario under `Fifo` (ADR-0005).
+Then start a demo scenario and watch the building fill up. To compare scheduling strategies, take the car out of
+service in the admin view, switch between FIFO and LOOK there, return it to service and run the same scenario
+(ADR-0033); `ELEVATOR_SCHEDULING` in `deploy/.env` sets the one the engines start with.
 
 ## Day to day
 

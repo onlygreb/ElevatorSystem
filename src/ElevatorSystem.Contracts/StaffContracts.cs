@@ -97,3 +97,9 @@ public enum SignInFailureReason
     /// <summary>The password was right but the authenticator or recovery code was not.</summary>
     InvalidTwoFactorCode,
 }
+
+/// <summary>Body of <c>POST /api/v1/admin/scheduling</c>: the order the car should serve its calls in (ADR-0033).</summary>
+public sealed record SchedulingRequest(Scheduling Scheduling);
+
+/// <summary>The change was sent to the engine; it is reported on the hub as a <c>SchedulingChanged</c> activity.</summary>
+public sealed record SchedulingAcceptedResponse(Guid CommandId, Scheduling Scheduling);

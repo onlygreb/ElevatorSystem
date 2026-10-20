@@ -55,6 +55,12 @@ public sealed class AuthorizationMatrixTests : IAsyncLifetime
         { "POST", ApiRoutes.Scenarios, Caller.AuditorWithTwoFactors, HttpStatusCode.Forbidden },
         { "POST", ApiRoutes.Scenarios, Caller.AdminWithTwoFactors, HttpStatusCode.Accepted },
         { "POST", ApiRoutes.Scenarios, Caller.TestAccount, HttpStatusCode.Accepted },
+        { "POST", ApiRoutes.Scheduling, Caller.Anonymous, HttpStatusCode.Unauthorized },
+        { "POST", ApiRoutes.Scheduling, Caller.AdminWithPasswordOnly, HttpStatusCode.Forbidden },
+        { "POST", ApiRoutes.Scheduling, Caller.AuditorWithTwoFactors, HttpStatusCode.Forbidden },
+        // Past authorization, refused only because the car is in service.
+        { "POST", ApiRoutes.Scheduling, Caller.AdminWithTwoFactors, HttpStatusCode.Conflict },
+        { "POST", ApiRoutes.Scheduling, Caller.TestAccount, HttpStatusCode.Conflict },
         { "POST", ApiRoutes.ScenariosStop, Caller.Anonymous, HttpStatusCode.Unauthorized },
         { "POST", ApiRoutes.ScenariosStop, Caller.AuditorWithTwoFactors, HttpStatusCode.Forbidden },
         { "POST", ApiRoutes.ScenariosStop, Caller.AdminWithTwoFactors, HttpStatusCode.Accepted },
@@ -113,6 +119,7 @@ public sealed class AuthorizationMatrixTests : IAsyncLifetime
             {
                 ApiRoutes.ServiceActions => new ServiceActionRequest(ServiceAction.StartMaintenance),
                 ApiRoutes.Scenarios => new StartScenarioRequest(DemoScenario.MorningRush),
+                ApiRoutes.Scheduling => new SchedulingRequest(Scheduling.Look),
                 _ => null,
             });
 

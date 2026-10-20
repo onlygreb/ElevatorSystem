@@ -58,6 +58,9 @@ public interface IStaffApiClient
     /// <summary>Stops every demo scenario and removes its passengers.</summary>
     Task<StaffResult<ScenarioAcceptedResponse>> StopScenariosAsync(CancellationToken cancellationToken = default);
 
+    /// <summary>Switches between FIFO and LOOK (ADR-0033); <see cref="StaffFailure.Conflict"/> while the car is in service.</summary>
+    Task<StaffResult<SchedulingAcceptedResponse>> ChangeSchedulingAsync(Scheduling scheduling, CancellationToken cancellationToken = default);
+
     Task<StaffResult<BuildingOccupancyDto>> GetOccupancyAsync(CancellationToken cancellationToken = default);
 
     Task<StaffResult<AuditPageDto>> GetAuditPageAsync(long? before, CancellationToken cancellationToken = default);
@@ -127,6 +130,9 @@ internal sealed class StaffApiClient(HttpClient http) : IStaffApiClient, IDispos
 
     public Task<StaffResult<ScenarioAcceptedResponse>> StopScenariosAsync(CancellationToken cancellationToken = default) =>
         SendAsync(() => CreatePostAsync(ApiRoutes.ScenariosStop, EmptyBody(), null), Read(Json.ScenarioAcceptedResponse, cancellationToken), cancellationToken);
+
+    public Task<StaffResult<SchedulingAcceptedResponse>> ChangeSchedulingAsync(Scheduling scheduling, CancellationToken cancellationToken = default) =>
+        PostAsync(ApiRoutes.Scheduling, new SchedulingRequest(scheduling), Json.SchedulingRequest, Json.SchedulingAcceptedResponse, null, cancellationToken);
 
     public Task<StaffResult<BuildingOccupancyDto>> GetOccupancyAsync(CancellationToken cancellationToken = default) =>
         GetAsync(ApiRoutes.Occupancy, Json.BuildingOccupancyDto, cancellationToken);

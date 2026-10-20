@@ -34,4 +34,6 @@ namespace ElevatorSystem.Contracts;
 [JsonSerializable(typeof(PassengerDto))]
 [JsonSerializable(typeof(StartScenarioRequest))]
 [JsonSerializable(typeof(ScenarioAcceptedResponse))]
+[JsonSerializable(typeof(SchedulingRequest))]
+[JsonSerializable(typeof(SchedulingAcceptedResponse))]
 public sealed partial class ContractsJsonContext : JsonSerializerContext;
