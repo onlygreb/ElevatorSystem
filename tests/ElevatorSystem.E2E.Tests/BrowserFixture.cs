@@ -54,16 +54,16 @@ public sealed class BrowserFixture : IAsyncLifetime
     }
 
     /// <summary>
-    /// Loads the app once before any test, with a generous timeout: the first load JIT-compiles the server and fetches the
-    /// WebAssembly runtime, which on a busy CI runner can take longer than a test should wait for a page.
+    /// Loads the app and registers the test admin once before any test, with generous timeouts: the first load JIT-compiles
+    /// the server and fetches the WebAssembly runtime, and the first sign-in hashes a password and warms the staff
+    /// endpoints, which on a busy CI runner can take longer than a test should wait for a page.
     /// </summary>
     private async Task WarmUpAsync()
     {
         var page = await NewPageAsync();
         await page.GotoAsync("/", new() { Timeout = 120_000 });
         await page.GetByTestId("arrive").WaitForAsync(new() { Timeout = 120_000 });
-        await page.GotoAsync("/admin", new() { Timeout = 120_000 });
-        await page.GetByTestId("email").WaitForAsync(new() { Timeout = 120_000 });
+        await AdminTests.RegisterAsync(page, this, timeout: 120_000);
         await page.Context.CloseAsync();
     }
 

@@ -8,7 +8,7 @@ namespace ElevatorSystem.E2E.Tests;
 public sealed class AdminTests(BrowserFixture fixture)
 {
     [Fact]
-    public async Task Admin_RegistersTheSecondFactor_StartsADemo_AndWatchesTheBuildingFill()
+    public async Task Admin_SignsInWithTheSecondFactor_StartsADemo_AndWatchesTheBuildingFill()
     {
         var page = await fixture.NewPageAsync();
 
@@ -23,30 +23,63 @@ public sealed class AdminTests(BrowserFixture fixture)
         await Expect(page.GetByTestId("demo-message")).ToContainTextAsync("The demo passengers are leaving.");
     }
 
-    /// <summary>Signs the test admin in, registering the authenticator the first time.</summary>
+    /// <summary>
+    /// Registers the test admin's authenticator: the first sign-in with a password asks for it, then shows recovery
+    /// codes. The fixture does this once, before any test, with a generous timeout.
+    /// </summary>
+    internal static async Task RegisterAsync(IPage page, BrowserFixture fixture, float timeout)
+    {
+        await page.GotoAsync("/admin", new() { Timeout = timeout });
+        await page.GetByTestId("email").FillAsync(ApiServer.AdminEmail, new() { Timeout = timeout });
+        await page.GetByTestId("password").FillAsync(ApiServer.AdminPassword);
+        await page.GetByTestId("sign-in").ClickAsync();
+
+        var sharedKey = await Explained(page, fixture, () => page.GetByTestId("shared-key").InnerTextAsync(new() { Timeout = timeout }));
+        fixture.AdminSharedKey = sharedKey;
+        await page.GetByTestId("code").FillAsync(await FreshCodeAsync(sharedKey, fixture));
+        await page.GetByTestId("enable").ClickAsync();
+        await Explained(page, fixture, () => page.GetByTestId("recovery-codes").WaitForAsync(new() { Timeout = timeout }));
+        await page.GetByTestId("codes-saved").ClickAsync();
+        await Explained(page, fixture, () => Expect(page.GetByTestId("account")).ToContainTextAsync(ApiServer.AdminEmail, new() { Timeout = timeout }));
+    }
+
+    /// <summary>Signs the registered test admin in with their password and a fresh authenticator code.</summary>
     internal static async Task SignInAsync(IPage page, BrowserFixture fixture)
     {
+        var key = fixture.AdminSharedKey ?? throw new InvalidOperationException("The fixture registers the admin before any test.");
         await page.GotoAsync("/admin");
         await page.GetByTestId("email").FillAsync(ApiServer.AdminEmail);
         await page.GetByTestId("password").FillAsync(ApiServer.AdminPassword);
         await page.GetByTestId("sign-in").ClickAsync();
 
-        if (fixture.AdminSharedKey is { } key)
-        {
-            await page.GetByTestId("code").FillAsync(await FreshCodeAsync(key, fixture));
-            await page.GetByTestId("sign-in").ClickAsync();
-        }
-        else
-        {
-            var sharedKey = await page.GetByTestId("shared-key").InnerTextAsync();
-            fixture.AdminSharedKey = sharedKey;
-            await page.GetByTestId("code").FillAsync(await FreshCodeAsync(sharedKey, fixture));
-            await page.GetByTestId("enable").ClickAsync();
-            await Expect(page.GetByTestId("recovery-codes")).ToBeVisibleAsync();
-            await page.GetByTestId("codes-saved").ClickAsync();
-        }
+        await Explained(page, fixture, () => page.GetByTestId("code").WaitForAsync());
+        await page.GetByTestId("code").FillAsync(await FreshCodeAsync(key, fixture));
+        await page.GetByTestId("sign-in").ClickAsync();
+        await Explained(page, fixture, () => Expect(page.GetByTestId("account")).ToContainTextAsync(ApiServer.AdminEmail));
+    }
 
-        await Expect(page.GetByTestId("account")).ToContainTextAsync(ApiServer.AdminEmail);
+    /// <summary>Runs a step; if it times out, fails with what the page and the API said, not just the selector.</summary>
+    private static Task<bool> Explained(IPage page, BrowserFixture fixture, Func<Task> step) =>
+        Explained(page, fixture, async () =>
+        {
+            await step();
+            return true;
+        });
+
+    private static async Task<T> Explained<T>(IPage page, BrowserFixture fixture, Func<Task<T>> step)
+    {
+        try
+        {
+            return await step();
+        }
+        catch (Exception exception) when (exception is TimeoutException or PlaywrightException)
+        {
+            var shown = await page.Locator("main").InnerTextAsync(new() { Timeout = 5_000 });
+            throw new InvalidOperationException(
+                $"{exception.Message}{Environment.NewLine}The page showed:{Environment.NewLine}{shown}{Environment.NewLine}"
+                + $"The API wrote:{Environment.NewLine}{fixture.ServerOutput}",
+                exception);
+        }
     }
 
     /// <summary>
