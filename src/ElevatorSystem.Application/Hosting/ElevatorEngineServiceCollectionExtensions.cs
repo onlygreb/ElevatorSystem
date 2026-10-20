@@ -1,3 +1,5 @@
+using System.Diagnostics.Metrics;
+using ElevatorSystem.Application.Diagnostics;
 using ElevatorSystem.Application.Passengers;
 using ElevatorSystem.Application.Ports;
 using ElevatorSystem.Application.Simulation;
@@ -78,7 +80,9 @@ public static class ElevatorEngineServiceCollectionExtensions
                 provider.GetRequiredService<PassengerOptions>(),
                 provider.GetRequiredService<SimulationOptions>(),
                 timeProvider,
-                provider.GetRequiredService<ILoggerFactory>());
+                provider.GetRequiredService<ILoggerFactory>(),
+                // Every host registers a meter factory; without one the engine simply runs unmeasured.
+                provider.GetService<IMeterFactory>() is { } meters ? new ElevatorMetrics(meters) : null);
         });
         services.AddHostedService<ElevatorEngineService>();
         return services;

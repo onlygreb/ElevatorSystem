@@ -1,3 +1,4 @@
+using ElevatorSystem.Application.Diagnostics;
 using ElevatorSystem.Application.Passengers;
 using ElevatorSystem.Application.Ports;
 using ElevatorSystem.Application.Simulation;
@@ -36,8 +37,9 @@ public enum EngineRole
 /// Each term of leadership builds its own <see cref="ElevatorController"/> from the stored snapshot, so a
 /// standby never holds state that could drift from what the leader saved. The controller's events go to an
 /// <see cref="PassengerRegistry"/>, a <see cref="SnapshotPersister"/> and an <see cref="ElevatorUpdateForwarder"/>, which publishes
-/// an elevator update per event (and per passenger step) and an occupancy update per change of the counts; the control loop never
-/// waits for any of them. The term also runs the demo scenarios (ADR-0027).
+/// an elevator update per event (and per passenger step) and an occupancy update per change of the counts, and to the
+/// <see cref="ElevatorMetrics"/> when the host measures; the control loop never waits for any of them. The term also
+/// runs the demo scenarios (ADR-0027).
 /// </para>
 /// <para>
 /// A term opens with a start-up door cycle at the floor where the car stands: the engine cannot know
@@ -66,6 +68,7 @@ public sealed class ElevatorEngine
     private readonly TimeProvider _timeProvider;
     private readonly ILoggerFactory _loggerFactory;
     private readonly ILogger _logger;
+    private readonly ElevatorMetrics? _metrics;
     private volatile ElevatorController? _controller;
     private volatile PassengerRegistry? _passengers;
     private volatile DemoScenarioRunner? _scenarios;
@@ -86,7 +89,8 @@ public sealed class ElevatorEngine
         PassengerOptions passengerOptions,
         SimulationOptions simulationOptions,
         TimeProvider timeProvider,
-        ILoggerFactory loggerFactory)
+        ILoggerFactory loggerFactory,
+        ElevatorMetrics? metrics = null)
     {
         ArgumentNullException.ThrowIfNull(leaderElector);
         ArgumentNullException.ThrowIfNull(stateStore);
@@ -122,6 +126,7 @@ public sealed class ElevatorEngine
         _timeProvider = timeProvider;
         _loggerFactory = loggerFactory;
         _logger = loggerFactory.CreateLogger<ElevatorEngine>();
+        _metrics = metrics;
     }
 
     /// <summary>What this instance is doing right now.</summary>
@@ -206,8 +211,9 @@ public sealed class ElevatorEngine
         var sink = new EngineEventSink(elevator, persister, forwarder, _timeProvider);
         // Passengers live in this term's memory (ADR-0026): after a failover they join again. It sees every event first.
         var passengers = new PassengerRegistry(
-            elevator, _passengerOptions, _timeProvider, _loggerFactory.CreateLogger<PassengerRegistry>(), new PassengerForwarding(forwarder, sink, _timeProvider));
-        IElevatorEventSink controllerSink = new CompositeElevatorEventSink([passengers, sink], _loggerFactory.CreateLogger<CompositeElevatorEventSink>());
+            elevator, _passengerOptions, _timeProvider, _loggerFactory.CreateLogger<PassengerRegistry>(), new PassengerForwarding(forwarder, sink, _timeProvider, _metrics));
+        IElevatorEventSink controllerSink = new CompositeElevatorEventSink(
+            _metrics is null ? [passengers, sink] : [passengers, sink, _metrics], _loggerFactory.CreateLogger<CompositeElevatorEventSink>());
         var controller = new ElevatorController(
             elevator, _strategy, _createDrive(), controllerSink, ControllerOptions, _timeProvider, _loggerFactory.CreateLogger<ElevatorController>());
         sink.Controller = controller;
@@ -272,6 +278,9 @@ public sealed class ElevatorEngine
                 await Settle(persisting, forwarding);
                 Log.StoppedLeading(_logger, elevator.CurrentFloor);
             }
+
+            // Last, after the parking events: a standby reports no floor.
+            _metrics?.Forget();
         }
     }
 
@@ -423,13 +432,20 @@ public sealed class ElevatorEngine
 
 /// <summary>
 /// Turns every passenger step into an <see cref="ElevatorUpdateV1"/> (with the status right after it) and every change of the
-/// counts into an <see cref="OccupancyUpdateV1"/>, for the forwarder; never blocks.
+/// counts into an <see cref="OccupancyUpdateV1"/>, for the forwarder, and tells the metrics; never blocks.
 /// </summary>
-internal sealed class PassengerForwarding(ElevatorUpdateForwarder forwarder, EngineEventSink sink, TimeProvider timeProvider) : IPassengerObserver
+internal sealed class PassengerForwarding(ElevatorUpdateForwarder forwarder, EngineEventSink sink, TimeProvider timeProvider, ElevatorMetrics? metrics)
+    : IPassengerObserver
 {
-    public void PassengerChanged(PassengerEvent passengerEvent) =>
+    public void PassengerChanged(PassengerEvent passengerEvent)
+    {
+        metrics?.PassengerChanged(passengerEvent);
         forwarder.Enqueue(new ElevatorUpdateV1(Guid.CreateVersion7(timeProvider.GetUtcNow()), PassengerActivity.ToActivity(passengerEvent), sink.CurrentStatus()));
+    }
 
-    public void OccupancyChanged(BuildingOccupancyDto occupancy) =>
+    public void OccupancyChanged(BuildingOccupancyDto occupancy)
+    {
+        metrics?.OccupancyChanged(occupancy);
         forwarder.Enqueue(new OccupancyUpdateV1(Guid.CreateVersion7(timeProvider.GetUtcNow()), occupancy));
+    }
 }
