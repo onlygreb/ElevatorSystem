@@ -12,13 +12,14 @@ An elevator control system built on .NET 10. It has:
 
 Security is part of the design from the first commit.
 
-> **Project status:** the elevator core works end to end and runs from the console demo:
-> - a thread-safe state machine
-> - FIFO and LOOK scheduling
-> - a controller with a stuck-car watchdog and safety commands
-> - 164 automated tests, including property-based and concurrency suites
+> **Project status:** the whole system runs end to end:
+> - a thread-safe elevator core with FIFO and LOOK scheduling and a stuck-car watchdog
+> - a REST and SignalR API, with RabbitMQ between the API and the engine and PostgreSQL for recovery
+> - failover between two engines, staff sign-in with a second factor and a tamper-evident audit trail
+> - a live web UI where you ride the elevator yourself, and admin demo scenarios
+> - about 800 automated tests, including property-based, concurrency and end-to-end suites
 >
-> The API and live web UI are the current milestone. See the [roadmap](#roadmap).
+> Observability, load and mutation testing are the current milestone. See the [roadmap](#roadmap).
 
 ---
 
@@ -44,12 +45,13 @@ ElevatorSystem controls an elevator serving floors 1 to 10 and gives passengers 
 
 | Capability | Description |
 |---|---|
-| **Passenger requests** | Pickup calls from a floor (with direction) and destination calls from inside the car. Invalid floors are rejected gracefully. |
+| **Passenger journeys** | Every passenger enters the building on floor 1, calls the car, walks in while its doors are open on their floor (a bar shows the 4 seconds left), chooses a floor and walks out when the doors open, or rides on. With nowhere to go, the car waits with its doors open. Invalid requests are refused with a reason. |
 | **Scheduling** | First-in, first-out by default, with duplicate presses merged. A LOOK strategy can be switched on to compare average wait times. |
 | **Real-time simulation** | Car movement and doors run in real time; every change streams live to connected browsers. |
 | **Concurrency** | 100+ simultaneous requests handled safely; target time from request to assignment under 100 ms. |
 | **Fail-safe operation** | Stuck-car detection, out-of-service mode, emergency stop, recovery after restart, and a guarantee that only one controller drives the car. |
 | **Admin view** | People in the elevator, waiting and present on each floor, live status and activity; maintenance, emergency stop and return to service. Admins manage the service, they never operate the car. |
+| **Demo scenarios** | Admins start a morning rush, a lunch break or a busy day and watch simulated passengers fill the floors and ride the car, in a living picture of the building. |
 | **Privacy** | Passengers are anonymous by design: nothing identifies who rides the elevator. |
 | **Languages** | English and Brazilian Portuguese. |
 
@@ -227,7 +229,7 @@ dotnet run --project src/ElevatorSystem.AppHost
 ```
 
 Aspire starts RabbitMQ (with its management UI), PostgreSQL, two engines (one leads, one stands by)
-and the API. Open the `api` endpoint from the dashboard, call the elevator and watch it move; stop the
+and the API. Open the `api` endpoint from the dashboard, enter the building and ride the elevator; stop the
 leading `engine` replica in the dashboard and the standby takes over from the saved state. Passwords are
 generated on the first run and kept in the AppHost's user secrets; nothing secret is in the repository.
 
@@ -235,6 +237,7 @@ To use the admin view, open `/admin` on the `api` endpoint and sign in as `admin
 `admin-password` parameter: the dashboard asks you to choose it on the first run and shows it in its Parameters
 view (the account is created once, so keep the same password). The first sign-in asks you to register an authenticator app
 (any TOTP app: scan the QR code), then shows one-time recovery codes. Every staff feature needs that second factor.
+Then press a demo scenario and watch the building fill up.
 
 Without Docker, the API alone runs the engine in its own process over in-memory messaging and storage
 (`Hosting:Mode=SingleProcess`, the Development default; [ADR-0021](docs/adr/0021-engine-hosting-topology-and-single-process-mode.md)):
