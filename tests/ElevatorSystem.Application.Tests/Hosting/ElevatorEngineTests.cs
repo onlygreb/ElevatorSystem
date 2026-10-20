@@ -161,7 +161,9 @@ public sealed class ElevatorEngineTests
 
         var stored = await harness.StateStore.LoadAsync(TestContext.Current.CancellationToken);
         stored.ShouldNotBeNull().State.ShouldBe(ElevatorState.DoorOpen);
-        harness.Updates.Messages[^1].Status.Status.ShouldBe(ElevatorStatus.DoorOpen, "subscribers see the car parked before the engine goes");
+        // The bus may still be delivering the last update when StopAsync returns: wait for it rather than read the last one.
+        var parked = await harness.Updates.WaitForAsync(update => update.Status.Status == ElevatorStatus.DoorOpen && update.Status.CurrentFloor == stored.CurrentFloor.Number);
+        parked.Activity.Kind.ShouldBe(ElevatorActivityKind.DoorsOpened, "subscribers see the car parked before the engine goes");
         engine.Engine.Role.ShouldBe(EngineRole.Stopped);
         harness.Elector.IsHeld.ShouldBeFalse("leadership is released on the way out");
     }
