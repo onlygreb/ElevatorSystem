@@ -17,9 +17,11 @@ Security is part of the design from the first commit.
 > - a REST and SignalR API, with RabbitMQ between the API and the engine and PostgreSQL for recovery
 > - failover between two engines, staff sign-in with a second factor and a tamper-evident audit trail
 > - a live web UI where you ride the elevator yourself, and admin demo scenarios
-> - about 800 automated tests, including property-based, concurrency and end-to-end suites
+> - elevator metrics in OpenTelemetry: wait times, refusals, travel, interruptions and occupancy
+> - over 850 automated tests, including property-based, concurrency, integration and browser suites, with
+>   mutation testing and a load test run weekly
 >
-> Observability, load and mutation testing are the current milestone. See the [roadmap](#roadmap).
+> Every phase of the [roadmap](#roadmap) is delivered.
 
 ---
 
@@ -68,7 +70,7 @@ Each core requirement maps to the code that implements it and the tests that pro
 | Pickup (floor + direction) and destination requests | `HallCall`, `CarCall` | `ElevatorRequestTests`, `ElevatorControllerJourneyTests` |
 | FIFO scheduling | [`FifoSchedulingStrategy`](src/ElevatorSystem.Domain/Scheduling/FifoSchedulingStrategy.cs) ([ADR-0005](docs/adr/0005-fifo-scheduling-semantics.md)) | `SchedulingPropertyTests` (1,000 random workloads), journey tests |
 | Locks, thread-safe collections, atomic state changes, no races in assignment | `System.Threading.Lock` in `Elevator`; bounded `Channel<T>` intake with a single consumer; immutable snapshots ([ADR-0004](docs/adr/0004-concurrency-model-and-time-abstraction.md)) | `ElevatorConcurrencyTests`, `ElevatorControllerConcurrencyTests` |
-| 100+ concurrent requests, assignment under 100 ms | Requests applied while the car travels ([ADR-0012](docs/adr/0012-elevator-control-loop.md)) | 2,000 simultaneous requests with the 99th percentile asserted under 100 ms |
+| 100+ concurrent requests, assignment under 100 ms | Requests applied while the car travels ([ADR-0012](docs/adr/0012-elevator-control-loop.md)) | 2,000 simultaneous requests with the 99th percentile asserted under 100 ms; end to end, the [k6 load test](tests/load/README.md) (200 at once, then 2,000 a second) with p95 acceptance under 100 ms |
 | Reasonable memory under load | Repeated calls merged: at most 28 pending calls | `ElevatorRequestTests`, concurrency tests |
 | Invalid floor requests handled gracefully | `Building.Validate` returns a `RequestRejectionReason` and never throws | `BuildingTests`, `ElevatorControllerRequestTests` |
 | Timeouts for stuck elevators | Trip watchdog → out of service (`Fault`) ([ADR-0007](docs/adr/0007-fail-safe-operation.md)) | `ElevatorControllerFailSafeTests` |
@@ -305,13 +307,14 @@ test strategy targets them directly ([ADR-0010](docs/adr/0010-testing-strategy.m
 | API | Authorization matrix for every endpoint and role, validation, rate limits, security headers, contract snapshots |
 | UI | Component behaviour; the passenger journey and the admin's demo in a real browser; WCAG 2.2 AA checks with axe |
 | Integration | Real RabbitMQ and PostgreSQL in containers, including outages, restarts and failover |
-| Load | 100+ concurrent requests within the assignment-latency budget |
-| Mutation testing | The tests actually detect injected faults |
+| Load | 200 simultaneous presses, then 2,000 a second, with p95 acceptance under 100 ms and no request refused as busy ([k6](tests/load/README.md)) |
+| Mutation testing | The tests detect injected faults: Domain 96%, Application core 82% (Stryker.NET, gate 80%) |
 
 Every build runs the architecture, domain, application, API, UI component, integration and browser suites.
 The integration tests start RabbitMQ and PostgreSQL in Docker and the engines as real processes; the browser
-tests start the API as a process and drive it in Chromium with Playwright. Load and mutation testing arrive
-in phase 5. The unit tests run in simulated time
+tests start the API as a process and drive it in Chromium with Playwright. Mutation testing and the load test
+take too long for every pull request, so the Quality workflow runs them weekly and on demand. The unit tests run
+in simulated time
 ([`FakeTimeProvider`](https://learn.microsoft.com/dotnet/api/microsoft.extensions.time.testing.faketimeprovider)),
 so the suite never sleeps and never flakes on timing.
 
@@ -327,6 +330,7 @@ Quality gates enforced by the build:
 |---|---|---|
 | [CI](.github/workflows/ci.yml) | Push to `main`, pull requests | Locked restore with vulnerability audit, format check, Release build, tests with coverage; dependency review on pull requests |
 | [CodeQL](.github/workflows/codeql.yml) | Push, pull requests, weekly | Security analysis of the C# code and of the workflows themselves |
+| [Quality](.github/workflows/quality.yml) | Weekly, on demand | Mutation testing of Domain and the Application core (fails below 80%) and the k6 load test |
 | [Release](.github/workflows/release.yml) | Tag `vX.Y.Z` | Re-verifies, publishes the API and engine images to GitHub Container Registry with signed build provenance, creates the GitHub release |
 | [Dependabot](.github/dependabot.yml) | Weekly | Grouped updates for NuGet packages and GitHub Actions |
 
@@ -343,7 +347,7 @@ gh attestation verify oci://ghcr.io/onlygreb/elevatorsystem-api:<version> --owne
 - [x] **API and live UI:** REST API, SignalR, Blazor passenger view, English and Portuguese
 - [x] **Messaging and resilience:** RabbitMQ, PostgreSQL, state recovery, failover, occupancy counting, test traffic generator
 - [x] **Administration and security:** staff sign-in with a mandatory second factor, admin view with live occupancy and service control, tamper-evident audit trail
-- [ ] **Passenger journeys and quality:** passengers who board and leave, admin demo scenarios, redesigned UI, observability, load, end-to-end and mutation testing
+- [x] **Passenger journeys and quality:** passengers who board and leave, admin demo scenarios, redesigned UI, observability, load, end-to-end and mutation testing
 
 ## Documentation
 
