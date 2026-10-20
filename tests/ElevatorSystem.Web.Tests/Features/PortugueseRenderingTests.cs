@@ -13,17 +13,22 @@ public sealed class PortugueseRenderingTests : WebTestContext
         var view = Render<PassengerView>();
 
         view.FindAll("h2").Select(heading => heading.TextContent)
-            .ShouldBe(["Andares", "Dentro da cabine", "Fila de chamadas", "Atividade recente"]);
+            .ShouldBe(["Sua viagem", "Fila de chamadas", "Atividade recente", "Andares"]);
     }
 
     [Fact]
-    public void HallButtons_InPortuguese_HavePortugueseNames()
+    public void Journey_InPortuguese_HasPortugueseButtonsAndNames()
     {
         var view = Render<PassengerView>();
+        view.Find("[data-testid=arrive]").TextContent.ShouldContain("Entrar no prédio");
 
-        view.Find(".hall-button[data-floor='3'][data-direction='Up']").GetAttribute("aria-label").ShouldBe("Chamar elevador para subir no andar 3");
-        view.Find(".hall-button[data-floor='3'][data-direction='Down']").GetAttribute("aria-label").ShouldBe("Chamar elevador para descer no andar 3");
-        view.Find(".car-button[data-floor='7']").GetAttribute("aria-label").ShouldBe("Ir para o andar 7");
+        view.Find("[data-testid=arrive]").Click();
+        view.Find("[data-testid=journey-where]").TextContent.ShouldBe("Você está no andar 1");
+        view.Find("[data-testid=call-up]").TextContent.ShouldContain("Chamar para subir");
+
+        Store.AddActivity(new ElevatorActivityDto(TestData.Noon, ElevatorActivityKind.PassengerBoarded, 1, PassengerId: Passengers.PassengerId));
+        view.WaitForAssertion(() => view.Find(".car-button[data-floor='7']").GetAttribute("aria-label").ShouldBe("Ir para o andar 7"));
+        view.Find("[data-testid=leave]").TextContent.ShouldContain("Sair do elevador");
     }
 
     [Fact]

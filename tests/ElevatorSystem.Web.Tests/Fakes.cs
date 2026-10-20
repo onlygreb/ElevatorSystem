@@ -3,7 +3,7 @@ using ElevatorSystem.Web.Services;
 
 namespace ElevatorSystem.Web.Tests;
 
-/// <summary>An API that answers from memory and records every call. Tests set what it returns.</summary>
+/// <summary>An API that answers from memory. Tests set what it returns.</summary>
 internal sealed class FakeElevatorApiClient : IElevatorApiClient
 {
     public ElevatorConfigurationDto Configuration { get; set; } = TestData.Configuration();
@@ -12,17 +12,7 @@ internal sealed class FakeElevatorApiClient : IElevatorApiClient
 
     public ElevatorStatusDto Status { get; set; } = TestData.Status();
 
-    /// <summary>The answer to the next hall or car call.</summary>
-    public RequestOutcome NextOutcome { get; set; } = RequestOutcome.Accepted(Guid.NewGuid());
-
-    /// <summary>When set, calls wait for it instead of answering at once, to hold a request "in flight".</summary>
-    public TaskCompletionSource<RequestOutcome>? PendingAnswer { get; set; }
-
     public int ConfigurationRequests { get; private set; }
-
-    public List<HallCallRequest> HallCalls { get; } = [];
-
-    public List<int> CarCalls { get; } = [];
 
     public Task<ElevatorConfigurationDto> GetConfigurationAsync(CancellationToken cancellationToken = default)
     {
@@ -31,20 +21,6 @@ internal sealed class FakeElevatorApiClient : IElevatorApiClient
     }
 
     public Task<ElevatorStatusDto> GetStatusAsync(CancellationToken cancellationToken = default) => Task.FromResult(Status);
-
-    public Task<RequestOutcome> RequestElevatorAsync(int floor, CallDirection direction, CancellationToken cancellationToken = default)
-    {
-        HallCalls.Add(new HallCallRequest(floor, direction));
-        return Answer();
-    }
-
-    public Task<RequestOutcome> RequestDestinationAsync(int floor, CancellationToken cancellationToken = default)
-    {
-        CarCalls.Add(floor);
-        return Answer();
-    }
-
-    private Task<RequestOutcome> Answer() => PendingAnswer?.Task ?? Task.FromResult(NextOutcome);
 }
 
 /// <summary>A hub that never connects. Tests play the server by calling the store directly.</summary>
@@ -65,4 +41,51 @@ internal sealed class FakeElevatorHubClient : IElevatorHubClient
         RestartCalls++;
         return Task.CompletedTask;
     }
+}
+
+/// <summary>Passenger endpoints that answer from memory and record every step. Tests set what they return.</summary>
+internal sealed class FakePassengerApiClient : IPassengerApiClient
+{
+    public Guid PassengerId { get; set; } = Guid.Parse("7d1c2a4e-0000-4000-8000-000000000001");
+
+    /// <summary>What <see cref="GetAsync"/> answers, for a journey restored after a reload.</summary>
+    public PassengerDto? Known { get; set; }
+
+    /// <summary>The answer to the next step.</summary>
+    public RequestOutcome NextOutcome { get; set; } = RequestOutcome.Accepted(Guid.NewGuid());
+
+    /// <summary>When set, steps wait for it instead of answering at once, to hold a step "in flight".</summary>
+    public TaskCompletionSource<RequestOutcome>? PendingAnswer { get; set; }
+
+    public int Joins { get; private set; }
+
+    public List<string> Steps { get; } = [];
+
+    public async Task<(PassengerAcceptedResponse? Accepted, RequestOutcome Outcome)> JoinAsync(CancellationToken cancellationToken = default)
+    {
+        Joins++;
+        var outcome = await Answer();
+        return (outcome.IsAccepted ? new PassengerAcceptedResponse(PassengerId, outcome.RequestId!.Value) : null, outcome);
+    }
+
+    public Task<PassengerDto?> GetAsync(Guid passengerId, CancellationToken cancellationToken = default) =>
+        Task.FromResult(Known is { } known && known.PassengerId == passengerId ? known : null);
+
+    public Task<RequestOutcome> CallElevatorAsync(Guid passengerId, CallDirection direction, CancellationToken cancellationToken = default) =>
+        Record($"call {direction}");
+
+    public Task<RequestOutcome> BoardAsync(Guid passengerId, CancellationToken cancellationToken = default) => Record("board");
+
+    public Task<RequestOutcome> ChooseFloorAsync(Guid passengerId, int floor, CancellationToken cancellationToken = default) =>
+        Record($"floor {floor}");
+
+    public Task<RequestOutcome> LeaveAsync(Guid passengerId, CancellationToken cancellationToken = default) => Record("leave");
+
+    private Task<RequestOutcome> Record(string step)
+    {
+        Steps.Add(step);
+        return Answer();
+    }
+
+    private Task<RequestOutcome> Answer() => PendingAnswer?.Task ?? Task.FromResult(NextOutcome);
 }

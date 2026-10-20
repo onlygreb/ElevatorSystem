@@ -57,7 +57,8 @@ public sealed class ActivityFeedTests : WebTestContext
     {
         var feed = RenderFeed(new ElevatorActivityDto(At, ElevatorActivityKind.RequestRejected, 12, RejectionReason: RejectionReason.InvalidFloor));
 
-        feed.Find(".activity__item").ClassList.ShouldContain("activity__item--refused");
+        feed.Find(".activity__item").ClassList.ShouldContain("activity__item--alert");
+        feed.Find(".activity__icon").TextContent.ShouldBe("!");
     }
 
     [Fact]

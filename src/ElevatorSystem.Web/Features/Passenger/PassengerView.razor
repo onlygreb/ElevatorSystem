@@ -1,8 +1,10 @@
-@* The passenger view: loads the building, connects to the hub and renders whatever the store holds. *@
+@* The passenger view: you arrive on floor 1 and ride the elevator yourself (ADR-0026), beside a live picture of the
+   building. Loads the building, connects to the hub, picks up a journey this browser left off, and renders the store. *@
 @implements IDisposable
 @inject ElevatorStateStore Store
 @inject IElevatorApiClient Api
 @inject IElevatorHubClient Hub
+@inject PassengerJourney Journey
 @inject IStringLocalizer<SharedResource> L
 
 <ArrivalAnnouncer />
@@ -29,71 +31,62 @@ else
     <div class="es-stack">
         <ConnectionBanner State="Store.Connection" />
 
-        @if (_refusal is { } refusal)
-        {
-            <MudAlert Severity="Severity.Error" Variant="Variant.Filled" role="alert" data-testid="refusal" data-reason="@refusal.Reason">
-                <div class="d-flex align-center gap-4">
-                    <span><strong>@L[Text.RequestRefusedTitle].</strong> @refusal.Message</span>
-                    <MudButton Variant="Variant.Text" Color="Color.Inherit" Size="Size.Small" OnClick="DismissRefusal">@L[Text.Dismiss]</MudButton>
+        <div class="es-hero">
+            <div class="es-hero__text">
+                <p class="es-hero__eyebrow">@L[Text.HeroEyebrow]</p>
+                <p class="es-hero__title">@L[Text.HeroTitle]</p>
+                <p class="es-hero__lead">@L[Text.HeroLead]</p>
+            </div>
+            <div class="es-hero__status">
+                <StatusLine Status="Store.Status" />
+                <DoorCountdown Status="Store.Status" Duration="configuration.DoorOpenDuration" ShowClosed="true" />
+            </div>
+        </div>
+
+        <div class="es-columns">
+            <div class="es-stack">
+                <div class="es-panel es-panel--hero">
+                    <JourneyPanel Configuration="configuration" />
                 </div>
-            </MudAlert>
-        }
-
-        <MudPaper Class="es-panel" Elevation="0">
-            <StatusLine Status="Store.Status" />
-        </MudPaper>
-
-        <MudGrid Spacing="4">
-            <MudItem xs="12" md="7">
-                <MudPaper Class="es-panel" Elevation="0">
-                    <section aria-labelledby="floors-heading">
-                        <h2 id="floors-heading" class="es-panel__title">@L[Text.FloorsHeading]</h2>
-                        <p class="es-panel__hint">@L[Text.FloorsHint]</p>
-                        <ElevatorShaft Configuration="configuration" Status="Store.Status" OnHallCall="RequestElevatorAsync" />
+                <div class="es-panel">
+                    <section aria-labelledby="queue-heading">
+                        <h2 id="queue-heading" class="es-panel__title">@L[Text.QueueHeading]</h2>
+                        <p class="es-panel__hint">@L[Text.QueueHint]</p>
+                        <RequestQueue Status="Store.Status" LabelledBy="queue-heading" />
                     </section>
-                </MudPaper>
-            </MudItem>
-            <MudItem xs="12" md="5">
-                <div class="es-stack">
-                    <MudPaper Class="es-panel" Elevation="0">
-                        <section aria-labelledby="car-heading">
-                            <h2 id="car-heading" class="es-panel__title">@L[Text.CarPanelHeading]</h2>
-                            <p class="es-panel__hint">@L[Text.CarPanelHint]</p>
-                            <CarPanel Configuration="configuration" Status="Store.Status" OnSelectFloor="RequestDestinationAsync" LabelledBy="car-heading" />
-                        </section>
-                    </MudPaper>
-                    <MudPaper Class="es-panel" Elevation="0">
-                        <section aria-labelledby="queue-heading">
-                            <h2 id="queue-heading" class="es-panel__title">@L[Text.QueueHeading]</h2>
-                            <p class="es-panel__hint">@L[Text.QueueHint]</p>
-                            <RequestQueue Status="Store.Status" LabelledBy="queue-heading" />
-                        </section>
-                    </MudPaper>
-                    <MudPaper Class="es-panel" Elevation="0">
-                        <section aria-labelledby="activity-heading">
-                            <h2 id="activity-heading" class="es-panel__title">@L[Text.ActivityHeading]</h2>
-                            <ActivityFeed Activity="Store.Activity" LabelledBy="activity-heading" />
-                        </section>
-                    </MudPaper>
                 </div>
-            </MudItem>
-        </MudGrid>
+                <div class="es-panel">
+                    <section aria-labelledby="activity-heading">
+                        <h2 id="activity-heading" class="es-panel__title">@L[Text.ActivityHeading]</h2>
+                        <ActivityFeed Activity="Store.Activity" LabelledBy="activity-heading" You="Journey.Me?.PassengerId" />
+                    </section>
+                </div>
+            </div>
+            <div class="es-panel es-panel--building">
+                <section aria-labelledby="floors-heading">
+                    <h2 id="floors-heading" class="es-panel__title">@L[Text.FloorsHeading]</h2>
+                    <BuildingView Configuration="configuration" Status="Store.Status" YouFloor="Journey.Floor(Store.Status)" YouInCar="@(Journey.Me?.InCar == true)" />
+                </section>
+            </div>
+        </div>
     </div>
 }
 
 @code {
-    // Calls whose request is still on its way, so holding Enter on a button sends one request, not dozens.
-    private readonly HashSet<CallDto> _inFlight = [];
     private bool _loadFailed;
-    private RequestOutcome? _refusal;
 
     protected override async Task OnInitializedAsync()
     {
-        Store.Changed += OnStoreChanged;
+        Store.Changed += OnChanged;
+        Journey.Changed += OnChanged;
         await LoadAsync();
     }
 
-    public void Dispose() => Store.Changed -= OnStoreChanged;
+    public void Dispose()
+    {
+        Store.Changed -= OnChanged;
+        Journey.Changed -= OnChanged;
+    }
 
     private async Task LoadAsync()
     {
@@ -118,35 +111,14 @@ else
         {
             // The hub's status will fill in; the view already shows the building.
         }
-    }
 
-    private Task RequestElevatorAsync(HallCallRequest call) =>
-        SubmitAsync(new CallDto(CallKind.Hall, call.Floor, call.Direction), () => Api.RequestElevatorAsync(call.Floor, call.Direction));
-
-    private Task RequestDestinationAsync(int floor) =>
-        SubmitAsync(new CallDto(CallKind.Car, floor, null), () => Api.RequestDestinationAsync(floor));
-
-    private async Task SubmitAsync(CallDto call, Func<Task<RequestOutcome>> send)
-    {
-        if (!_inFlight.Add(call))
+        if (Journey.Me is null)
         {
-            return;
-        }
-
-        try
-        {
-            var outcome = await send();
-            _refusal = outcome.IsAccepted ? null : outcome;
-        }
-        finally
-        {
-            _inFlight.Remove(call);
+            await Journey.RestoreAsync();
         }
     }
 
-    private void DismissRefusal() => _refusal = null;
-
-    private void OnStoreChanged(object? sender, EventArgs e) => _ = InvokeAsync(StateHasChanged);
+    private void OnChanged(object? sender, EventArgs e) => _ = InvokeAsync(StateHasChanged);
 
     private static bool IsTransportFailure(Exception exception) =>
         exception is HttpRequestException or System.Text.Json.JsonException or InvalidOperationException or NotSupportedException

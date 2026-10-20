@@ -74,7 +74,7 @@ public sealed class StaffApiClientTests
     [InlineData(HttpStatusCode.Forbidden, null, StaffFailure.NotAllowed)]
     [InlineData(HttpStatusCode.TooManyRequests, null, StaffFailure.TooManyRequests)]
     [InlineData(HttpStatusCode.ServiceUnavailable, "Busy", StaffFailure.Unavailable)]
-    [InlineData(HttpStatusCode.Conflict, null, StaffFailure.Unexpected)]
+    [InlineData(HttpStatusCode.Conflict, null, StaffFailure.Conflict)]
     public void Refusals_MapToWhatTheAdminViewExplains(HttpStatusCode status, string? reason, StaffFailure expected)
     {
         StaffApiClient.FailureFor(status, reason).ShouldBe(expected);

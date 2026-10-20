@@ -84,6 +84,22 @@ internal sealed class FakeStaffApiClient : IStaffApiClient
             : StaffResult.Ok(new ServiceActionAcceptedResponse(Guid.NewGuid(), action)));
     }
 
+    public List<DemoScenario?> Scenarios { get; } = [];
+
+    public StaffResult<ScenarioAcceptedResponse> ScenarioAnswer { get; set; } = StaffResult.Ok(new ScenarioAcceptedResponse(Guid.NewGuid()));
+
+    public Task<StaffResult<ScenarioAcceptedResponse>> StartScenarioAsync(DemoScenario scenario, CancellationToken cancellationToken = default)
+    {
+        Scenarios.Add(scenario);
+        return Task.FromResult(ScenarioAnswer);
+    }
+
+    public Task<StaffResult<ScenarioAcceptedResponse>> StopScenariosAsync(CancellationToken cancellationToken = default)
+    {
+        Scenarios.Add(null);
+        return Task.FromResult(ScenarioAnswer);
+    }
+
     public Task<StaffResult<BuildingOccupancyDto>> GetOccupancyAsync(CancellationToken cancellationToken = default) =>
         Task.FromResult(Occupancy is { } occupancy ? StaffResult.Ok(occupancy) : StaffResult.Fail<BuildingOccupancyDto>(StaffFailure.Unavailable));
 

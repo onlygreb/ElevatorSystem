@@ -16,6 +16,7 @@ public enum StaffFailure
     NotAllowed,
     TooManyRequests,
     Unavailable,
+    Conflict,
     Unexpected,
 }
 
@@ -50,6 +51,12 @@ public interface IStaffApiClient
     /// <summary>Sends <paramref name="action"/>; a retry with the same <paramref name="idempotencyKey"/> never acts twice.</summary>
     Task<StaffResult<ServiceActionAcceptedResponse>> RequestServiceActionAsync(
         ServiceAction action, Guid idempotencyKey, CancellationToken cancellationToken = default);
+
+    /// <summary>Starts a demo scenario (ADR-0027); <see cref="StaffFailure.Conflict"/> when scenarios are disabled.</summary>
+    Task<StaffResult<ScenarioAcceptedResponse>> StartScenarioAsync(DemoScenario scenario, CancellationToken cancellationToken = default);
+
+    /// <summary>Stops every demo scenario and removes its passengers.</summary>
+    Task<StaffResult<ScenarioAcceptedResponse>> StopScenariosAsync(CancellationToken cancellationToken = default);
 
     Task<StaffResult<BuildingOccupancyDto>> GetOccupancyAsync(CancellationToken cancellationToken = default);
 
@@ -115,6 +122,12 @@ internal sealed class StaffApiClient(HttpClient http) : IStaffApiClient, IDispos
             idempotencyKey.ToString(),
             cancellationToken);
 
+    public Task<StaffResult<ScenarioAcceptedResponse>> StartScenarioAsync(DemoScenario scenario, CancellationToken cancellationToken = default) =>
+        PostAsync(ApiRoutes.Scenarios, new StartScenarioRequest(scenario), Json.StartScenarioRequest, Json.ScenarioAcceptedResponse, null, cancellationToken);
+
+    public Task<StaffResult<ScenarioAcceptedResponse>> StopScenariosAsync(CancellationToken cancellationToken = default) =>
+        SendAsync(() => CreatePostAsync(ApiRoutes.ScenariosStop, EmptyBody(), null), Read(Json.ScenarioAcceptedResponse, cancellationToken), cancellationToken);
+
     public Task<StaffResult<BuildingOccupancyDto>> GetOccupancyAsync(CancellationToken cancellationToken = default) =>
         GetAsync(ApiRoutes.Occupancy, Json.BuildingOccupancyDto, cancellationToken);
 
@@ -135,6 +148,7 @@ internal sealed class StaffApiClient(HttpClient http) : IStaffApiClient, IDispos
         (HttpStatusCode.Unauthorized, _) => StaffFailure.SessionExpired,
         (HttpStatusCode.Forbidden, _) => StaffFailure.NotAllowed,
         (HttpStatusCode.TooManyRequests, _) => StaffFailure.TooManyRequests,
+        (HttpStatusCode.Conflict, _) => StaffFailure.Conflict,
         (HttpStatusCode.BadGateway or HttpStatusCode.ServiceUnavailable or HttpStatusCode.GatewayTimeout, _) => StaffFailure.Unavailable,
         _ => StaffFailure.Unexpected,
     };

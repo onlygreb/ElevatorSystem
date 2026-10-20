@@ -1,4 +1,4 @@
-@* Recent activity, newest first, rendered from the hub's ElevatorActivityDto stream. *@
+@* Recent activity, newest first, rendered from the hub's ElevatorActivityDto stream; your own steps are marked. *@
 @inject IStringLocalizer<SharedResource> L
 
 @if (Activity.Count == 0)
@@ -12,10 +12,22 @@ else
         <ol class="activity">
             @foreach (var activity in Activity)
             {
-                <li class="activity__item@(activity.Kind == ElevatorActivityKind.RequestRejected ? " activity__item--refused" : null)"
-                    data-kind="@activity.Kind">
+                var mine = You is { } you && activity.PassengerId == you;
+                var itemClass = "activity__item activity__item--" + Tone(activity) + (mine ? " activity__item--mine" : string.Empty);
+                <li class="@itemClass" data-kind="@activity.Kind">
+                    <span class="activity__icon" aria-hidden="true">@Icon(activity)</span>
+                    <span class="activity__text">
+                        @if (mine)
+                        {
+                            <span class="activity__you">@L[Text.YouLabel]</span>
+                        }
+                        else if (activity.Simulated == true)
+                        {
+                            <span class="activity__demo">@L[Text.DemoTag]</span>
+                        }
+                        @L.Describe(activity)
+                    </span>
                     <time class="activity__time" datetime="@activity.OccurredAt.ToString("O", CultureInfo.InvariantCulture)">@Narration.Time(activity)</time>
-                    <span class="activity__text">@L.Describe(activity)</span>
                 </li>
             }
         </ol>
@@ -29,4 +41,34 @@ else
     /// <summary>Id of the heading that names the feed.</summary>
     [Parameter]
     public string? LabelledBy { get; set; }
+
+    /// <summary>The viewing passenger, whose own steps are marked.</summary>
+    [Parameter]
+    public Guid? You { get; set; }
+
+    private static string Tone(ElevatorActivityDto activity) => activity.Kind switch
+    {
+        ElevatorActivityKind.RequestRejected or ElevatorActivityKind.PassengerRefused or ElevatorActivityKind.OutOfService => "alert",
+        ElevatorActivityKind.Moved => "move",
+        ElevatorActivityKind.DoorsOpened or ElevatorActivityKind.DoorsClosed => "door",
+        ElevatorActivityKind.CallServed or ElevatorActivityKind.ReturnedToService => "good",
+        >= ElevatorActivityKind.PassengerJoined => "person",
+        _ => "call",
+    };
+
+    private static string Icon(ElevatorActivityDto activity) => activity.Kind switch
+    {
+        ElevatorActivityKind.Moved => activity.Direction == CallDirection.Down ? "▼" : "▲",
+        ElevatorActivityKind.DoorsOpened => "⇤⇥",
+        ElevatorActivityKind.DoorsClosed => "⇥⇤",
+        ElevatorActivityKind.CallServed => "✓",
+        ElevatorActivityKind.RequestRejected or ElevatorActivityKind.PassengerRefused => "!",
+        ElevatorActivityKind.OutOfService => "■",
+        ElevatorActivityKind.ReturnedToService => "▶",
+        ElevatorActivityKind.PassengerJoined => "+",
+        ElevatorActivityKind.PassengerBoarded => "→",
+        ElevatorActivityKind.PassengerLeft => "←",
+        ElevatorActivityKind.PassengerRemoved => "−",
+        _ => "•",
+    };
 }
