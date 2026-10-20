@@ -303,14 +303,15 @@ test strategy targets them directly ([ADR-0010](docs/adr/0010-testing-strategy.m
 | Domain | Every state transition; invariants over thousands of random request sequences (property-based) |
 | Application | Behaviour in virtual time (no sleeps); no lost or duplicated requests under parallel load |
 | API | Authorization matrix for every endpoint and role, validation, rate limits, security headers, contract snapshots |
-| UI | Component behaviour, end-to-end flows and accessibility checks |
+| UI | Component behaviour; the passenger journey and the admin's demo in a real browser; WCAG 2.2 AA checks with axe |
 | Integration | Real RabbitMQ and PostgreSQL in containers, including outages, restarts and failover |
 | Load | 100+ concurrent requests within the assignment-latency budget |
 | Mutation testing | The tests actually detect injected faults |
 
-The architecture, domain, application, API, UI component and integration suites run on every build
-today; the integration tests start RabbitMQ and PostgreSQL in Docker and the engines as real processes.
-Browser end-to-end, load and mutation testing arrive in phase 5. The unit tests run in simulated time
+Every build runs the architecture, domain, application, API, UI component, integration and browser suites.
+The integration tests start RabbitMQ and PostgreSQL in Docker and the engines as real processes; the browser
+tests start the API as a process and drive it in Chromium with Playwright. Load and mutation testing arrive
+in phase 5. The unit tests run in simulated time
 ([`FakeTimeProvider`](https://learn.microsoft.com/dotnet/api/microsoft.extensions.time.testing.faketimeprovider)),
 so the suite never sleeps and never flakes on timing.
 

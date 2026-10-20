@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    The main user flows in a real browser (Playwright, Chromium) with accessibility checks (axe), against the API
+    started as its own process in single-process mode. Needs the HTTPS development certificate (dotnet dev-certs https);
+    Chromium is installed on first run.
+  -->
+  <ItemGroup>
+    <!-- Built, not referenced: the tests start its output as a separate process. -->
+    <ProjectReference Include="..\..\src\ElevatorSystem.Api\ElevatorSystem.Api.csproj" ReferenceOutputAssembly="false" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Playwright" />
+    <PackageReference Include="Deque.AxeCore.Playwright" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <AssemblyMetadata Include="ApiAssemblyPath" Value="$(MSBuildThisFileDirectory)../../src/ElevatorSystem.Api/bin/$(Configuration)/$(TargetFramework)/ElevatorSystem.Api.dll" />
+    <AssemblyMetadata Include="ApiContentRoot" Value="$(MSBuildThisFileDirectory)../../src/ElevatorSystem.Api" />
+  </ItemGroup>
+</Project>
