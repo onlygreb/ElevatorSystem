@@ -1,0 +1,13 @@
+{
+  "stryker-config": {
+    "project": "ElevatorSystem.Domain.csproj",
+    "test-runner": "mtp",
+    "reporters": ["progress", "html", "json"],
+    "ignore-methods": ["ThrowIfNull", "*Exception.ctor"],
+    "thresholds": {
+      "high": 90,
+      "low": 80,
+      "break": 80
+    }
+  }
+}

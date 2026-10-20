@@ -19,7 +19,8 @@ coverage. The mutation score is the quality signal; coverage is only a floor.
 | `ElevatorSystem.Web.Tests` | Component rendering and behaviour | bUnit | 2 |
 | `ElevatorSystem.Integration.Tests` | Real broker and database, failure scenarios, failover | Testcontainers | 3 |
 | `ElevatorSystem.E2E.Tests` | Main user flows in a browser, accessibility | Playwright, Deque axe | 5 ✅ |
-| `tests/load` | 100+ concurrent requests, p95 assignment under 100 ms | k6 | 5 |
+| `tests/load` | 100+ concurrent requests, p95 acceptance under 100 ms | k6 (Quality workflow) | 5 ✅ |
+| `stryker-config.json` (Domain, Application) | The tests catch injected faults | Stryker.NET (Quality workflow) | 5 ✅ |
 
 New test projects go under `tests/` and inherit `tests/Directory.Build.props` (xUnit v3 on
 Microsoft.Testing.Platform, Shouldly, code coverage). Don't add those packages again.
@@ -109,11 +110,23 @@ dotnet test --solution ElevatorSystem.slnx                                    # 
 dotnet test --project tests/ElevatorSystem.Domain.Tests                       # one project
 dotnet test --solution ElevatorSystem.slnx --coverage --coverage-output-format cobertura --results-directory TestResults
 dotnet test --project tests/ElevatorSystem.E2E.Tests                          # browser flows; needs dotnet dev-certs https
-dotnet stryker --project ElevatorSystem.Domain.csproj                         # mutation testing (from phase 5, local tool)
+dotnet tool restore; cd tests/ElevatorSystem.Domain.Tests; dotnet stryker          # mutation testing (also Application.Tests)
 ```
 
 ## Quality gates
 
-- CI runs the whole suite in Release with coverage on every push and pull request.
-- Mutation score for Domain and Application: break below 80% (Stryker `thresholds.break`).
+- CI runs the whole suite in Release with coverage on every push and pull request; the browser tests run
+  in a step of their own after the others.
+- Mutation score for Domain and Application: break below 80% (Stryker `thresholds.break`). The Quality
+  workflow runs it weekly and on demand: Domain takes about 10 minutes, Application about an hour, too
+  long for every pull request.
+  - Each test project's `stryker-config.json` says what is mutated. Application mutates its deterministic
+    core (controller, passenger registry, audit chain and trail, pseudonymizer, mappers); the engine host,
+    the command handler and the demo runner are reached only through real-time engine tests, which would
+    make every mutant slow.
+  - Argument guards, exception messages and logging calls are ignored: mutating them proves nothing.
+  - The runner is Stryker's Microsoft Testing Platform runner (`"test-runner": "mtp"`).
+  - Last scores: Domain 96%, Application 82%. A surviving mutant is a question: write the test that
+    kills it, or explain why it is equivalent.
+- The load test runs in the same workflow; see `tests/load/README.md`.
 - Line coverage for Domain and Application: at least 90%.
