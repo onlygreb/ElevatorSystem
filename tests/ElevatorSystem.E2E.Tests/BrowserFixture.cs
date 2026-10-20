@@ -135,8 +135,8 @@ public sealed class BrowserFixture : IAsyncLifetime
         }
     }
 
-    /// <summary>A fresh browser (its own cookies and storage), on the given culture.</summary>
-    public async Task<IPage> NewPageAsync(string locale = "en-US")
+    /// <summary>A fresh browser (its own cookies and storage), on the given culture, size and colour scheme.</summary>
+    public async Task<IPage> NewPageAsync(string locale = "en-US", ViewportSize? viewport = null, ColorScheme colorScheme = ColorScheme.Light)
     {
         if (Deferred)
         {
@@ -148,7 +148,8 @@ public sealed class BrowserFixture : IAsyncLifetime
             BaseURL = BaseAddress.ToString(),
             IgnoreHTTPSErrors = true,
             Locale = locale,
-            ViewportSize = new() { Width = 1280, Height = 900 },
+            ViewportSize = viewport ?? new() { Width = 1280, Height = 900 },
+            ColorScheme = colorScheme,
         });
         context.SetDefaultTimeout(30_000);
         var page = await context.NewPageAsync();
