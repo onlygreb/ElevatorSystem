@@ -61,6 +61,13 @@ jobs:
           --coverage --coverage-output-format cobertura
           --report-xunit-trx
 
+      # Testcontainers removes the integration containers a few seconds after their tests end; every removal changes
+      # the network interfaces again. Remove them now, so the network is settled before the browser starts.
+      - name: Remove the integration test containers
+        run: |
+          docker ps --all --quiet --filter label=org.testcontainers=true | xargs --no-run-if-empty docker rm --force
+          sleep 5
+
       - name: End-to-end tests
         run: >-
           dotnet test --project tests/ElevatorSystem.E2E.Tests --configuration Release --no-build
