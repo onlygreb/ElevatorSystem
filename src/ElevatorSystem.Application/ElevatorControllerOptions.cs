@@ -1,6 +1,18 @@
+using ElevatorSystem.Domain.Scheduling;
+
 namespace ElevatorSystem.Application;
 
-/// <summary>Timing and capacity settings for <see cref="ElevatorController"/>.</summary>
+/// <summary>Which order the car serves its calls in (ADR-0005).</summary>
+public enum SchedulingPolicy
+{
+    /// <summary>First in, first out: the oldest call first, without stopping on the way (the requirement).</summary>
+    Fifo,
+
+    /// <summary>LOOK: every call in the current direction, then reverse; for comparing average wait times.</summary>
+    Look,
+}
+
+/// <summary>Timing, capacity and scheduling settings for <see cref="ElevatorController"/>.</summary>
 public sealed record ElevatorControllerOptions
 {
     /// <summary>How long the car normally takes to travel one floor.</summary>
@@ -25,6 +37,9 @@ public sealed record ElevatorControllerOptions
     /// <summary>How many submitted requests may wait for the control loop before new ones are refused as busy.</summary>
     public int IntakeCapacity { get; init; } = 1024;
 
+    /// <summary>The order the car serves its calls in: FIFO unless a deployment chooses LOOK (ADR-0005).</summary>
+    public SchedulingPolicy Scheduling { get; init; } = SchedulingPolicy.Fifo;
+
     /// <summary>The watchdog limit for one trip: <see cref="TravelTimePerFloor"/> × <see cref="StuckTolerance"/>.</summary>
     public TimeSpan StuckTimeout => TravelTimePerFloor * StuckTolerance;
 
@@ -35,5 +50,16 @@ public sealed record ElevatorControllerOptions
         ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(DoorOpenDuration, TimeSpan.Zero, nameof(DoorOpenDuration));
         ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(StuckTolerance, 1.0, nameof(StuckTolerance));
         ArgumentOutOfRangeException.ThrowIfLessThan(IntakeCapacity, 1, nameof(IntakeCapacity));
+        if (!Enum.IsDefined(Scheduling))
+        {
+            throw new ArgumentOutOfRangeException(nameof(Scheduling), Scheduling, "Choose Fifo or Look.");
+        }
     }
+
+    /// <summary>The strategy for <see cref="Scheduling"/>.</summary>
+    public ISchedulingStrategy CreateStrategy() => Scheduling switch
+    {
+        SchedulingPolicy.Look => new LookSchedulingStrategy(),
+        _ => new FifoSchedulingStrategy(),
+    };
 }

@@ -2,6 +2,7 @@
 
 - **Status:** Accepted
 - **Date:** 2026-10-19
+- **Updated:** 2026-10-20: the setting that selects LOOK, and where the average wait is compared
 
 ## Context
 
@@ -21,8 +22,10 @@ queue? What happens when the same button is pressed twice? How large can the que
 - **A call at the current floor** while the car is idle opens the doors immediately.
 - **A replaceable strategy:** scheduling sits behind `ISchedulingStrategy`.
   `FifoSchedulingStrategy` is the default; `LookSchedulingStrategy` (serve every request in the
-  current direction, then reverse) can be selected by an administrator, and the dashboard compares
-  average wait times between the two.
+  current direction, then reverse) can be chosen per deployment with `Elevator:Scheduling` (`Fifo` or
+  `Look`; `ELEVATOR_SCHEDULING` in Docker Compose). The admin view shows the average wait with the
+  strategy it was measured under, so the two can be compared run by run, for example with the same demo
+  scenario.
 
 ## Alternatives considered
 

@@ -33,6 +33,10 @@
                         @L[Text.NoDataYet]
                     }
                 </dd>
+                @if (Scheduling is { Length: > 0 } scheduling)
+                {
+                    <dd class="es-figures__note" data-testid="scheduling">@L[Text.SchedulingNote, scheduling]</dd>
+                }
             </div>
         </dl>
 
@@ -68,6 +72,10 @@
 @code {
     [Parameter]
     public BuildingOccupancyDto? Occupancy { get; set; }
+
+    /// <summary>The scheduling strategy the car runs (FIFO or LOOK), so the average wait can be compared (ADR-0005).</summary>
+    [Parameter]
+    public string? Scheduling { get; set; }
 
     private static double LoadPercent(BuildingOccupancyDto occupancy) =>
         occupancy.CarCapacity <= 0 ? 0 : Math.Min(100, 100.0 * occupancy.PassengersInCar / occupancy.CarCapacity);

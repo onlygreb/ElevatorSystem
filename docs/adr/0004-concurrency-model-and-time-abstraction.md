@@ -17,7 +17,8 @@ real waiting.
   `Channel<T>` (many writers, single reader). A full channel rejects the request with a clear
   "busy" result instead of blocking the caller.
 - **Single scheduler:** `ProcessRequests` is the only consumer of the channel and the only code
-  that changes the pending queue, so there are no data races on scheduling state.
+  that adds to the pending queue; safety commands clear it under the elevator's lock. There are no
+  data races on scheduling state.
 - **Atomic state:** `Elevator` protects its state with `System.Threading.Lock`, and each transition
   is check-and-set inside the lock. Safety commands take the lock directly and skip the queue.
   The lock never contains `await`, I/O, logging or event publishing.

@@ -130,4 +130,15 @@ public sealed class ElevatorQueryTests
         configuration.GetProperty("doorOpenDuration").GetString().ShouldBe("00:00:03");
         configuration.GetProperty("schedulingStrategy").GetString().ShouldBe("FIFO");
     }
+
+    [Fact]
+    public async Task GetConfiguration_WithLookConfigured_ReportsLook()
+    {
+        await using var factory = new ApiFactory().WithSetting("Elevator:Scheduling", "Look");
+        using var client = factory.CreateClient();
+
+        using var response = await client.GetRouteAsync(ApiRoutes.Configuration);
+
+        (await response.ReadJsonAsync()).GetProperty("schedulingStrategy").GetString().ShouldBe("LOOK");
+    }
 }

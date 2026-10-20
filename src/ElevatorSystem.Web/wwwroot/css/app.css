@@ -1231,6 +1231,13 @@ h1:focus {
     font-weight: 800;
 }
 
+.es-figures dd.es-figures__note {
+    font-family: inherit;
+    font-size: 0.8125rem;
+    font-weight: 400;
+    color: var(--es-color-text-muted);
+}
+
 .es-table .es-number {
     text-align: right;
     font-family: var(--es-font-numeric);

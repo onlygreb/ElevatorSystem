@@ -15,6 +15,8 @@ x-dotnet: &dotnet
   ConnectionStrings__elevatordb: Host=postgres;Port=5432;Database=elevatordb;Username=${DATABASE_USER:-elevator};Password=${DATABASE_PASSWORD:?set DATABASE_PASSWORD in deploy/.env};GSS Encryption Mode=Disable
   # Admins can start demo scenarios with simulated passengers (ADR-0027).
   Simulation__Enabled: "true"
+  # The order the car serves its calls in: Fifo (the requirement) or Look, to compare average wait times (ADR-0005).
+  Elevator__Scheduling: ${ELEVATOR_SCHEDULING:-Fifo}
   OTEL_EXPORTER_OTLP_ENDPOINT: http://dashboard:18889
   OTEL_EXPORTER_OTLP_PROTOCOL: grpc
 

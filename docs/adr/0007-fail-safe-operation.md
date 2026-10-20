@@ -23,8 +23,8 @@ elevators and proper exception handling for concurrent operations.
 4. **I/O is isolated from control.** The control loop never awaits the broker or the database.
    Events leave through a bounded buffer. If dependencies are down, the car keeps operating and
    health reports `Degraded`.
-5. **Errors are contained.** A failure while processing one command rejects that command and the
-   loop continues. An unrecoverable failure stops the host
+5. **Errors are contained.** A request that fails to apply is logged and dropped; any other failure
+   in the control loop takes the car out of service (`Fault`) and the loop continues. An unrecoverable failure stops the host
    (`BackgroundServiceExceptionBehavior.StopHost`) so the orchestrator restarts it cleanly instead
    of leaving a zombie.
 6. **State is recoverable.** Every transition persists a state snapshot. On start-up the engine
