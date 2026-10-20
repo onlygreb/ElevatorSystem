@@ -81,4 +81,4 @@ Load the matching skill before working in an area:
 2. REST API, SignalR, Blazor passenger view (in-memory bus) ✅
 3. RabbitMQ, PostgreSQL, persistence and recovery, failover, occupancy counting and a test traffic generator (ADR-0017) ✅
 4. Authentication, admin view (people in the car, waiting and present per floor; maintenance, emergency stop, return to service), tamper-evident audit log ✅
-5. Passenger journeys, admin demo scenarios, redesigned UI, observability, load, end-to-end and mutation testing
+5. Passenger journeys, admin demo scenarios, redesigned UI, observability (ADR-0028), load, end-to-end and mutation testing ✅
