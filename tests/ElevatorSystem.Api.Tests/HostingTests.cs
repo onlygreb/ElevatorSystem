@@ -7,6 +7,7 @@ using ElevatorSystem.Contracts;
 using ElevatorSystem.Domain;
 using ElevatorSystem.Infrastructure.Messaging;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 
 namespace ElevatorSystem.Api.Tests;
@@ -29,6 +30,21 @@ public sealed class HostingTests
             factory.Time,
             cancellationToken: TestContext.Current.CancellationToken);
         await factory.StatusAsync(status => status is { CurrentFloor: 4, Status: ElevatorStatus.DoorOpen });
+    }
+
+    [Fact]
+    public async Task SingleProcess_SubscribesToUpdates_BeforeTheEngineStarts()
+    {
+        await using var factory = new ApiFactory().WithFakeTime();
+        _ = factory.Server;
+
+        var started = factory.Services.GetServices<IHostedService>().Select(service => service.GetType().Name).ToList();
+
+        // Hosted services start in this order. The in-memory bus delivers only to subscribers already registered, so an
+        // engine that started first could publish its opening status before the API listened, and with fake time the
+        // next refresh never comes: the API would hold no status at all.
+        started.IndexOf("ElevatorUpdateSubscriptionService").ShouldBeGreaterThanOrEqualTo(0);
+        started.IndexOf("ElevatorUpdateSubscriptionService").ShouldBeLessThan(started.IndexOf("ElevatorEngineService"));
     }
 
     [Fact]

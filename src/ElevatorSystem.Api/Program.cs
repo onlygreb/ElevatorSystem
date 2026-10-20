@@ -13,8 +13,10 @@ var builder = WebApplication.CreateBuilder(args);
 builder.AddServiceDefaults();
 builder.WebHost.ConfigureKestrel(options => options.AddServerHeader = false);
 
-builder.AddElevator();
+// Real time first: hosted services start in registration order, so the update subscription is in place before an
+// in-process engine (single-process mode) publishes its first status, which would otherwise be lost until the next refresh.
 builder.AddElevatorRealTime();
+builder.AddElevator();
 builder.AddApiRateLimiting();
 builder.AddStaff();
 
