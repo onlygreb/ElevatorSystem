@@ -73,7 +73,8 @@ public sealed class HostingTests
         var options = factory.Services.GetRequiredService<ElevatorControllerOptions>();
 
         options.TravelTimePerFloor.ShouldBe(TimeSpan.FromSeconds(1.5));
-        options.DoorOpenDuration.ShouldBe(TimeSpan.FromSeconds(3));
+        options.DoorOpenDuration.ShouldBe(TimeSpan.FromSeconds(4));
+        options.HoldDoorOpenWhenIdle.ShouldBeTrue("an idle car waits with its door open (ADR-0025)");
     }
 
     [Fact]

@@ -57,6 +57,19 @@ being travelled to, and the drive performs the trip.
 4. An out-of-service car holds no calls, and no call waits at a floor whose door is open.
 5. Every accepted request is pending, served or cancelled: exactly once.
 
+## Door policy (ADR-0025)
+
+- With `HoldDoorOpenWhenIdle` (the default), a car with nowhere to go waits with its door **open** and no
+  countdown: at start-up, after `ReturnToService`, and when a stop leaves nothing pending.
+- A call that gives it somewhere to go starts the `DoorOpenDuration` countdown (4 s); then the door closes
+  and the car leaves. `ElevatorController.DoorsCloseAt` (and `ElevatorStatusDto.DoorsCloseAt`) is the
+  close time while a countdown runs, `null` otherwise.
+- The state machine is unchanged; only the control loop decides when to close. `ReturnToService` nudges
+  the loop so the door opens at once.
+- `ControllerHarness.DefaultOptions` pins the classic cycle (`HoldDoorOpenWhenIdle = false`) for the
+  behaviour suites; `ElevatorControllerDoorTests` covers the default. `StepsAsync` lets time pass when no
+  event is expected.
+
 ## FIFO behaviour
 
 - Pending calls are served strictly in arrival order. The oldest call is the target, and the car

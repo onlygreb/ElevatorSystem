@@ -31,9 +31,11 @@ public sealed class ElevatorQueryTests
     {
         await using var factory = new ApiFactory().WithFakeTime();
         using var client = factory.CreateClient();
-        await factory.StatusAsync();
-        factory.Time!.Advance(ApiFactory.DoorTime);
+        await factory.StatusAsync(status => status.Status == ElevatorStatus.DoorOpen);
         using var accepted = await client.PostJsonAsync(ApiRoutes.CarCalls, """{"floor":5}""");
+        // The car waits open at floor 1; the call starts the door countdown, which then has to run out.
+        await factory.StatusAsync(status => status.PendingCalls.Count == 1 && status.DoorsCloseAt is not null);
+        factory.Time!.Advance(ApiFactory.DoorTime);
         await factory.StatusAsync(status => status.PendingCalls.Count == 1 && status.Status == ElevatorStatus.MovingUp);
 
         using var response = await client.GetRouteAsync(ApiRoutes.Elevator);
@@ -46,6 +48,23 @@ public sealed class ElevatorQueryTests
         pending.GetProperty("call").GetProperty("floor").GetInt32().ShouldBe(5);
         pending.GetProperty("requestCount").GetInt32().ShouldBe(1);
         status.GetProperty("targetFloors").EnumerateArray().Select(floor => floor.GetInt32()).ShouldBe([5]);
+    }
+
+    [Fact]
+    public async Task GetStatus_WhileTheCarWaitsOpen_HasNoCountdown_AndACallStartsOne()
+    {
+        await using var factory = new ApiFactory().WithFakeTime();
+        using var client = factory.CreateClient();
+        var waiting = await factory.StatusAsync(status => status.Status == ElevatorStatus.DoorOpen);
+
+        using var accepted = await client.PostJsonAsync(ApiRoutes.HallCalls, """{"floor":6,"direction":"Down"}""");
+        var counting = await factory.StatusAsync(status => status.DoorsCloseAt is not null);
+
+        waiting.DoorsCloseAt.ShouldBeNull("with nowhere to go the door stays open, so there is nothing to count down");
+        counting.Status.ShouldBe(ElevatorStatus.DoorOpen);
+        counting.DoorsCloseAt.ShouldBe(factory.Time!.GetUtcNow() + ApiFactory.DoorTime);
+        using var response = await client.GetRouteAsync(ApiRoutes.Elevator);
+        (await response.ReadJsonAsync()).GetProperty("doorsCloseAt").GetDateTimeOffset().ShouldBe(counting.DoorsCloseAt!.Value);
     }
 
     [Fact]

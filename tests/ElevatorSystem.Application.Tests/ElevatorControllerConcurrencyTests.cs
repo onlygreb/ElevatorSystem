@@ -125,6 +125,8 @@ public sealed class ElevatorControllerConcurrencyTests
             {
                 TravelTimePerFloor = TimeSpan.FromMinutes(10),
                 DoorOpenDuration = TimeSpan.FromMinutes(10),
+                // The car must start a trip, not wait open at its floor.
+                HoldDoorOpenWhenIdle = false,
                 IntakeCapacity = Requests * 2,
             };
             Controller = new ElevatorController(

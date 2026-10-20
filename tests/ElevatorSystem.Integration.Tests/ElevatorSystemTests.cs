@@ -6,6 +6,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
+using static ElevatorSystem.Integration.Tests.CarStates;
 
 namespace ElevatorSystem.Integration.Tests;
 
@@ -124,7 +125,7 @@ public sealed class ElevatorSystemTests(SystemFixture system)
         await using var api = new ApiHost(environment);
         await engine.WaitForRoleAsync("leader");
         await api.AcceptedCallAsync(ApiRoutes.CarCalls, """{"floor":4}""");
-        var last = await api.WaitForStatusAsync(status => status is { CurrentFloor: 4, Status: ElevatorStatus.Idle }, "the car to rest at floor 4");
+        var last = await api.WaitForStatusAsync(status => status.CurrentFloor == 4 && Resting(status), "the car to rest at floor 4");
 
         engine.Kill();
         await engine.DisposeAsync();

@@ -20,10 +20,13 @@ internal sealed class EngineEventSink(Elevator elevator, SnapshotPersister persi
 {
     private readonly ConcurrentDictionary<RequestId, TaskCompletionSource> _awaited = new();
 
+    /// <summary>The controller this sink serves, once created: its door countdown goes into every status.</summary>
+    public ElevatorController? Controller { get; set; }
+
     public void Publish(ElevatorEvent elevatorEvent)
     {
         persister.Notify();
-        var status = ElevatorContractMapper.ToStatus(elevator.Snapshot());
+        var status = ElevatorContractMapper.ToStatus(elevator.Snapshot(), Controller?.DoorsCloseAt);
         forwarder.Enqueue(new ElevatorUpdateV1(Guid.CreateVersion7(timeProvider.GetUtcNow()), ElevatorContractMapper.ToActivity(elevatorEvent), status));
 
         if (!_awaited.IsEmpty && RequestOf(elevatorEvent) is { } requestId && _awaited.TryRemove(requestId, out var taken))

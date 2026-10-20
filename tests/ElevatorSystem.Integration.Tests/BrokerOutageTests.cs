@@ -1,6 +1,7 @@
 using System.Net;
 using System.Text.Json;
 using ElevatorSystem.Contracts;
+using static ElevatorSystem.Integration.Tests.CarStates;
 
 namespace ElevatorSystem.Integration.Tests;
 
@@ -15,7 +16,7 @@ public sealed class BrokerOutageTests(RestartableSystemFixture system)
         await using var engine = EngineProcess.Start("engine-1", environment);
         await using var api = new ApiHost(environment);
         await engine.WaitForRoleAsync("leader");
-        var known = await api.WaitForStatusAsync(status => status.Status == ElevatorStatus.Idle, "the car to be idle");
+        var known = await api.WaitForStatusAsync(Resting, "the car to rest with nothing to do");
 
         await system.Broker.StopAsync(TestContext.Current.CancellationToken);
         try

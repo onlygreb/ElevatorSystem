@@ -36,6 +36,9 @@ public sealed class ElevatorController
     private readonly ILogger<ElevatorController> _logger;
     private readonly Lock _operationGate = new();
     private CancellationTokenSource? _currentOperation;
+    private TaskCompletionSource _nudge = NewNudge();
+    private DateTimeOffset? _doorsCloseAt;
+    private bool _doorHeld;
     private int _isProcessing;
 
     public ElevatorController(
@@ -76,6 +79,22 @@ public sealed class ElevatorController
     public ISchedulingStrategy Strategy => _strategy;
 
     public ElevatorControllerOptions Options => _options;
+
+    /// <summary>
+    /// When the open door will close, or <see langword="null"/> while it stays open because the car has nowhere to
+    /// go (and while it is closed). The door stays open whenever nothing is pending; a new call starts the
+    /// <see cref="ElevatorControllerOptions.DoorOpenDuration"/> countdown (ADR-0025).
+    /// </summary>
+    public DateTimeOffset? DoorsCloseAt
+    {
+        get
+        {
+            lock (_operationGate)
+            {
+                return _doorsCloseAt;
+            }
+        }
+    }
 
     /// <summary>
     /// A pickup request from a landing: a passenger on <paramref name="floor"/> wants to go in
@@ -120,11 +139,12 @@ public sealed class ElevatorController
     /// <summary>Takes the car out of service for maintenance, cancelling every pending call.</summary>
     public TransitionResult StartMaintenance() => TakeOutOfService(OutOfServiceReason.Maintenance);
 
-    /// <summary>Returns an out-of-service car to service, idle with the door closed.</summary>
+    /// <summary>Returns an out-of-service car to service; with nothing to do, it then opens its door and waits.</summary>
     public TransitionResult ReturnToService()
     {
         var result = Elevator.ReturnToService();
         Publish(result.Events);
+        Nudge();
         return result;
     }
 
@@ -172,12 +192,17 @@ public sealed class ElevatorController
                 Publish(events);
                 events.Clear();
 
-                // Sleep until a request arrives, the current trip or door cycle ends, or shutdown.
+                // Sleep until a request arrives, the current trip or door cycle ends, a nudge, or shutdown.
                 requestArrival ??= _intake.Reader.WaitToReadAsync(cancellationToken).AsTask();
+                var nudge = Volatile.Read(ref _nudge);
                 Task wakeUp = operation is null
-                    ? Task.WhenAny(requestArrival)
-                    : Task.WhenAny(requestArrival, operation.Completion);
+                    ? Task.WhenAny(requestArrival, nudge.Task)
+                    : Task.WhenAny(requestArrival, operation.Completion, nudge.Task);
                 await wakeUp.ConfigureAwait(false);
+                if (nudge.Task.IsCompleted)
+                {
+                    Interlocked.CompareExchange(ref _nudge, NewNudge(), nudge);
+                }
 
                 if (requestArrival.IsCompleted)
                 {
@@ -237,7 +262,18 @@ public sealed class ElevatorController
         switch (snapshot.State)
         {
             case ElevatorState.OutOfService:
+                _doorHeld = false;
+                SetDoorsCloseAt(null);
                 return null;
+            case ElevatorState.DoorOpen when _doorHeld:
+                // Held open with nowhere to go: a call that gives the car somewhere to go starts the countdown.
+                if (_strategy.SelectTarget(snapshot) is null)
+                {
+                    return null;
+                }
+
+                _doorHeld = false;
+                return StartDoorCycle(loopToken);
             case ElevatorState.DoorOpen:
                 return StartDoorCycle(loopToken);
         }
@@ -245,8 +281,8 @@ public sealed class ElevatorController
         var isMoving = snapshot.State is ElevatorState.MovingUp or ElevatorState.MovingDown;
         if (_strategy.SelectTarget(snapshot) is not { } target)
         {
-            // Nothing left to serve: a car that is still moving stops at the floor it is reaching.
-            return isMoving ? OpenDoorHere(events, loopToken) : null;
+            // Nothing left to serve: a moving car stops at the floor it is reaching; an idle car opens and waits.
+            return isMoving ? OpenDoorHere(events, loopToken) : _options.HoldDoorOpenWhenIdle ? HoldDoorOpenHere(events) : null;
         }
 
         if (target == snapshot.CurrentFloor)
@@ -273,6 +309,22 @@ public sealed class ElevatorController
         return StartTrip(direction, loopToken);
     }
 
+    /// <summary>Opens the door at this floor with no countdown: the car has nowhere to go, so it waits open.</summary>
+    private Operation? HoldDoorOpenHere(List<ElevatorEvent> events)
+    {
+        var opened = Elevator.OpenDoor();
+        if (!opened.Succeeded)
+        {
+            Log.TransitionRefused(_logger, nameof(Elevator.OpenDoor), Elevator.CurrentFloor, opened.Error!.Value);
+            return null;
+        }
+
+        events.AddRange(opened.Events);
+        _doorHeld = true;
+        SetDoorsCloseAt(null);
+        return null;
+    }
+
     private Operation? OpenDoorHere(List<ElevatorEvent> events, CancellationToken loopToken)
     {
         var opened = Elevator.OpenDoor();
@@ -283,11 +335,20 @@ public sealed class ElevatorController
         }
 
         events.AddRange(opened.Events);
+        if (_options.HoldDoorOpenWhenIdle && _strategy.SelectTarget(Elevator.Snapshot()) is null)
+        {
+            // The stop served everything: no countdown, the car waits here with its door open.
+            _doorHeld = true;
+            SetDoorsCloseAt(null);
+            return null;
+        }
+
         return StartDoorCycle(loopToken);
     }
 
     private Operation StartTrip(Direction direction, CancellationToken loopToken)
     {
+        SetDoorsCloseAt(null);
         var cancellation = BeginOperation(loopToken);
         Task trip;
         try
@@ -307,6 +368,7 @@ public sealed class ElevatorController
     private Operation StartDoorCycle(CancellationToken loopToken)
     {
         var cancellation = BeginOperation(loopToken);
+        SetDoorsCloseAt(_timeProvider.GetUtcNow() + _options.DoorOpenDuration);
         var dwell = Task.Delay(_options.DoorOpenDuration, _timeProvider, cancellation.Token);
         return new Operation(OperationKind.DoorCycle, dwell, cancellation);
     }
@@ -339,6 +401,14 @@ public sealed class ElevatorController
 
         if (operation.Kind == OperationKind.DoorCycle)
         {
+            SetDoorsCloseAt(null);
+            if (_options.HoldDoorOpenWhenIdle && _strategy.SelectTarget(Elevator.Snapshot()) is null)
+            {
+                // Nowhere to go: the door stays open until a call arrives (ADR-0025).
+                _doorHeld = true;
+                return;
+            }
+
             events.AddRange(Elevator.CloseDoor().Events);
         }
 
@@ -390,6 +460,19 @@ public sealed class ElevatorController
         catch (ObjectDisposedException)
         {
             // The operation finished at the same moment; there is nothing left to cancel.
+        }
+    }
+
+    private static TaskCompletionSource NewNudge() => new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+    /// <summary>Wakes the control loop to look at the elevator again, for example after a return to service.</summary>
+    private void Nudge() => Volatile.Read(ref _nudge).TrySetResult();
+
+    private void SetDoorsCloseAt(DateTimeOffset? closesAt)
+    {
+        lock (_operationGate)
+        {
+            _doorsCloseAt = closesAt;
         }
     }
 
