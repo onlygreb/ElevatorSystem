@@ -233,6 +233,12 @@ public sealed class ElevatorEngine
         forwarder.Enqueue(new OccupancyUpdateV1(Guid.CreateVersion7(_timeProvider.GetUtcNow()), passengers.Current));
 
         OpenDoorOnTakeOver(elevator, controllerSink);
+        if (elevator.State == ElevatorState.OutOfService)
+        {
+            // Nothing happens to a car restored out of service, so say where it is: otherwise an API that restarted
+            // too would know no status, and its admin view could not even return the car to service.
+            sink.PublishRestoredOutOfService();
+        }
         _controller = controller;
         _passengers = passengers;
         _scenarios = scenarios;

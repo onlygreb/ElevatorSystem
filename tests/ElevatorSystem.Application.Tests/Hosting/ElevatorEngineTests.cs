@@ -206,6 +206,9 @@ public sealed class ElevatorEngineTests
 
         var second = harness.Start();
         await second.WaitForRoleAsync(EngineRole.Leader);
+        var announced = await harness.Updates.WaitForAsync(update => update.Activity.Kind == ElevatorActivityKind.OutOfService, from);
+        announced.Status.Status.ShouldBe(ElevatorStatus.OutOfService, "a restarted API learns the status at once, and can return the car to service");
+        announced.Activity.OutOfServiceCause.ShouldBe(OutOfServiceCause.Maintenance);
         await harness.SendAsync(EngineHarness.Service(ServiceAction.ReturnToService));
 
         var returned = await harness.Updates.WaitForAsync(update => update.Activity.Kind == ElevatorActivityKind.ReturnedToService, from);
