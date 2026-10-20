@@ -125,13 +125,22 @@ internal static class StaffHostingExtensions
         services.Configure<SecurityStampValidatorOptions>(options =>
         {
             options.ValidationInterval = SecurityStampValidationInterval;
-            // A refreshed cookie must still say the session was signed in with two factors.
+            // A refreshed cookie must still say how the session was signed in: with two factors, or as the test account.
             options.OnRefreshingPrincipal = context =>
             {
-                if (context.CurrentPrincipal?.SignedInWithTwoFactors() == true && context.NewPrincipal?.Identity is ClaimsIdentity identity
-                    && !context.NewPrincipal.SignedInWithTwoFactors())
+                if (context.NewPrincipal?.Identity is not ClaimsIdentity identity || context.CurrentPrincipal is not { } current)
+                {
+                    return Task.CompletedTask;
+                }
+
+                if (current.SignedInWithTwoFactors() && !context.NewPrincipal.SignedInWithTwoFactors())
                 {
                     identity.AddClaim(new Claim(StaffPolicies.AuthenticationMethodClaim, StaffPolicies.MultiFactorMethod));
+                }
+
+                if (current.SignedInAsTestAccount() && !context.NewPrincipal.SignedInAsTestAccount())
+                {
+                    identity.AddClaim(new Claim(StaffPolicies.AuthenticationMethodClaim, StaffPolicies.TestAccountMethod));
                 }
 
                 return Task.CompletedTask;

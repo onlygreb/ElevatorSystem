@@ -9,6 +9,7 @@ using ElevatorSystem.Infrastructure.Staff;
 using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.Options;
 
 namespace ElevatorSystem.Api.Endpoints;
 
@@ -106,6 +107,7 @@ internal static class StaffAuthEndpoints
         SignInManager<StaffUser> signInManager,
         UserManager<StaffUser> users,
         AuditTrail audit,
+        IOptions<StaffOptions> staffOptions,
         HttpContext context,
         CancellationToken cancellationToken)
     {
@@ -146,8 +148,16 @@ internal static class StaffAuthEndpoints
 
         if (result.Succeeded)
         {
+            var testAccount = !usedSecondFactor && await IsTestAccountAsync(users, user, staffOptions.Value);
+            if (testAccount)
+            {
+                // The configured test account (ADR-0030): its session counts as complete without a second factor.
+                await signInManager.SignInWithClaimsAsync(
+                    user, isPersistent: false, [new Claim(StaffPolicies.AuthenticationMethodClaim, StaffPolicies.TestAccountMethod)]);
+            }
+
             await RecordSignInAsync(audit, AuditOutcomes.Succeeded, user.Id, context, cancellationToken);
-            return TypedResults.Ok(await SessionAsync(users, user, usedSecondFactor));
+            return TypedResults.Ok(await SessionAsync(users, user, usedSecondFactor, testAccount));
         }
 
         await RecordSignInAsync(audit, result.IsLockedOut ? AuditOutcomes.LockedOut : AuditOutcomes.Failed, user.Id, context, cancellationToken);
@@ -170,7 +180,7 @@ internal static class StaffAuthEndpoints
         var user = await users.GetUserAsync(context.User);
         return user is null
             ? TypedResults.Unauthorized()
-            : TypedResults.Ok(await SessionAsync(users, user, context.User.SignedInWithTwoFactors()));
+            : TypedResults.Ok(await SessionAsync(users, user, context.User.SignedInWithTwoFactors(), context.User.SignedInAsTestAccount()));
     }
 
     internal static async Task<Results<Ok<TwoFactorSetupDto>, ProblemHttpResult, UnauthorizedHttpResult>> SetUpTwoFactorAsync(
@@ -241,14 +251,23 @@ internal static class StaffAuthEndpoints
     private static readonly Lazy<string> UnknownAccountHash = new(() =>
         new PasswordHasher<StaffUser>().HashPassword(new StaffUser(), Guid.NewGuid().ToString("N")));
 
-    private static async Task<StaffSessionDto> SessionAsync(UserManager<StaffUser> users, StaffUser user, bool twoFactorVerified)
+    /// <summary>
+    /// The account was created as the test account and is still the one configured: an existing account is never exempted,
+    /// and removing the setting ends the exemption (ADR-0030).
+    /// </summary>
+    private static async Task<bool> IsTestAccountAsync(UserManager<StaffUser> users, StaffUser user, StaffOptions options) =>
+        options.ConfiguredTestAccount is { } configured
+        && string.Equals(configured.Email, user.Email, StringComparison.OrdinalIgnoreCase)
+        && (await users.GetClaimsAsync(user)).Any(claim => claim.Type == StaffPolicies.TestAccountClaim);
+
+    private static async Task<StaffSessionDto> SessionAsync(UserManager<StaffUser> users, StaffUser user, bool twoFactorVerified, bool testAccount = false)
     {
         var roles = (await users.GetRolesAsync(user))
             .Select(role => Enum.TryParse<StaffRole>(role, out var known) ? known : (StaffRole?)null)
             .OfType<StaffRole>()
             .Order()
             .ToList();
-        return new StaffSessionDto(user.Email!, roles, user.TwoFactorEnabled, twoFactorVerified);
+        return new StaffSessionDto(user.Email!, roles, user.TwoFactorEnabled, twoFactorVerified, testAccount);
     }
 
     private static Task<AuditEntry> RecordSignInAsync(AuditTrail audit, string outcome, Guid? accountId, HttpContext context, CancellationToken cancellationToken)

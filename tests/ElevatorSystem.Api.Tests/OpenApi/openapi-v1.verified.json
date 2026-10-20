@@ -2229,6 +2229,11 @@
           "twoFactorVerified": {
             "type": "boolean",
             "description": "This session was signed in with the second factor; every staff capability needs it."
+          },
+          "testAccount": {
+            "type": "boolean",
+            "description": "The configured test account, signed in with its password only (ADR-0030): it has every staff capability without a\nsecond factor, and the UI says so.",
+            "default": false
           }
         },
         "description": "The signed-in staff member, as the UI needs it."

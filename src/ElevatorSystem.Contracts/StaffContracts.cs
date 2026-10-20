@@ -12,7 +12,11 @@ public sealed record SignInRequest(string Email, string Password, string? TwoFac
 /// <param name="Roles">What the account may do.</param>
 /// <param name="TwoFactorEnabled">The account has an authenticator app registered.</param>
 /// <param name="TwoFactorVerified">This session was signed in with the second factor; every staff capability needs it.</param>
-public sealed record StaffSessionDto(string Email, IReadOnlyList<StaffRole> Roles, bool TwoFactorEnabled, bool TwoFactorVerified);
+/// <param name="TestAccount">
+/// The configured test account, signed in with its password only (ADR-0030): it has every staff capability without a
+/// second factor, and the UI says so.
+/// </param>
+public sealed record StaffSessionDto(string Email, IReadOnlyList<StaffRole> Roles, bool TwoFactorEnabled, bool TwoFactorVerified, bool TestAccount = false);
 
 /// <summary>The antiforgery token to send in the <see cref="HeaderName"/> header of every staff <c>POST</c>.</summary>
 public sealed record AntiforgeryTokenDto(string HeaderName, string RequestToken);

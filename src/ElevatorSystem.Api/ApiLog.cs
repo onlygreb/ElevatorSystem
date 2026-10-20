@@ -22,6 +22,9 @@ internal static partial class ApiLog
     [LoggerMessage(3012, LogLevel.Information, "Created a configured staff account with the {Role} role")]
     public static partial void StaffAccountCreated(ILogger logger, ElevatorSystem.Contracts.StaffRole role);
 
+    [LoggerMessage(3015, LogLevel.Warning, "A test account is enabled: it signs in with its password only and has every staff capability (ADR-0030)")]
+    public static partial void TestAccountEnabled(ILogger logger);
+
     [LoggerMessage(3013, LogLevel.Warning, "No Audit:ClientPseudonymKey is configured: client pseudonyms use a random key and link only until the next restart")]
     public static partial void EphemeralPseudonymKey(ILogger logger);
 
