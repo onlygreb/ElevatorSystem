@@ -35,6 +35,19 @@ a quarter of an hour for the car to work through the crowd.
    the car's glide and the door countdown, and show a "Fast-forward 8×" badge. A change of speed is announced
    as a `SpeedChanged` activity with the status as it is. Because the speed changes without a new elevator
    version, the browser applies a status of the same version when it was taken later.
+4. **Smooth at speed.** At 8× the car changes floor every 0.19 s, so every link of the pipeline must keep its
+   steps, and the browser must pace them:
+   - Simulated passengers do not try a full car, and one who walked out, or found the car full, waits for it to
+     leave that floor before boarding again (unless it has nothing at all to do). Retrying a full car had sent
+     some 80 refusals a second through the pipeline.
+   - The engine forwards a press merged into a waiting call at most four times a second; every press is still
+     applied, saved and counted, and the next update carries the count. Merges had crowded the car's own steps
+     out of the update buffer.
+   - The API sends a status for every new floor or state of the car within a batch, and coalesces only changes
+     to the queue, so browsers never see the car skip a floor.
+   - Updates leave the engine in small clumps, each waiting for its snapshot to be saved (ADR-0016). The browser
+     glides the car from where it is on screen at the car's own pace (a jump of more than three floors is
+     compressed), keeps the doors shut until it arrives, and slides the doors at the car's speed.
 
 With the defaults a huge load lasts about four minutes, and sends about 30,000 button presses (around 130 a
 second) and some 240 rides through the whole pipeline (measured in simulated time).

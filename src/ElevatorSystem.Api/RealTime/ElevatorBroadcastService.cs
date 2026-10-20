@@ -8,11 +8,12 @@ namespace ElevatorSystem.Api.RealTime;
 /// subscription's thread (ADR-0015).
 /// </summary>
 /// <remarks>
-/// Every elevator update becomes an <see cref="IElevatorClient.ActivityOccurred"/> message, in order. After
-/// each batch (at most <see cref="MaxBatchSize"/> updates) clients get one <see cref="IElevatorClient.StatusChanged"/>
-/// with the newest status and one <see cref="IElevatorClient.OccupancyChanged"/> with the newest counts (to staff only), each only
-/// if it changed since the last one sent, so a burst of hundreds of requests produces a handful of status messages
-/// rather than hundreds of identical ones. A failing send is logged and skipped; it never stops the broadcast. A
+/// Every elevator update becomes an <see cref="IElevatorClient.ActivityOccurred"/> message, in order. Within each
+/// batch (at most <see cref="MaxBatchSize"/> updates) clients get a <see cref="IElevatorClient.StatusChanged"/> for every
+/// step of the car (each new floor or state), then one with the newest status, and one
+/// <see cref="IElevatorClient.OccupancyChanged"/> with the newest counts (to staff only), each only if it changed since the
+/// last one sent: a burst of hundreds of requests produces a handful of status messages rather than hundreds of identical
+/// ones, and the car is never seen to skip a floor. A failing send is logged and skipped; it never stops the broadcast. A
 /// send that never completes is abandoned on shutdown, so a stuck client cannot hold the host open.
 /// </remarks>
 internal sealed class ElevatorBroadcastService(
@@ -40,6 +41,11 @@ internal sealed class ElevatorBroadcastService(
                     {
                         case ElevatorUpdateV1 elevatorUpdate:
                             await SendAsync(clients => clients.All, client => client.ActivityOccurred(elevatorUpdate.Activity), nameof(IElevatorClient.ActivityOccurred), stoppingToken);
+                            if (status is not null && CarMoved(status, elevatorUpdate.Status))
+                            {
+                                await SendStatusAsync(status, stoppingToken);
+                            }
+
                             status = elevatorUpdate.Status;
                             break;
                         case OccupancyUpdateV1 occupancyUpdate:
@@ -48,10 +54,9 @@ internal sealed class ElevatorBroadcastService(
                     }
                 }
 
-                if (status is not null && !SameStatus(status, _lastStatusSent))
+                if (status is not null)
                 {
-                    _lastStatusSent = status;
-                    await SendAsync(clients => clients.All, client => client.StatusChanged(status), nameof(IElevatorClient.StatusChanged), stoppingToken);
+                    await SendStatusAsync(status, stoppingToken);
                 }
 
                 if (occupancy is not null && !ReferenceEquals(occupancy, _lastOccupancySent))
@@ -66,6 +71,19 @@ internal sealed class ElevatorBroadcastService(
         {
         }
     }
+
+    private async Task SendStatusAsync(ElevatorStatusDto status, CancellationToken stoppingToken)
+    {
+        if (!SameStatus(status, _lastStatusSent))
+        {
+            _lastStatusSent = status;
+            await SendAsync(clients => clients.All, client => client.StatusChanged(status), nameof(IElevatorClient.StatusChanged), stoppingToken);
+        }
+    }
+
+    // A step of the car: browsers must see each one to animate it, while changes to the queue alone can be coalesced.
+    private static bool CarMoved(ElevatorStatusDto from, ElevatorStatusDto to) =>
+        from.CurrentFloor != to.CurrentFloor || from.Status != to.Status;
 
     // One status per version: the updates of one control-loop step, and refused requests, share a version. A change of
     // speed (ADR-0031) keeps the version, so it is sent too.

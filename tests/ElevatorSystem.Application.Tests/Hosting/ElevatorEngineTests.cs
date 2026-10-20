@@ -326,6 +326,26 @@ public sealed class ElevatorEngineTests
     }
 
     [Fact]
+    public async Task ManyPressesOfOneCall_AreAllCounted_ButOnlyAFewMergesAreForwarded()
+    {
+        await using var harness = new EngineHarness
+        {
+            ControllerOptions = new ElevatorControllerOptions { TravelTimePerFloor = TimeSpan.FromMilliseconds(100), DoorOpenDuration = EngineHarness.DoorTime },
+        };
+        await harness.StartLeaderAsync();
+
+        for (var press = 0; press < 20; press++)
+        {
+            await harness.SendAsync(EngineHarness.HallCall(10, CallDirection.Down));
+        }
+
+        var served = await harness.Updates.WaitForAsync(update => update.Activity is { Kind: ElevatorActivityKind.CallServed, Floor: 10 });
+        served.Activity.RequestCount.ShouldBe(20, "the controller counts every press");
+        harness.Updates.Messages.Count(update => update.Activity.Kind == ElevatorActivityKind.CallMerged)
+            .ShouldBeLessThan(19, "merges are forwarded at most four times a second, so they cannot crowd out the car's steps");
+    }
+
+    [Fact]
     public async Task RunAsync_Twice_IsRefused()
     {
         await using var harness = new EngineHarness();
