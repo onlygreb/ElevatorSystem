@@ -118,8 +118,8 @@ dotnet tool restore; cd tests/ElevatorSystem.Domain.Tests; dotnet stryker       
 - CI runs the whole suite in Release with coverage on every push and pull request; the browser tests run
   in a step of their own after the others.
 - Mutation score for Domain and Application: break below 80% (Stryker `thresholds.break`). The Quality
-  workflow runs it weekly and on demand: Domain takes about 10 minutes, Application about an hour, too
-  long for every pull request.
+  workflow runs it weekly and on demand: on a GitHub runner Domain takes about 8 minutes and Application
+  about 25, too long for every pull request.
   - Each test project's `stryker-config.json` says what is mutated. Application mutates its deterministic
     core (controller, passenger registry, audit chain and trail, pseudonymizer, mappers); the engine host,
     the command handler and the demo runner are reached only through real-time engine tests, which would
