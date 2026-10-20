@@ -88,6 +88,7 @@ controller, in which case it fills one of the processor rows above.
 | Legal basis (Art. 7) | n/a |
 | Retention | **90 days**, then aggregated into counts per floor and hour, and the individual requests deleted. |
 | Recipients | Anyone viewing the passenger screen (live state only); staff in the operations panel (history and statistics). |
+| Where it is held | Since phase 3 (ADR-0021) a call travels as a command through RabbitMQ (`elevator.commands.engine`, until the engine has applied it) and as an update to every API instance; the engine keeps pending calls in its snapshot and the command IDs it applied for 7 days in PostgreSQL (ADR-0019). None of these holds more than the floor, direction, timestamps and random IDs. Occupancy counts derived from the calls are kept in memory and published as totals only (ADR-0017). |
 | Security measures | Rate limits, request merging and a bounded intake channel protect availability; no identifier is ever attached to a request. |
 
 ## 5. Transient use of client IP addresses for rate limiting
@@ -118,3 +119,4 @@ around it, for example:
 |---|---|---|
 | 2026-10-19 | First draft, written ahead of phases 4 and 5 | Engineering; pending controller and counsel review |
 | 2026-10-19 | Legal basis wording of operations 2 and 5 aligned with the classification table | Engineering; pending controller and counsel review |
+| 2026-10-19 | Operation 4: where calls are held now that the engine runs behind RabbitMQ and PostgreSQL (ADR-0021) | Engineering; pending controller and counsel review |

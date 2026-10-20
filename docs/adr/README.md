@@ -26,3 +26,4 @@ supersedes the old one instead of editing it. New records start from [`template.
 | [0018](0018-rabbitmq-messaging-adapter.md) | RabbitMQ messaging adapter: delivery, recovery and update fan-out | Accepted |
 | [0019](0019-postgresql-snapshots-deduplication-and-leader-lease.md) | Store snapshots, processed commands and the leader lease in PostgreSQL | Accepted |
 | [0020](0020-occupancy-counting-rules-and-traffic-generator.md) | Count passengers by explicit rules and mirror them in the traffic generator | Accepted |
+| [0021](0021-engine-hosting-topology-and-single-process-mode.md) | Engine hosting topology and the single-process mode | Accepted |

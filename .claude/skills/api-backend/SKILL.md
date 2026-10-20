@@ -13,7 +13,7 @@ ADR-0012 (control loop) and ADR-0015 (real-time fan-out).
 | Path | Role |
 |---|---|
 | `Program.cs` | Composition and the middleware pipeline, nothing else |
-| `Hosting/` | The elevator core in-process (phase 2): controller, control loop service, readiness check |
+| `Hosting/` | `Hosting:Mode` (Distributed over RabbitMQ, or SingleProcess with the engine in process) and readiness checks (ADR-0021) |
 | `RealTime/` | `ElevatorEventBuffer` (the controller's sink), `ElevatorBroadcastService`, `ElevatorStatusHub` |
 | `Endpoints/` | `<Feature>Endpoints.cs` with one `Map<Feature>Endpoints(this IEndpointRouteBuilder)`; `ApiErrorHandling` |
 | `Security/` | `SecurityHeaders`, `RateLimiting` |
@@ -21,20 +21,21 @@ ADR-0012 (control loop) and ADR-0015 (real-time fan-out).
 
 - Routes come from `ElevatorSystem.Contracts.ApiRoutes`, never string literals. The contracts are
   versioned: a breaking change means new types and a new route version, never an in-place edit.
-- Endpoints talk to `ElevatorController` (later, Application use cases) and return `Contracts` types,
-  mapped with `ElevatorContractMapper`. They never return domain types.
-- Phase 2 hosts the control loop in the API (`ElevatorControlLoopService`, options from the `Elevator`
-  section). Phase 3 moves it to the engine behind RabbitMQ; the endpoints keep their contract.
+- Endpoints publish commands through `IElevatorCommandPublisher` and read `ElevatorStateCache` (the latest
+  `ElevatorUpdateV1`/`OccupancyUpdateV1` from the subscription). They return `Contracts` types, never domain types.
+- The engine runs in its own processes (Distributed, the default) or inside the API over the in-memory bus
+  (SingleProcess, Development and the API tests), through the same `AddElevatorEngine` (ADR-0021).
 
 ## Routes (v1)
 
 | Method and route | Policy | Success | Refusals |
 |---|---|---|---|
-| `POST /api/v1/hall-calls` (`HallCallRequest`) | anonymous, `passenger` limit, 1 KB body | `202` `RequestAcceptedResponse` | `400` `InvalidFloor` / `InvalidDirection`, `409` `OutOfService`, `503` `Busy` + `Retry-After: 1`, `429` |
-| `POST /api/v1/car-calls` (`CarCallRequest`) | anonymous, `passenger` limit, 1 KB body | `202` `RequestAcceptedResponse` | `400` `InvalidFloor`, `409` `OutOfService`, `503` `Busy` + `Retry-After: 1`, `429` |
-| `GET /api/v1/elevator` | anonymous, `read` limit | `200` `ElevatorStatusDto` | `429` |
+| `POST /api/v1/hall-calls` (`HallCallRequest`) | anonymous, `passenger` limit, 1 KB body | `202` `RequestAcceptedResponse` | `400` `InvalidFloor` / `InvalidDirection`, `409` `OutOfService`, `503` `Busy` + `Retry-After: 2` (broker unavailable), `429` |
+| `POST /api/v1/car-calls` (`CarCallRequest`) | anonymous, `passenger` limit, 1 KB body | `202` `RequestAcceptedResponse` | `400` `InvalidFloor`, `409` `OutOfService`, `503` `Busy` + `Retry-After: 2` (broker unavailable), `429` |
+| `GET /api/v1/elevator` | anonymous, `read` limit | `200` `ElevatorStatusDto` | `429`, `503` + `Retry-After: 2` until the engine reported |
+| `GET /api/v1/building/occupancy` | anonymous, `read` limit | `200` `BuildingOccupancyDto` | `429`, `503` + `Retry-After: 2` until the engine reported |
 | `GET /api/v1/elevator/configuration` | anonymous, `read` limit | `200` `ElevatorConfigurationDto` | `429` |
-| `/hubs/elevator` (SignalR) | anonymous, receive-only | `StatusChanged` on connect and after changes, `ActivityOccurred` per event | — |
+| `/hubs/elevator` (SignalR) | anonymous, receive-only | `StatusChanged` and `OccupancyChanged` on connect (once known) and after changes, `ActivityOccurred` per update | — |
 
 Planned: `/api/v1/admin/*` (operators and admins, phase 4) and `/api/v1/me` (the caller's own data
 for LGPD rights, phase 5).
@@ -67,8 +68,9 @@ for LGPD rights, phase 5).
 | Elevator out of service | `409` problem, `reason` `OutOfService` |
 | Body over 1 KB | `413` (Kestrel enforces it; the test server does not, so tests check the metadata) |
 | Rate or concurrency limit hit | `429` problem + `Retry-After` |
-| Controller intake full | `503` problem, `reason` `Busy`, `Retry-After: 1` |
-| Engine or broker unavailable (phase 3) | `503` + `Retry-After` (never claim "accepted" without a publisher confirm) |
+| Command not confirmed by the broker (or the in-memory queue full) | `503` problem, `reason` `Busy`, `Retry-After: 2` (never claim "accepted" without a confirm) |
+| Engine refuses an accepted call (intake full, out of service meanwhile) | Already `202`; reported as a `RequestRejected` activity on the hub |
+| Status or occupancy not reported yet | `503` problem without `reason`, `Retry-After: 2` |
 
 ## Errors
 
@@ -96,10 +98,10 @@ for LGPD rights, phase 5).
   methods. Commands always go through REST, so validation and rate limits are enforced in exactly one place.
 - It sends `StatusChanged` to a client as soon as it connects.
 - `MaximumReceiveMessageSize` is 4 KB (clients send only the handshake and pings); detailed errors are off.
-- Fan-out (ADR-0015): the controller publishes into `ElevatorEventBuffer` (bounded, `DropOldest`,
-  never blocks; drops counted and logged at most every 10 s). `ElevatorBroadcastService` sends each
-  event as `ActivityOccurred` and, per batch of up to 64, one `StatusChanged` only when the version
-  changed. A failing send is logged and skipped. Never publish to SignalR from the control loop.
+- Fan-out (ADR-0015): the update subscription writes each new update into `ElevatorEventBuffer` (bounded,
+  `DropOldest`, never blocks; drops counted and logged at most every 10 s). `ElevatorBroadcastService` sends
+  each elevator update as `ActivityOccurred` and, per batch of up to 64, one `StatusChanged` only when the
+  version changed and one `OccupancyChanged` with the newest counts. A failing send is logged and skipped. Never publish to SignalR from the control loop.
 - Phase 4: admin-only hub groups require the `CanOperate` policy. The hub has no per-client
   connection limit yet (threat model OQ-11).
 
