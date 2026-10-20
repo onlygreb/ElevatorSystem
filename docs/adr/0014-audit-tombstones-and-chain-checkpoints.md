@@ -1,6 +1,6 @@
 # 0014. Anonymise audit entries with salted personal digests and purge with checkpoints
 
-- **Status:** Proposed
+- **Status:** Accepted (implemented in phase 4, see [0023](0023-audit-trail-writer-and-verification.md); checkpoints arrive with the retention job)
 - **Date:** 2026-10-19
 
 ## Context
@@ -60,8 +60,8 @@ Canonical serialisation of the fields (field order, encoding, timestamp format) 
 and covered by tests with known vectors, so a digest computed today verifies after any refactor.
 
 [`docs/lgpd/retention.md`, section 4](../lgpd/retention.md#4-audit-tombstones-and-the-hash-chain)
-describes the same mechanism from the data-protection side. This ADR is **Proposed** until
-phase 4 implements it; it is accepted, or replaced, in that pull request.
+describes the same mechanism from the data-protection side. Phase 4 implemented it as
+written (`AuditChain`, `AuditTrail`; the known vectors are in `AuditChainTests`) and accepted it.
 
 Out of scope here, and still open in the threat model: anchoring the chain head outside the
 database (second half of OQ-14), who appends to the chain (OQ-4) and the database grants for the
