@@ -27,7 +27,7 @@ Security is part of the design from the first commit.
 
 ## Contents
 
-- [What it does](#what-it-does)
+- [What it does](#what-it-does) and [screenshots](#screenshots)
 - [Requirements and where they are met](#requirements-and-where-they-are-met)
 - [Architecture](#architecture)
 - [Design highlights](#design-highlights)
@@ -56,6 +56,21 @@ ElevatorSystem controls an elevator serving floors 1 to 10 and gives passengers 
 | **Demo scenarios** | Admins start a morning rush, a lunch break or a busy day and watch simulated passengers fill the floors and ride the car, in a living picture of the building. |
 | **Privacy** | Passengers are anonymous by design: nothing identifies who rides the elevator. |
 | **Languages** | English and Brazilian Portuguese. |
+
+### Screenshots
+
+The admin dashboard during a busy day: simulated passengers wait, walk around and ride, while the admin watches
+the car, starts demo scenarios and controls the service.
+
+![The admin dashboard during a busy day, in the dark theme](docs/images/admin-dashboard.png)
+
+A passenger's journey: in the car at floor 1 with floor 8 chosen, the doors counting down, and the request queue
+served in order. On a phone, in Brazilian Portuguese and the dark theme, the same journey starts in the lobby.
+
+<p>
+  <img src="docs/images/passenger-journey.png" alt="A passenger in the car with floor 8 chosen and the doors counting down" width="72%">
+  <img src="docs/images/passenger-phone.png" alt="The passenger view on a phone, in Brazilian Portuguese and the dark theme" width="25%">
+</p>
 
 ## Requirements and where they are met
 
@@ -375,6 +390,13 @@ take too long for every pull request, so the Quality workflow runs them weekly a
 in simulated time
 ([`FakeTimeProvider`](https://learn.microsoft.com/dotnet/api/microsoft.extensions.time.testing.faketimeprovider)),
 so the suite never sleeps and never flakes on timing.
+
+The [screenshots](#screenshots) come from the browser suite too. To refresh them, point `ELEVATOR_SCREENSHOTS`
+at the images folder (an absolute path) and run it:
+
+```bash
+ELEVATOR_SCREENSHOTS="$PWD/docs/images" dotnet test --project tests/ElevatorSystem.E2E.Tests -- --filter-class "*ReadmeScreenshots"
+```
 
 Quality gates enforced by the build:
 - warnings are errors
