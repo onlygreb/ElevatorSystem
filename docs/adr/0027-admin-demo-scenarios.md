@@ -1,6 +1,6 @@
 # 0027. Admins can start demo scenarios with simulated passengers
 
-- **Status:** Accepted
+- **Status:** Accepted (amended by [0031](0031-huge-load-scenario-and-fast-forward.md): a fourth scenario, Huge load)
 - **Date:** 2026-10-20
 - **Amends:** [0017](0017-manual-passengers-occupancy-and-admin-service-control.md) §3 and §4
 

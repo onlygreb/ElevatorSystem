@@ -130,7 +130,7 @@ internal static class DemoApp
         return false;
     }
 
-    /// <summary>Reads <c>--scenario morning|lunch|busy</c>; <c>-t</c> is short for the busy day.</summary>
+    /// <summary>Reads <c>--scenario morning|lunch|busy|huge</c>; <c>-t</c> is short for the busy day.</summary>
     private static bool TryReadScenario(string[] args, out DemoScenario? scenario)
     {
         scenario = args.Contains("-t") || args.Contains("--traffic") ? DemoScenario.BusyDay : null;
@@ -143,7 +143,7 @@ internal static class DemoApp
         scenario = index + 1 < args.Length ? ParseScenario(args[index + 1]) : null;
         if (scenario is null)
         {
-            Console.Error.WriteLine("--scenario needs morning, lunch or busy.");
+            Console.Error.WriteLine("--scenario needs morning, lunch, busy or huge.");
         }
 
         return scenario is not null;
@@ -154,6 +154,7 @@ internal static class DemoApp
         "morning" => DemoScenario.MorningRush,
         "lunch" => DemoScenario.LunchBreak,
         "busy" => DemoScenario.BusyDay,
+        "huge" => DemoScenario.HugeLoad,
         _ => null,
     };
 
@@ -166,7 +167,7 @@ internal static class DemoApp
 
               (no options)                 run the narrated tour of the elevator's behaviour
               -i, --interactive            drive it yourself: arrive, call, walk in, choose a floor, walk out
-              --scenario morning|lunch|busy
+              --scenario morning|lunch|busy|huge
                                            simulated passengers start on floor 1 and ride around (ADR-0027);
                                            add -i to type commands meanwhile; -t is short for busy
                 --seed <n>                 the scenario's random seed: the same seed gives the same passengers

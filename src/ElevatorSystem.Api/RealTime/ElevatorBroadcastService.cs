@@ -67,9 +67,10 @@ internal sealed class ElevatorBroadcastService(
         }
     }
 
-    // One status per version: the updates of one control-loop step, and refused requests, share a version.
+    // One status per version: the updates of one control-loop step, and refused requests, share a version. A change of
+    // speed (ADR-0031) keeps the version, so it is sent too.
     private static bool SameStatus(ElevatorStatusDto status, ElevatorStatusDto? last) =>
-        last is not null && last.Version == status.Version;
+        last is not null && last.Version == status.Version && last.Speed == status.Speed;
 
     private async Task SendAsync(
         Func<IHubClients<IElevatorClient>, IElevatorClient> audience, Func<IElevatorClient, Task> send, string message, CancellationToken stoppingToken)

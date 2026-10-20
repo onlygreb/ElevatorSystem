@@ -12,7 +12,8 @@ public static class ElevatorContractMapper
 {
     /// <param name="snapshot">The elevator's state.</param>
     /// <param name="doorsCloseAt">The controller's door countdown (<see cref="ElevatorController.DoorsCloseAt"/>); ignored unless the door is open.</param>
-    public static ElevatorStatusDto ToStatus(ElevatorSnapshot snapshot, DateTimeOffset? doorsCloseAt = null)
+    /// <param name="speed">The controller's <see cref="ElevatorController.Speed"/>.</param>
+    public static ElevatorStatusDto ToStatus(ElevatorSnapshot snapshot, DateTimeOffset? doorsCloseAt = null, double speed = 1)
     {
         ArgumentNullException.ThrowIfNull(snapshot);
 
@@ -25,7 +26,8 @@ public static class ElevatorContractMapper
             [.. snapshot.TargetFloors.Select(floor => floor.Number)],
             snapshot.Version,
             snapshot.TakenAt,
-            snapshot.State == ElevatorState.DoorOpen ? doorsCloseAt : null);
+            snapshot.State == ElevatorState.DoorOpen ? doorsCloseAt : null,
+            speed);
     }
 
     public static ElevatorConfigurationDto ToConfiguration(ElevatorController controller)

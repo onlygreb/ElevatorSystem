@@ -53,7 +53,7 @@ ElevatorSystem controls an elevator serving floors 1 to 10 and gives passengers 
 | **Concurrency** | 100+ simultaneous requests handled safely; target time from request to assignment under 100 ms. |
 | **Fail-safe operation** | Stuck-car detection, out-of-service mode, emergency stop, recovery after restart, and a guarantee that only one controller drives the car. |
 | **Admin view** | People in the elevator, waiting and present on each floor, live status and activity; maintenance, emergency stop and return to service. Admins manage the service, they never operate the car. |
-| **Demo scenarios** | Admins start a morning rush, a lunch break or a busy day and watch simulated passengers fill the floors and ride the car, in a living picture of the building. |
+| **Demo scenarios** | Admins start a morning rush, a lunch break or a busy day and watch simulated passengers fill the floors and ride the car, in a living picture of the building. A **huge load** stress-tests the whole system: 120 people, half of them pressing the call button again and again, with the car and the simulation fast-forwarded 8× ([ADR-0031](docs/adr/0031-huge-load-scenario-and-fast-forward.md)). |
 | **Privacy** | Passengers are anonymous by design: nothing identifies who rides the elevator. |
 | **Languages** | English and Brazilian Portuguese. |
 
@@ -340,7 +340,8 @@ dotnet run --project src/ElevatorSystem.ConsoleDemo -- --interactive
   ([ADR-0030](docs/adr/0030-test-account-without-second-factor.md)). The real admin (`admin@elevator.local` unless you
   changed it) registers an authenticator app at the first sign-in (any TOTP app: scan the QR code), then gets one-time
   recovery codes; every real staff account needs that second factor.
-- **Watch it run.** Start a demo scenario and watch the building fill up, or take the car out of service and return it.
+- **Watch it run.** Start a demo scenario and watch the building fill up, start a huge load to see the whole system under
+  stress, fast-forwarded, or take the car out of service and return it.
 - **See failover** (A and B). Two engines run: one drives the car, the other stands by. Stop the one that leads
   (`docker compose -f deploy/compose.yaml stop <container>`, or stop the replica in the Aspire dashboard) and the
   standby takes over from the last saved state within seconds.

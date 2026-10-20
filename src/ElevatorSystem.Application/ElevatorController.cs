@@ -24,9 +24,17 @@ namespace ElevatorSystem.Application;
 /// <see cref="StartMaintenance"/>) bypass the queue and take effect immediately.
 /// See ADR-0004, ADR-0007 and ADR-0012.
 /// </para>
+/// <para>
+/// A simulated building can be fast-forwarded (<see cref="SetSpeed"/>, ADR-0031): trips and door countdowns get
+/// shorter, so the car behaves exactly the same, only sooner. The watchdog keeps its normal limit, so a host slowed
+/// down by the load is never mistaken for a stuck car.
+/// </para>
 /// </remarks>
 public sealed class ElevatorController
 {
+    /// <summary>The fastest a simulated building may run, relative to normal.</summary>
+    public const double MaxSpeed = 10;
+
     private readonly Channel<PassengerRequest> _intake;
     private readonly ISchedulingStrategy _strategy;
     private readonly IElevatorDrive _drive;
@@ -39,6 +47,7 @@ public sealed class ElevatorController
     private TaskCompletionSource _nudge = NewNudge();
     private DateTimeOffset? _doorsCloseAt;
     private bool _doorHeld;
+    private double _speed = 1;
     private int _isProcessing;
 
     public ElevatorController(
@@ -79,6 +88,12 @@ public sealed class ElevatorController
     public ISchedulingStrategy Strategy => _strategy;
 
     public ElevatorControllerOptions Options => _options;
+
+    /// <summary>How many times faster than normal the car runs: 1 unless a simulation fast-forwards it (ADR-0031).</summary>
+    public double Speed => Volatile.Read(ref _speed);
+
+    /// <summary>Raised with the new speed after <see cref="SetSpeed"/> changes it. Handlers must be fast and thread-safe.</summary>
+    public event EventHandler<double>? SpeedChanged;
 
     /// <summary>
     /// When the open door will close, or <see langword="null"/> while it stays open because the car has nowhere to
@@ -131,6 +146,39 @@ public sealed class ElevatorController
         }
 
         return RequestResult.Accepted(request.Id);
+    }
+
+    /// <summary>
+    /// Fast-forwards a simulated car (ADR-0031): from the next trip or door countdown on, travel and the door countdown
+    /// take their normal time divided by <paramref name="speed"/>; the watchdog keeps its limit. Safe to call from any thread.
+    /// </summary>
+    /// <returns><see langword="false"/> when the drive is real machinery, whose pace cannot change; then only 1 is accepted.</returns>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="speed"/> is below 1 or above <see cref="MaxSpeed"/>.</exception>
+    public bool SetSpeed(double speed)
+    {
+        ArgumentOutOfRangeException.ThrowIfLessThan(speed, 1.0);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(speed, MaxSpeed);
+        if (_drive is not IVariableSpeedDrive drive)
+        {
+            return speed == 1;
+        }
+
+        drive.SetSpeed(speed);
+        if (Interlocked.Exchange(ref _speed, speed) != speed)
+        {
+            Log.SpeedChanged(_logger, speed);
+            try
+            {
+                SpeedChanged?.Invoke(this, speed);
+            }
+            // A failing subscriber must never stop the elevator (ADR-0007).
+            catch (Exception exception)
+            {
+                Log.EventSinkFailed(_logger, exception, nameof(SpeedChanged));
+            }
+        }
+
+        return true;
     }
 
     /// <summary>Stops the car at once and takes it out of service, cancelling every pending call.</summary>
@@ -368,8 +416,9 @@ public sealed class ElevatorController
     private Operation StartDoorCycle(CancellationToken loopToken)
     {
         var cancellation = BeginOperation(loopToken);
-        SetDoorsCloseAt(_timeProvider.GetUtcNow() + _options.DoorOpenDuration);
-        var dwell = Task.Delay(_options.DoorOpenDuration, _timeProvider, cancellation.Token);
+        var duration = _options.DoorOpenDuration / Speed;
+        SetDoorsCloseAt(_timeProvider.GetUtcNow() + duration);
+        var dwell = Task.Delay(duration, _timeProvider, cancellation.Token);
         return new Operation(OperationKind.DoorCycle, dwell, cancellation);
     }
 

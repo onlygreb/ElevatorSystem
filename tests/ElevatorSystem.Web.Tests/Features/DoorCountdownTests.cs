@@ -46,6 +46,16 @@ public sealed class DoorCountdownTests : WebTestContext
     }
 
     [Fact]
+    public void Countdown_FastForwarded_SizesTheBarToTheShorterDoors()
+    {
+        // 5 s doors at 4x: 1.25 s, of which 0.25 s is the lag allowance, so a 1 s bar.
+        var countdown = RenderCountdown(Open(closesInSeconds: 0.75) with { Speed = 4 });
+
+        countdown.Find(".door-countdown__label").TextContent.ShouldBe("Doors close in 1 s");
+        countdown.Find(".door-countdown__bar").GetAttribute("style").ShouldBe("width: 50%");
+    }
+
+    [Fact]
     public void Countdown_FollowsTheServersClock_EvenWhenTheBrowsersIsOff()
     {
         // The server's clock is 12 s ahead of the browser's (as a Docker Desktop VM can be). A countdown measured on the

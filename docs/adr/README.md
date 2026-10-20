@@ -36,3 +36,4 @@ supersedes the old one instead of editing it. New records start from [`template.
 | [0028](0028-elevator-metrics.md) | Measure the elevator with OpenTelemetry metrics from its own events | Accepted |
 | [0029](0029-docker-compose-and-dockerfile.md) | Run the whole system with Docker Compose, built by a Dockerfile | Accepted |
 | [0030](0030-test-account-without-second-factor.md) | A configured test account may sign in without a second factor | Accepted |
+| [0031](0031-huge-load-scenario-and-fast-forward.md) | A huge load scenario that fast-forwards the building | Accepted |

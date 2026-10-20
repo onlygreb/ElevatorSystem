@@ -13,6 +13,8 @@ public sealed class PassengerService(PassengerRegistry registry, ElevatorControl
 {
     public PassengerRegistry Registry => registry;
 
+    public ElevatorController Controller => controller;
+
     public PassengerOutcome Join(Guid passengerId, bool simulated = false) => registry.Join(passengerId, simulated);
 
     public PassengerOutcome CallElevator(Guid passengerId, Direction direction)
@@ -32,6 +34,12 @@ public sealed class PassengerService(PassengerRegistry registry, ElevatorControl
     }
 
     public PassengerOutcome Leave(Guid passengerId) => registry.Leave(passengerId);
+
+    /// <summary>
+    /// Presses a call button without becoming a passenger: what someone impatient does while already waiting. The press
+    /// is merged into the pending call, or queues a new one; it counts nobody.
+    /// </summary>
+    public RequestResult PressCallButton(Floor floor, Direction direction) => controller.RequestElevator(floor.Number, direction);
 
     /// <summary>Maps the elevator's refusal of a call to the passenger's.</summary>
     public static PassengerRefusalReason ToRefusal(RequestRejectionReason reason) => reason switch

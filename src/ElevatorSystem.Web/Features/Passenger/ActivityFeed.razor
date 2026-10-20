@@ -52,6 +52,7 @@ else
         ElevatorActivityKind.Moved => "move",
         ElevatorActivityKind.DoorsOpened or ElevatorActivityKind.DoorsClosed => "door",
         ElevatorActivityKind.CallServed or ElevatorActivityKind.ReturnedToService => "good",
+        ElevatorActivityKind.SpeedChanged => "move",
         >= ElevatorActivityKind.PassengerJoined => "person",
         _ => "call",
     };
@@ -69,6 +70,7 @@ else
         ElevatorActivityKind.PassengerBoarded => "→",
         ElevatorActivityKind.PassengerLeft => "←",
         ElevatorActivityKind.PassengerRemoved => "−",
+        ElevatorActivityKind.SpeedChanged => "»",
         _ => "•",
     };
 }

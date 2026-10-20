@@ -30,6 +30,15 @@
             }
             <span>@L.State(Status.Status)</span>
         </p>
+        @if (Status.Speed > 1)
+        {
+            var speed = Status.Speed.ToString("0.#", CultureInfo.CurrentCulture);
+            <p class="status-line__speed" data-testid="status-speed" title="@L[Text.SpeedBadgeLabel, speed]">
+                <MudIcon Icon="@Icons.Material.Filled.FastForward" aria-hidden="true" />
+                <span class="visually-hidden">@L[Text.SpeedBadgeLabel, speed]</span>
+                <span aria-hidden="true">@L[Text.SpeedBadge, speed]</span>
+            </p>
+        }
         @if (Status.Status == ElevatorStatus.OutOfService)
         {
             <p class="status-line__out-of-service" data-testid="status-out-of-service">

@@ -206,6 +206,12 @@ internal static class Text
     public const string DemoLunchHint = nameof(DemoLunchHint);
     public const string DemoBusy = nameof(DemoBusy);
     public const string DemoBusyHint = nameof(DemoBusyHint);
+    public const string DemoHuge = nameof(DemoHuge);
+    public const string DemoHugeHint = nameof(DemoHugeHint);
+    public const string SpeedBadge = nameof(SpeedBadge);
+    public const string SpeedBadgeLabel = nameof(SpeedBadgeLabel);
+    public const string ActivitySpeedFast = nameof(ActivitySpeedFast);
+    public const string ActivitySpeedNormal = nameof(ActivitySpeedNormal);
     public const string DemoStop = nameof(DemoStop);
     public const string DemoStarted = nameof(DemoStarted);
     public const string DemoStopped = nameof(DemoStopped);

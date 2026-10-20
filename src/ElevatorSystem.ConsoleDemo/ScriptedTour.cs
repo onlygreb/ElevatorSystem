@@ -90,7 +90,7 @@ internal sealed class ScriptedTour(
         people.PrintTable(passengers.Registry.Current);
 
         output.Heading("Tour complete");
-        output.Narrate("Run with --interactive to ride yourself, or --scenario morning|lunch|busy to watch a crowd.");
+        output.Narrate("Run with --interactive to ride yourself, or --scenario morning|lunch|busy|huge to watch a crowd.");
     }
 
     /// <summary>Completes once the door is open at <paramref name="floor"/>, at once if it already is.</summary>

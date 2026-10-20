@@ -46,10 +46,17 @@ else if (ShowClosed && Status is not null)
     [Parameter]
     public TimeSpan Duration { get; set; } = TimeSpan.FromSeconds(5);
 
-    /// <summary>The countdown shown: the door time less the lag allowance, when the doors stay open long enough for one.</summary>
-    private TimeSpan Shown => Duration > LagAllowance ? Duration - LagAllowance : Duration;
+    /// <summary>A fast-forwarded demo (ADR-0031) shortens the doors, and the allowance with them.</summary>
+    private double Speed => Math.Max(1, Status?.Speed ?? 1);
 
-    private TimeSpan Allowance => Duration > LagAllowance ? LagAllowance : TimeSpan.Zero;
+    private TimeSpan DoorTime => Duration / Speed;
+
+    private TimeSpan Lag => LagAllowance / Speed;
+
+    /// <summary>The countdown shown: the door time less the lag allowance, when the doors stay open long enough for one.</summary>
+    private TimeSpan Shown => DoorTime > Lag ? DoorTime - Lag : DoorTime;
+
+    private TimeSpan Allowance => DoorTime > Lag ? Lag : TimeSpan.Zero;
 
     [Parameter]
     public bool ShowClosed { get; set; }

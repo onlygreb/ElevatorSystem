@@ -624,4 +624,22 @@
   <data name="DemoDisabled" xml:space="preserve">
     <value>Os cenários de demonstração estão desativados aqui.</value>
   </data>
+  <data name="DemoHuge" xml:space="preserve">
+    <value>Carga extrema</value>
+  </data>
+  <data name="DemoHugeHint" xml:space="preserve">
+    <value>Centenas de pessoas, botões apertados sem parar e tudo acelerado: um teste de estresse.</value>
+  </data>
+  <data name="SpeedBadge" xml:space="preserve">
+    <value>Acelerado {0}×</value>
+  </data>
+  <data name="SpeedBadgeLabel" xml:space="preserve">
+    <value>A demonstração roda {0} vezes mais rápido que o normal</value>
+  </data>
+  <data name="ActivitySpeedFast" xml:space="preserve">
+    <value>Acelerado: o elevador e a simulação agora rodam {0}× mais rápido.</value>
+  </data>
+  <data name="ActivitySpeedNormal" xml:space="preserve">
+    <value>De volta à velocidade normal.</value>
+  </data>
 </root>

@@ -31,6 +31,17 @@ public sealed class ElevatorStateStoreTests
     }
 
     [Fact]
+    public void ApplyStatus_SameVersionTakenLater_IsApplied()
+    {
+        var store = ConnectedStoreShowing(TestData.Status(version: 5));
+
+        var applied = store.ApplyStatus(TestData.Status(version: 5) with { TakenAt = TestData.Noon.AddSeconds(1), Speed = 8 });
+
+        applied.ShouldBeTrue("the speed changes without a new version (ADR-0031)");
+        store.Status!.Speed.ShouldBe(8);
+    }
+
+    [Fact]
     public void ApplyStatus_StaleVersion_DoesNotNotifySubscribers()
     {
         var store = ConnectedStoreShowing(TestData.Status(version: 5));

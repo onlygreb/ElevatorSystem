@@ -77,9 +77,9 @@ public sealed class ElevatorContractTests
         var activities = harness.Probe.Events.Select(ElevatorContractMapper.ToActivity).ToList();
 
         activities.Select(a => a.Kind).Distinct().ToList().ShouldBe(
-            [.. Enum.GetValues<ElevatorActivityKind>().Where(kind => !kind.ToString().StartsWith("Passenger", StringComparison.Ordinal)).Except([ElevatorActivityKind.RequestRejected])],
+            [.. Enum.GetValues<ElevatorActivityKind>().Where(kind => !kind.ToString().StartsWith("Passenger", StringComparison.Ordinal)).Except([ElevatorActivityKind.RequestRejected, ElevatorActivityKind.SpeedChanged])],
             ignoreOrder: true,
-            "every elevator kind except RequestRejected is produced by this journey; passenger kinds come from the registry");
+            "every elevator kind except RequestRejected and SpeedChanged is produced by this journey; passenger kinds come from the registry, the speed from the engine");
         var moved = activities.First(a => a.Kind == ElevatorActivityKind.Moved);
         moved.ShouldBe(new ElevatorActivityDto(moved.OccurredAt, ElevatorActivityKind.Moved, 2, FromFloor: 1, Direction: CallDirection.Up));
         var served = activities.Single(a => a.Kind == ElevatorActivityKind.CallServed);
@@ -89,6 +89,15 @@ public sealed class ElevatorContractTests
         var stopped = activities.Single(a => a.Kind == ElevatorActivityKind.OutOfService);
         stopped.OutOfServiceCause.ShouldBe(OutOfServiceCause.EmergencyStop);
         stopped.CancelledCalls.ShouldBe(1);
+    }
+
+    [Fact]
+    public async Task ToStatus_CarriesTheSpeed()
+    {
+        await using var harness = ControllerHarness.Create();
+
+        ElevatorContractMapper.ToStatus(harness.Elevator.Snapshot()).Speed.ShouldBe(1);
+        ElevatorContractMapper.ToStatus(harness.Elevator.Snapshot(), speed: 4).Speed.ShouldBe(4);
     }
 
     [Fact]

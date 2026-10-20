@@ -33,6 +33,10 @@ public sealed record ElevatorConfigurationDto(
 /// While the door is open: when it will close, or <see langword="null"/> when it stays open because the car has
 /// nowhere to go. Always <see langword="null"/> while the door is closed.
 /// </param>
+/// <param name="Speed">
+/// How many times faster than normal the car runs: 1, or more while a demo fast-forwards the building (ADR-0031).
+/// Divide the configured travel time and door countdown by it.
+/// </param>
 public sealed record ElevatorStatusDto(
     int CurrentFloor,
     ElevatorStatus Status,
@@ -42,7 +46,8 @@ public sealed record ElevatorStatusDto(
     IReadOnlyList<int> TargetFloors,
     long Version,
     DateTimeOffset TakenAt,
-    DateTimeOffset? DoorsCloseAt = null);
+    DateTimeOffset? DoorsCloseAt = null,
+    double Speed = 1);
 
 /// <summary>A call: a hall call has a <see cref="Direction"/>, a car call does not.</summary>
 public sealed record CallDto(CallKind Kind, int Floor, CallDirection? Direction);
@@ -63,6 +68,7 @@ public sealed record PendingCallDto(CallDto Call, int RequestCount, DateTimeOffs
 /// <c>PassengerCalled</c> adds <see cref="Direction"/>, <c>PassengerChoseFloor</c> the chosen floor as <see cref="Floor"/>,
 /// <c>PassengerBoarded</c> adds <see cref="WaitTime"/> when they had called, and <c>PassengerRefused</c> adds
 /// <see cref="PassengerAction"/> and <see cref="PassengerRefusal"/>.</item>
+/// <item><c>SpeedChanged</c> (ADR-0031): the new <see cref="Speed"/>; <see cref="Floor"/> is where the car is.</item>
 /// </list>
 /// </summary>
 public sealed record ElevatorActivityDto(
@@ -82,7 +88,8 @@ public sealed record ElevatorActivityDto(
     Guid? PassengerId = null,
     bool? Simulated = null,
     PassengerAction? PassengerAction = null,
-    PassengerRefusalReason? PassengerRefusal = null);
+    PassengerRefusalReason? PassengerRefusal = null,
+    double? Speed = null);
 
 /// <summary>
 /// How many passengers are where (ADR-0026). Counts only:
@@ -174,4 +181,5 @@ public enum ElevatorActivityKind
     PassengerLeft,
     PassengerRemoved,
     PassengerRefused,
+    SpeedChanged,
 }

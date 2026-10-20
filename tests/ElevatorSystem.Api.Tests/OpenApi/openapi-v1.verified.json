@@ -1751,7 +1751,8 @@
         "enum": [
           "MorningRush",
           "LunchBreak",
-          "BusyDay"
+          "BusyDay",
+          "HugeLoad"
         ],
         "description": "The demo scenarios an admin can start (ADR-0027). Every simulated passenger starts on the lowest floor."
       },
@@ -1872,6 +1873,12 @@
             ],
             "description": "While the door is open: when it will close, or `null` when it stays open because the car has\nnowhere to go. Always `null` while the door is closed.",
             "format": "date-time"
+          },
+          "speed": {
+            "type": "number",
+            "description": "How many times faster than normal the car runs: 1, or more while a demo fast-forwards the building (ADR-0031).\nDivide the configured travel time and door countdown by it.",
+            "format": "double",
+            "default": 1
           }
         },
         "description": "A consistent view of the elevator at one moment. Higher long ElevatorStatusDto.Version is newer."

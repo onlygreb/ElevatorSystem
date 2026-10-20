@@ -28,6 +28,14 @@ public sealed class BuildingViewTests : WebTestContext
         building.Find(".storey[data-floor='4']").ClassList.ShouldContain("storey--car");
     }
 
+    [Fact]
+    public void Car_FastForwarded_GlidesThatMuchFaster()
+    {
+        var building = RenderBuilding(TestData.Status(floor: 4, status: ElevatorStatus.MovingUp) with { Speed = 6 });
+
+        building.Find("[data-testid=car]").GetAttribute("style")!.ShouldContain("transition-duration: 250ms");
+    }
+
     [Theory]
     [InlineData(ElevatorStatus.DoorOpen, "cabin--open", "open")]
     [InlineData(ElevatorStatus.Idle, "cabin--closed", "closed")]

@@ -624,4 +624,22 @@
   <data name="DemoDisabled" xml:space="preserve">
     <value>Demo scenarios are disabled here.</value>
   </data>
+  <data name="DemoHuge" xml:space="preserve">
+    <value>Huge load</value>
+  </data>
+  <data name="DemoHugeHint" xml:space="preserve">
+    <value>Hundreds of people, impatient presses and everything fast-forwarded: a stress test.</value>
+  </data>
+  <data name="SpeedBadge" xml:space="preserve">
+    <value>Fast-forward {0}×</value>
+  </data>
+  <data name="SpeedBadgeLabel" xml:space="preserve">
+    <value>The demo runs {0} times faster than normal</value>
+  </data>
+  <data name="ActivitySpeedFast" xml:space="preserve">
+    <value>Fast-forward: the car and the simulation now run {0}× faster.</value>
+  </data>
+  <data name="ActivitySpeedNormal" xml:space="preserve">
+    <value>Back to normal speed.</value>
+  </data>
 </root>
