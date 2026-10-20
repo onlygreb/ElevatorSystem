@@ -9,6 +9,7 @@ public sealed class BrowserFixture : IAsyncLifetime
 {
     private IPlaywright? _playwright;
     private ApiServer? _server;
+    private readonly System.Runtime.CompilerServices.ConditionalWeakTable<IPage, System.Collections.Concurrent.ConcurrentQueue<string>> _browserLogs = new();
 
     public IBrowser Browser { get; private set; } = default!;
 
@@ -105,6 +106,23 @@ public sealed class BrowserFixture : IAsyncLifetime
             ViewportSize = new() { Width = 1280, Height = 900 },
         });
         context.SetDefaultTimeout(30_000);
-        return await context.NewPageAsync();
+        var page = await context.NewPageAsync();
+        var log = new System.Collections.Concurrent.ConcurrentQueue<string>();
+        page.Console += (_, message) => log.Enqueue($"{message.Type}: {message.Text}");
+        page.PageError += (_, error) => log.Enqueue($"page error: {error}");
+        page.RequestFailed += (_, request) => log.Enqueue($"request failed: {request.Method} {request.Url} {request.Failure}");
+        page.Response += (_, response) =>
+        {
+            if (response.Status >= 400)
+            {
+                log.Enqueue($"{response.Status} {response.Request.Method} {response.Url}");
+            }
+        };
+        _browserLogs.AddOrUpdate(page, log);
+        return page;
     }
+
+    /// <summary>What the browser reported for <paramref name="page"/>: console messages, page errors, failed and refused requests.</summary>
+    public string BrowserLog(IPage page) =>
+        _browserLogs.TryGetValue(page, out var log) ? string.Join(Environment.NewLine, log) : string.Empty;
 }
