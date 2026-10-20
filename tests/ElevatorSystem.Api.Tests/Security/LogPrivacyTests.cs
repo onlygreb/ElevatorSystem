@@ -7,7 +7,7 @@ using Microsoft.Extensions.Logging.Testing;
 namespace ElevatorSystem.Api.Tests.Security;
 
 /// <summary>
-/// ADR-0009: client addresses and request bodies never reach the logs. Every category logs at Trace
+/// ADR-0024: client addresses and request bodies never reach the logs. Every category logs at Trace
 /// here, so the test covers the framework's own messages as well as ours.
 /// </summary>
 public sealed class LogPrivacyTests

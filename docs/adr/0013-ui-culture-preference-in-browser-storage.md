@@ -8,8 +8,7 @@
 
 ADR-0009 lists the culture preference among the strictly necessary cookies, next to the
 authentication and antiforgery cookies. The `blazor-ui` skill stores the language picker's choice
-in `localStorage`, and the privacy notice in `docs/lgpd/` follows the skill. Two sources disagree
-about what the browser holds, and the privacy notice must describe it exactly (Art. 9).
+in `localStorage`. Two sources disagree about what the browser holds.
 
 The UI is Blazor WebAssembly with prerendering off (ADR-0006): the culture is applied in the
 browser, and the server never renders a page in the user's language.

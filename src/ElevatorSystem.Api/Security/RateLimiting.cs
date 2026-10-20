@@ -16,7 +16,7 @@ namespace ElevatorSystem.Api.Security;
 /// </summary>
 /// <remarks>
 /// The client address is used only as an in-memory partition key and is never stored or logged
-/// (ADR-0009). IPv6 clients are grouped by their /64 prefix, which is what one subscriber is usually
+/// (ADR-0024). IPv6 clients are grouped by their /64 prefix, which is what one subscriber is usually
 /// given, so rotating addresses inside it does not buy extra requests.
 /// </remarks>
 internal static class RateLimiting

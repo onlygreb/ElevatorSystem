@@ -84,4 +84,4 @@ ports: `IElevatorStateStore`, `IProcessedCommandStore` and `ILeaderElector` with
 - The intervals are configuration (`Persistence` section). Lowering `LeaderCheckInterval` speeds up
   failover but makes a slow database more likely to cost leadership; it is validated between 50 ms
   and 1 minute.
-- None of these tables holds personal data (ADR-0009); `docs/lgpd/retention.md` lists them.
+- None of these tables holds personal data (ADR-0009).

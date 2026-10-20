@@ -9,7 +9,7 @@ namespace ElevatorSystem.Application.Occupancy;
 
 /// <summary>
 /// Counts people waiting and present on each floor and riding the car, from the calls they place
-/// (ADR-0017 §2, ADR-0020). Passengers are anonymous: only counts and call times are kept (ADR-0009).
+/// (ADR-0017 §2, ADR-0020). Passengers are anonymous: only counts and call times are kept (ADR-0024).
 /// </summary>
 /// <remarks>
 /// <para>The rules, applied to the elevator's events in order:</para>

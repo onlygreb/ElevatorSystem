@@ -9,7 +9,7 @@ namespace ElevatorSystem.Architecture.Tests;
 public sealed class PackagePolicyTests
 {
     // MediatR, AutoMapper, MassTransit (v9+) and FluentAssertions (v8+) moved to commercial licences.
-    // Moq shipped SponsorLink, which harvested developer e-mail hashes: unacceptable under LGPD.
+    // Moq shipped SponsorLink, which harvested developer e-mail hashes: unacceptable for a privacy-minded project.
     private static readonly string[] DeniedPackages = ["MediatR", "AutoMapper", "MassTransit", "FluentAssertions", "Moq"];
 
     private static readonly XDocument CentralPackages =

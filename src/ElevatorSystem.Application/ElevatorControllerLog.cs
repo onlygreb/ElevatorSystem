@@ -5,7 +5,7 @@ namespace ElevatorSystem.Application;
 
 /// <summary>
 /// Source-generated log messages for the controller (event IDs 1500-1999). They describe floors,
-/// states, calls and request IDs only: the elevator core handles no personal data (ADR-0009).
+/// states, calls and request IDs only: the elevator core handles no personal data (ADR-0024).
 /// </summary>
 internal static partial class ElevatorControllerLog
 {

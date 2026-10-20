@@ -5,7 +5,7 @@ namespace ElevatorSystem.Application.Hosting;
 
 /// <summary>
 /// Source-generated log messages of the engine's hosting cycle (event IDs 2000-2099). Commands and
-/// updates are named by ID and type only, never by content (ADR-0009).
+/// updates are named by ID and type only, never by content (ADR-0024).
 /// </summary>
 internal static partial class ElevatorEngineLog
 {

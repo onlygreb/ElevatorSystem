@@ -73,7 +73,7 @@ public sealed record ElevatorActivityDto(
 
 /// <summary>
 /// How many passengers are where, counted from the calls they place (ADR-0017). Counts only:
-/// passengers are anonymous by design and nothing identifies an individual (ADR-0009).
+/// passengers are anonymous by design and nothing identifies an individual (ADR-0024).
 /// </summary>
 /// <param name="PassengersInCar">People riding the elevator now.</param>
 /// <param name="CarCapacity">The most people the car carries at once.</param>

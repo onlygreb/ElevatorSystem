@@ -940,7 +940,7 @@
           },
           "anonymised": {
             "type": "boolean",
-            "description": "The personal fields were erased (an LGPD request); the entry still verifies."
+            "description": "The personal fields were erased (a deletion request); the entry still verifies."
           }
         },
         "description": "One entry of the audit trail."
@@ -1074,7 +1074,7 @@
             "format": "date-time"
           }
         },
-        "description": "How many passengers are where, counted from the calls they place (ADR-0017). Counts only:\npassengers are anonymous by design and nothing identifies an individual (ADR-0009)."
+        "description": "How many passengers are where, counted from the calls they place (ADR-0017). Counts only:\npassengers are anonymous by design and nothing identifies an individual (ADR-0024)."
       },
       "CallDirection": {
         "enum": [

@@ -113,7 +113,7 @@ public sealed class AuditTrail : IDisposable
     }
 
     /// <summary>
-    /// Erases a staff member's personal fields from every entry (an LGPD deletion request, ADR-0014) and records
+    /// Erases a staff member's personal fields from every entry (a deletion request, ADR-0014) and records
     /// that it happened. The chain still verifies afterwards.
     /// </summary>
     /// <returns>How many entries were anonymised.</returns>

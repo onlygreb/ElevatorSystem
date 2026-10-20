@@ -49,7 +49,7 @@ ADR-0012 (control loop), ADR-0015 (real-time fan-out), ADR-0022 (staff authentic
 
 Policies (`Staff/StaffPolicies.cs`): `staff` is `Admin` or `Auditor` signed in with the second factor (`amr: mfa`);
 `service-control` is `Admin` with the second factor. A password-only session reaches only `session` and the two-factor
-endpoints. Planned: `/api/v1/me` (the caller's own data for LGPD rights, phase 5) and account management.
+endpoints. Planned: account management.
 
 ## Checklist for every endpoint
 
@@ -143,7 +143,7 @@ endpoints. Planned: `/api/v1/me` (the caller's own data for LGPD rights, phase 5
 
 Don't log request bodies, headers, cookies or IP addresses; `LogPrivacyTests` captures every category at
 `Trace` and fails if a client address or a body value appears. The audit trail (ADR-0023) records staff
-actions with a pseudonymised IP (see the `security-lgpd` skill). Use `LoggerMessage` methods in
+actions with a pseudonymised IP (see the `security` skill). Use `LoggerMessage` methods in
 `ApiLog`, event IDs 3000–3999.
 
 ## Tests (`tests/ElevatorSystem.Api.Tests`)

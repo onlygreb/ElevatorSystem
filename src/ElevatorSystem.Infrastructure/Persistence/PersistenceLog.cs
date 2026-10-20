@@ -4,7 +4,7 @@ namespace ElevatorSystem.Infrastructure.Persistence;
 
 /// <summary>
 /// Source-generated log messages for persistence and leader election (event IDs 4500-4599). They
-/// carry versions, counts, lock keys and intervals only: no connection strings and no personal data (ADR-0009).
+/// carry versions, counts, lock keys and intervals only: no connection strings and no personal data (ADR-0024).
 /// </summary>
 internal static partial class PersistenceLog
 {

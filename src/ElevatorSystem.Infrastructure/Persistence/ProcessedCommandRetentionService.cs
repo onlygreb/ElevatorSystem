@@ -7,7 +7,7 @@ namespace ElevatorSystem.Infrastructure.Persistence;
 
 /// <summary>
 /// Purges expired processed command IDs at start-up and then on every
-/// <see cref="PersistenceOptions.ProcessedCommandPurgeInterval"/> (docs/lgpd/retention.md). The purge
+/// <see cref="PersistenceOptions.ProcessedCommandPurgeInterval"/>. The purge
 /// is idempotent and safe to run from every instance, so it needs no leadership. A failed run is
 /// logged and retried at the next interval.
 /// </summary>
