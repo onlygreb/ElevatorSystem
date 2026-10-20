@@ -5,23 +5,37 @@
 //   k6 run -e BASE_URL=http://localhost:5251 tests/load/elevator-load.js
 import http from 'k6/http';
 import { check } from 'k6';
-import { Trend } from 'k6/metrics';
+import { Counter, Trend } from 'k6/metrics';
 
 const BASE_URL = __ENV.BASE_URL || 'http://localhost:5251';
 const LOWEST = 1;
 const HIGHEST = 10;
-const VUS = Number(__ENV.VUS || 120);
+const BURST_VUS = Number(__ENV.BURST_VUS || 200);
+const RATE = Number(__ENV.RATE || 2000);
 const DURATION = __ENV.DURATION || '30s';
 
 const acceptance = new Trend('elevator_acceptance_ms', true);
+const busy = new Counter('elevator_busy_refusals');
 
 export const options = {
   scenarios: {
-    // Callers pressing buttons as fast as they can: hall calls from every floor and car calls.
-    calls: {
-      executor: 'constant-vus',
-      vus: VUS,
+    // 200 people press a button at the same instant, five times over: the concurrency the requirement names.
+    burst: {
+      executor: 'per-vu-iterations',
+      vus: BURST_VUS,
+      iterations: 5,
+      maxDuration: '20s',
+      exec: 'pressButtons',
+    },
+    // Then a sustained 2,000 presses a second, hall and car calls, far beyond any building's traffic.
+    sustained: {
+      executor: 'constant-arrival-rate',
+      rate: RATE,
+      timeUnit: '1s',
       duration: DURATION,
+      preAllocatedVUs: 150,
+      maxVUs: 400,
+      startTime: '5s',
       exec: 'pressButtons',
     },
     // Passengers arriving on the lowest floor and calling the car, alongside the button pressers.
@@ -31,6 +45,7 @@ export const options = {
       timeUnit: '1s',
       duration: DURATION,
       preAllocatedVUs: 20,
+      startTime: '5s',
       exec: 'arriveAndCall',
     },
   },
@@ -38,6 +53,8 @@ export const options = {
     'elevator_acceptance_ms': ['p(95)<100'],
     'http_req_failed': ['rate<0.01'],
     'checks': ['rate>0.99'],
+    // 503 Busy means the engine's command buffer was full: the API refused rather than lose a call.
+    'elevator_busy_refusals': ['count==0'],
   },
 };
 
@@ -49,6 +66,10 @@ function randomFloor() {
 
 function accepted(response, name) {
   acceptance.add(response.timings.duration, { name });
+  if (response.status === 503) {
+    busy.add(1, { name });
+  }
+
   return check(response, { [`${name} accepted`]: (r) => r.status === 202 });
 }
 
