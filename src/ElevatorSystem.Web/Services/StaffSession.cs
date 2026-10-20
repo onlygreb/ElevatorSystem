@@ -17,8 +17,11 @@ public sealed class StaffSession(IStaffApiClient api, IElevatorHubClient hub, El
     /// <summary>The server has been asked at least once.</summary>
     public bool IsLoaded { get; private set; }
 
-    /// <summary>Signed in with the second factor: the staff features are available.</summary>
-    public bool IsVerified => Current is { TwoFactorVerified: true };
+    /// <summary>Signed in with the second factor, or as the test account (ADR-0030): the staff features are available.</summary>
+    public bool IsVerified => Current is { TwoFactorVerified: true } or { TestAccount: true };
+
+    /// <summary>The configured test account, signed in without a second factor.</summary>
+    public bool IsTestAccount => Current is { TestAccount: true };
 
     public bool IsAdmin => IsVerified && Current!.Roles.Contains(StaffRole.Admin);
 

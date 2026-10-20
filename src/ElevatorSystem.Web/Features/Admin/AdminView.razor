@@ -38,6 +38,11 @@ else
         }
         else
         {
+            @if (Session.IsTestAccount)
+            {
+                <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined" Dense="true" role="status" data-testid="test-account">@L[Text.TestAccountNotice]</MudAlert>
+            }
+
             <ConnectionBanner State="Store.Connection" />
             <div class="es-columns es-columns--admin">
                 <div class="es-panel es-panel--building">

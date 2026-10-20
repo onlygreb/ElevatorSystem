@@ -249,6 +249,9 @@
   <data name="SignedInAs" xml:space="preserve">
     <value>Signed in as {0}</value>
   </data>
+  <data name="TestAccountNotice" xml:space="preserve">
+    <value>Test account: signed in without a second factor. Real staff accounts always use an authenticator app.</value>
+  </data>
   <data name="SignInFailedCredentials" xml:space="preserve">
     <value>The e-mail or password is not correct, or the account is locked for a while after too many attempts.</value>
   </data>
