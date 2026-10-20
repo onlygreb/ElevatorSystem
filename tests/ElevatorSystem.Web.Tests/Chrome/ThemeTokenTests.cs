@@ -24,6 +24,8 @@ public sealed partial class ThemeTokenTests
         { "--es-color-on-warning", "--es-color-warning" },
         { "--es-color-on-error", "--es-color-error" },
         { "--es-color-on-car", "--es-color-car" },
+        { "--es-color-on-chrome", "--es-color-chrome" },
+        { "--es-color-on-chrome", "--es-color-chrome-2" },
     };
 
     public static TheoryData<string> Themes => ["light", "dark"];
@@ -104,8 +106,8 @@ public sealed partial class ThemeTokenTests
 
         var block = ReducedMotionBlock().Match(css);
         block.Success.ShouldBeTrue("app.css needs a prefers-reduced-motion block");
-        block.Value.ShouldContain(".car");
-        block.Value.ShouldContain(".door");
+        block.Value.ShouldContain(".cabin");
+        block.Value.ShouldContain(".cabin__door");
         block.Value.ShouldContain("transition-duration: 0s !important");
     }
 
@@ -159,7 +161,7 @@ public sealed partial class ThemeTokenTests
         throw new InvalidOperationException("ElevatorSystem.slnx not found above the test output directory.");
     }
 
-    [GeneratedRegex(@"(--es-color-[a-z-]+):\s*(#[0-9a-fA-F]{6});")]
+    [GeneratedRegex(@"(--es-color-[a-z0-9-]+):\s*(#[0-9a-fA-F]{6});")]
     private static partial Regex ColourToken();
 
     [GeneratedRegex(@"@media \(prefers-reduced-motion: reduce\) \{.*?\n\}", RegexOptions.Singleline)]

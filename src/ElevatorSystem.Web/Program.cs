@@ -18,6 +18,8 @@ builder.Services.AddSingleton<IElevatorApiClient, ElevatorApiClient>();
 builder.Services.AddSingleton<IElevatorHubClient>(services =>
     ActivatorUtilities.CreateInstance<ElevatorHubClient>(services, new Uri(baseAddress, ElevatorHub.Path)));
 builder.Services.AddSingleton<IStaffApiClient, StaffApiClient>();
+builder.Services.AddSingleton<IPassengerApiClient, PassengerApiClient>();
+builder.Services.AddSingleton<PassengerJourney>();
 builder.Services.AddSingleton<StaffSession>();
 
 var host = builder.Build();

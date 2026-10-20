@@ -63,12 +63,6 @@
   <data name="FloorsHeading" xml:space="preserve">
     <value>Andares</value>
   </data>
-  <data name="CarPanelHeading" xml:space="preserve">
-    <value>Dentro da cabine</value>
-  </data>
-  <data name="CarPanelHint" xml:space="preserve">
-    <value>Escolha seu andar.</value>
-  </data>
   <data name="QueueHeading" xml:space="preserve">
     <value>Fila de chamadas</value>
   </data>
@@ -86,15 +80,6 @@
   </data>
   <data name="FloorLabel" xml:space="preserve">
     <value>Andar {0}</value>
-  </data>
-  <data name="HallButtonsLabel" xml:space="preserve">
-    <value>Botões do andar {0}</value>
-  </data>
-  <data name="CallUpLabel" xml:space="preserve">
-    <value>Chamar elevador para subir no andar {0}</value>
-  </data>
-  <data name="CallDownLabel" xml:space="preserve">
-    <value>Chamar elevador para descer no andar {0}</value>
   </data>
   <data name="SelectFloorLabel" xml:space="preserve">
     <value>Ir para o andar {0}</value>
@@ -198,9 +183,6 @@
   <data name="AnnounceBackInService" xml:space="preserve">
     <value>Elevador de volta ao serviço no andar {0}</value>
   </data>
-  <data name="RequestRefusedTitle" xml:space="preserve">
-    <value>Chamada não aceita</value>
-  </data>
   <data name="RefusedInvalidFloor" xml:space="preserve">
     <value>Este elevador não atende esse andar.</value>
   </data>
@@ -224,9 +206,6 @@
   </data>
   <data name="FloorCaption" xml:space="preserve">
     <value>Andar</value>
-  </data>
-  <data name="FloorsHint" xml:space="preserve">
-    <value>Toque em ▲ ou ▼ no seu andar para chamar o elevador.</value>
   </data>
   <data name="NavPassenger" xml:space="preserve">
     <value>Visão do passageiro</value>
@@ -440,5 +419,197 @@
   </data>
   <data name="AuditRefresh" xml:space="preserve">
     <value>Atualizar</value>
+  </data>
+  <data name="LobbyLabel" xml:space="preserve">
+    <value>Térreo</value>
+  </data>
+  <data name="YouLabel" xml:space="preserve">
+    <value>Você</value>
+  </data>
+  <data name="FloorPeople" xml:space="preserve">
+    <value>{0} aguardando, {1} no andar</value>
+  </data>
+  <data name="LegendRiding" xml:space="preserve">
+    <value>No elevador</value>
+  </data>
+  <data name="DoorsCloseIn" xml:space="preserve">
+    <value>As portas fecham em {0} s</value>
+  </data>
+  <data name="DoorsHeldOpen" xml:space="preserve">
+    <value>Portas abertas, aguardando uma chamada</value>
+  </data>
+  <data name="DoorsClosedLabel" xml:space="preserve">
+    <value>Portas fechadas</value>
+  </data>
+  <data name="HeroEyebrow" xml:space="preserve">
+    <value>Um elevador · andares 1 a 10</value>
+  </data>
+  <data name="HeroTitle" xml:space="preserve">
+    <value>Ande de elevador</value>
+  </data>
+  <data name="HeroLead" xml:space="preserve">
+    <value>Todos chegam pelo 1º andar. Chame o elevador, entre enquanto as portas estão abertas, escolha seu andar e saia quando chegar.</value>
+  </data>
+  <data name="JourneyHeading" xml:space="preserve">
+    <value>Sua viagem</value>
+  </data>
+  <data name="StepArrive" xml:space="preserve">
+    <value>Chegar</value>
+  </data>
+  <data name="StepCall" xml:space="preserve">
+    <value>Chamar</value>
+  </data>
+  <data name="StepEnter" xml:space="preserve">
+    <value>Entrar</value>
+  </data>
+  <data name="StepChoose" xml:space="preserve">
+    <value>Escolher</value>
+  </data>
+  <data name="StepLeave" xml:space="preserve">
+    <value>Sair</value>
+  </data>
+  <data name="YouAreOutside" xml:space="preserve">
+    <value>Você está fora do prédio</value>
+  </data>
+  <data name="YouAreOnFloor" xml:space="preserve">
+    <value>Você está no andar {0}</value>
+  </data>
+  <data name="YouAreInCar" xml:space="preserve">
+    <value>Você está no elevador, no andar {0}</value>
+  </data>
+  <data name="JourneyHintOutside" xml:space="preserve">
+    <value>Todos chegam pelo 1º andar, o térreo.</value>
+  </data>
+  <data name="ArriveButton" xml:space="preserve">
+    <value>Entrar no prédio</value>
+  </data>
+  <data name="CallHint" xml:space="preserve">
+    <value>Chame o elevador para subir ou descer.</value>
+  </data>
+  <data name="CallUpButton" xml:space="preserve">
+    <value>Chamar para subir</value>
+  </data>
+  <data name="CallDownButton" xml:space="preserve">
+    <value>Chamar para descer</value>
+  </data>
+  <data name="WaitingUp" xml:space="preserve">
+    <value>Aguardando o elevador para subir</value>
+  </data>
+  <data name="WaitingDown" xml:space="preserve">
+    <value>Aguardando o elevador para descer</value>
+  </data>
+  <data name="CallAgainHint" xml:space="preserve">
+    <value>O elevador saiu sem você. Aperte o botão de novo.</value>
+  </data>
+  <data name="CallAgainButton" xml:space="preserve">
+    <value>Chamar de novo</value>
+  </data>
+  <data name="DoorOpenHereHint" xml:space="preserve">
+    <value>O elevador está aqui com as portas abertas.</value>
+  </data>
+  <data name="EnterButton" xml:space="preserve">
+    <value>Entrar no elevador</value>
+  </data>
+  <data name="ChooseFloorHint" xml:space="preserve">
+    <value>Escolha o andar para onde quer ir.</value>
+  </data>
+  <data name="GoingTo" xml:space="preserve">
+    <value>Indo para o andar {0}</value>
+  </data>
+  <data name="LeaveButton" xml:space="preserve">
+    <value>Sair do elevador</value>
+  </data>
+  <data name="RideOnHint" xml:space="preserve">
+    <value>Fique dentro para continuar, ou escolha outro andar.</value>
+  </data>
+  <data name="LeaveHintClosed" xml:space="preserve">
+    <value>Você pode sair quando as portas abrirem.</value>
+  </data>
+  <data name="RefusalDoorNotOpenHere" xml:space="preserve">
+    <value>As portas não estão abertas no seu andar.</value>
+  </data>
+  <data name="RefusalCarFull" xml:space="preserve">
+    <value>O elevador está cheio. Aguarde a próxima viagem e chame de novo.</value>
+  </data>
+  <data name="RefusalNotInCar" xml:space="preserve">
+    <value>Você não está dentro do elevador.</value>
+  </data>
+  <data name="RefusalInCar" xml:space="preserve">
+    <value>Você já está dentro do elevador.</value>
+  </data>
+  <data name="RefusalDoorClosed" xml:space="preserve">
+    <value>As portas estão fechadas. Aguarde a próxima parada.</value>
+  </data>
+  <data name="RefusalUnknownPassenger" xml:space="preserve">
+    <value>O prédio perdeu você de vista. Entre novamente.</value>
+  </data>
+  <data name="RefusalBuildingFull" xml:space="preserve">
+    <value>O prédio está cheio agora. Tente de novo em instantes.</value>
+  </data>
+  <data name="RefusalInvalidRequest" xml:space="preserve">
+    <value>Isso não é possível daqui.</value>
+  </data>
+  <data name="ActivityPassengerJoined" xml:space="preserve">
+    <value>Um passageiro chegou ao andar {0}</value>
+  </data>
+  <data name="ActivityPassengerCalledUp" xml:space="preserve">
+    <value>Um passageiro no andar {0} chamou para subir</value>
+  </data>
+  <data name="ActivityPassengerCalledDown" xml:space="preserve">
+    <value>Um passageiro no andar {0} chamou para descer</value>
+  </data>
+  <data name="ActivityPassengerBoarded" xml:space="preserve">
+    <value>Um passageiro entrou no elevador no andar {0}</value>
+  </data>
+  <data name="ActivityPassengerChoseFloor" xml:space="preserve">
+    <value>Um passageiro escolheu o andar {0}</value>
+  </data>
+  <data name="ActivityPassengerLeft" xml:space="preserve">
+    <value>Um passageiro saiu do elevador no andar {0}</value>
+  </data>
+  <data name="ActivityPassengerRemoved" xml:space="preserve">
+    <value>Um passageiro saiu do prédio pelo andar {0}</value>
+  </data>
+  <data name="ActivityPassengerRefused" xml:space="preserve">
+    <value>O passo de um passageiro no andar {0} não foi possível</value>
+  </data>
+  <data name="DemoTag" xml:space="preserve">
+    <value>Demo</value>
+  </data>
+  <data name="DemoHeading" xml:space="preserve">
+    <value>Cenários de demonstração</value>
+  </data>
+  <data name="DemoHint" xml:space="preserve">
+    <value>Passageiros simulados chegam pelo 1º andar e circulam, para você ver o prédio ganhar vida.</value>
+  </data>
+  <data name="DemoMorning" xml:space="preserve">
+    <value>Pico da manhã</value>
+  </data>
+  <data name="DemoMorningHint" xml:space="preserve">
+    <value>12 pessoas chegam e sobem para seus andares.</value>
+  </data>
+  <data name="DemoLunch" xml:space="preserve">
+    <value>Hora do almoço</value>
+  </data>
+  <data name="DemoLunchHint" xml:space="preserve">
+    <value>8 pessoas sobem, ficam um tempo e descem de volta.</value>
+  </data>
+  <data name="DemoBusy" xml:space="preserve">
+    <value>Dia movimentado</value>
+  </data>
+  <data name="DemoBusyHint" xml:space="preserve">
+    <value>Um fluxo constante de pessoas entre os andares.</value>
+  </data>
+  <data name="DemoStop" xml:space="preserve">
+    <value>Parar e limpar</value>
+  </data>
+  <data name="DemoStarted" xml:space="preserve">
+    <value>{0} iniciado. Acompanhe o prédio.</value>
+  </data>
+  <data name="DemoStopped" xml:space="preserve">
+    <value>Os passageiros de demonstração estão saindo.</value>
+  </data>
+  <data name="DemoDisabled" xml:space="preserve">
+    <value>Os cenários de demonstração estão desativados aqui.</value>
   </data>
 </root>

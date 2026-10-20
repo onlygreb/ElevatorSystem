@@ -1,0 +1,132 @@
+@* The building as a picture: the floors (top first) with the people on them, and the shaft where the car glides between
+   floors and opens its doors. Counts appear only when the viewer may see them (staff); a passenger sees themself. *@
+@inject IStringLocalizer<SharedResource> L
+
+<div class="tower" style="--es-floor-count: @FloorCount" data-testid="building">
+    <ol class="tower__floors" aria-label="@L[Text.FloorsHeading]">
+        @for (var floor = Configuration.HighestFloor; floor >= Configuration.LowestFloor; floor--)
+        {
+            var current = floor == CarFloor;
+            var counts = FloorCounts(floor);
+            var storeyClass = "storey" + (current ? " storey--car" : string.Empty) + (floor == YouFloor && !YouInCar ? " storey--you" : string.Empty);
+            <li class="@storeyClass" data-floor="@floor">
+                <span class="storey__number">@floor</span>
+                <span class="storey__name">@(floor == Configuration.LowestFloor ? L[Text.LobbyLabel] : string.Empty)</span>
+                <span class="storey__people" aria-label="@PeopleLabel(counts)">
+                    @if (counts is { } known)
+                    {
+                        @foreach (var dot in Dots(known.Waiting))
+                        {
+                            <span class="person person--waiting@(dot.More ? " person--more" : null)" aria-hidden="true">@dot.Label</span>
+                        }
+                        @foreach (var dot in Dots(known.Present))
+                        {
+                            <span class="person person--present@(dot.More ? " person--more" : null)" aria-hidden="true">@dot.Label</span>
+                        }
+                    }
+                    @if (floor == YouFloor && !YouInCar)
+                    {
+                        <span class="person person--you" data-testid="you-on-floor">@L[Text.YouLabel]</span>
+                    }
+                </span>
+            </li>
+        }
+    </ol>
+
+    <div class="tower__shaft" role="img" aria-label="@CarDescription">
+        <span class="tower__rail tower__rail--left" aria-hidden="true"></span>
+        <span class="tower__rail tower__rail--right" aria-hidden="true"></span>
+        <div class="@CarClasses" style="@CarStyle" data-floor="@CarFloor" data-testid="car">
+            <div class="cabin__display" aria-hidden="true">
+                @if (Status?.Status == ElevatorStatus.MovingUp)
+                {
+                    <svg viewBox="0 0 24 24" focusable="false"><path d="M12 5 20 18H4Z" /></svg>
+                }
+                else if (Status?.Status == ElevatorStatus.MovingDown)
+                {
+                    <svg viewBox="0 0 24 24" focusable="false"><path d="M12 19 4 6H20Z" /></svg>
+                }
+                <span>@CarFloor</span>
+            </div>
+            <div class="cabin__inside" aria-hidden="true">
+                <span class="cabin__riders">
+                    @foreach (var dot in Dots(Riders))
+                    {
+                        <span class="person person--riding@(dot.More ? " person--more" : null)">@dot.Label</span>
+                    }
+                    @if (YouInCar)
+                    {
+                        <span class="person person--you" data-testid="you-in-car">@L[Text.YouLabel]</span>
+                    }
+                </span>
+                <span class="cabin__door cabin__door--left"></span>
+                <span class="cabin__door cabin__door--right"></span>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    /// <summary>The most dots drawn for one group before the rest show as "+n".</summary>
+    public const int MaxDots = 6;
+
+    [Parameter, EditorRequired]
+    public ElevatorConfigurationDto Configuration { get; set; } = default!;
+
+    [Parameter]
+    public ElevatorStatusDto? Status { get; set; }
+
+    /// <summary>People per floor and in the car; staff only, so a passenger's view passes nothing.</summary>
+    [Parameter]
+    public BuildingOccupancyDto? Occupancy { get; set; }
+
+    /// <summary>The viewing passenger's floor, to mark them.</summary>
+    [Parameter]
+    public int? YouFloor { get; set; }
+
+    [Parameter]
+    public bool YouInCar { get; set; }
+
+    private int FloorCount => Configuration.HighestFloor - Configuration.LowestFloor + 1;
+
+    // Before the first status arrives the car waits at the lowest floor.
+    private int CarFloor => Math.Clamp(Status?.CurrentFloor ?? Configuration.LowestFloor, Configuration.LowestFloor, Configuration.HighestFloor);
+
+    private bool DoorsOpen => Status?.Status == ElevatorStatus.DoorOpen;
+
+    private int Riders => Occupancy?.PassengersInCar is { } riding ? Math.Max(0, riding - (YouInCar ? 1 : 0)) : 0;
+
+    private string CarClasses =>
+        "cabin"
+        + (DoorsOpen ? " cabin--open" : " cabin--closed")
+        + (Status?.Status is ElevatorStatus.MovingUp or ElevatorStatus.MovingDown ? " cabin--moving" : null)
+        + (Status?.Status == ElevatorStatus.OutOfService ? " cabin--out-of-service" : null);
+
+    // One floor per move, so each move glides over exactly the configured travel time per floor.
+    private string CarStyle => string.Create(
+        CultureInfo.InvariantCulture,
+        $"transform: translateY(calc({-(CarFloor - Configuration.LowestFloor)} * var(--es-floor-height))); transition-duration: {(long)Configuration.TravelTimePerFloor.TotalMilliseconds}ms");
+
+    private string CarDescription => L[Text.CarDescription, CarFloor, L[DoorsOpen ? Text.DoorsOpen : Text.DoorsClosed]];
+
+    private FloorOccupancyDto? FloorCounts(int floor) => Occupancy?.Floors.FirstOrDefault(counts => counts.Floor == floor);
+
+    private string PeopleLabel(FloorOccupancyDto? counts) => counts is { } known
+        ? L[Text.FloorPeople, known.Waiting, known.Present]
+        : string.Empty;
+
+    /// <summary>Up to <see cref="MaxDots"/> dots, then one "+n" dot for the rest.</summary>
+    private static IEnumerable<(string Label, bool More)> Dots(int count)
+    {
+        var shown = count > MaxDots ? MaxDots - 1 : count;
+        for (var index = 0; index < shown; index++)
+        {
+            yield return (string.Empty, false);
+        }
+
+        if (count > MaxDots)
+        {
+            yield return ("+" + (count - shown).ToString(CultureInfo.InvariantCulture), true);
+        }
+    }
+}

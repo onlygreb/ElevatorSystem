@@ -62,6 +62,13 @@ internal static class Narration
         ElevatorActivityKind.OutOfService =>
             text[Text.ActivityOutOfService, activity.Floor, text.Cause(activity.OutOfServiceCause), activity.CancelledCalls ?? 0],
         ElevatorActivityKind.ReturnedToService => text[Text.ActivityReturnedToService, activity.Floor],
+        ElevatorActivityKind.PassengerJoined => text[Text.ActivityPassengerJoined, activity.Floor],
+        ElevatorActivityKind.PassengerCalled => text[activity.Direction == CallDirection.Down ? Text.ActivityPassengerCalledDown : Text.ActivityPassengerCalledUp, activity.Floor],
+        ElevatorActivityKind.PassengerBoarded => text[Text.ActivityPassengerBoarded, activity.Floor],
+        ElevatorActivityKind.PassengerChoseFloor => text[Text.ActivityPassengerChoseFloor, activity.Floor],
+        ElevatorActivityKind.PassengerLeft => text[Text.ActivityPassengerLeft, activity.Floor],
+        ElevatorActivityKind.PassengerRemoved => text[Text.ActivityPassengerRemoved, activity.Floor],
+        ElevatorActivityKind.PassengerRefused => text[Text.ActivityPassengerRefused, activity.Floor],
         _ => activity.Kind.ToString(),
     };
 

@@ -1,0 +1,163 @@
+@* The passenger's own journey (ADR-0026): arrive on floor 1, call the car, walk in while its doors are open on your
+   floor, choose a floor, and walk out when the doors open, or ride on. Each stage offers only what makes sense. *@
+@implements IDisposable
+@inject PassengerJourney Journey
+@inject ElevatorStateStore Store
+@inject IStringLocalizer<SharedResource> L
+
+<section class="journey" aria-labelledby="journey-heading" data-stage="@Stage">
+    <header class="journey__head">
+        <h2 id="journey-heading" class="journey__title">@L[Text.JourneyHeading]</h2>
+        <ol class="journey__steps" aria-label="@L[Text.JourneyHeading]">
+            @foreach (var (step, index) in Steps.Select((step, index) => (step, index)))
+            {
+                var state = index < CurrentStep ? "done" : index == CurrentStep ? "current" : "next";
+                <li class="journey__step journey__step--@state" aria-current="@(state == "current" ? "step" : null)">
+                    <span class="journey__step-dot" aria-hidden="true">@(index < CurrentStep ? "✓" : (index + 1).ToString(CultureInfo.CurrentCulture))</span>
+                    <span class="journey__step-label">@L[step]</span>
+                </li>
+            }
+        </ol>
+    </header>
+
+    <p class="journey__where" aria-live="polite" data-testid="journey-where">@Where</p>
+
+    @switch (Stage)
+    {
+        case JourneyStage.Outside:
+            <p class="journey__hint">@L[Text.JourneyHintOutside]</p>
+            <button type="button" class="es-cta" disabled="@Journey.Busy" @onclick="Journey.ArriveAsync" data-testid="arrive">
+                <MudIcon Icon="@Icons.Material.Outlined.DoorFront" aria-hidden="true" />
+                <span>@L[Text.ArriveButton]</span>
+            </button>
+            break;
+
+        case JourneyStage.OnFloor:
+            <p class="journey__hint">@L[Text.CallHint]</p>
+            <div class="journey__calls">
+                @if (MyFloor < Configuration.HighestFloor)
+                {
+                    <button type="button" class="es-cta es-cta--soft" disabled="@Journey.Busy" @onclick="@(() => Journey.CallAsync(CallDirection.Up))" data-testid="call-up">
+                        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 5 20 18H4Z" /></svg>
+                        <span>@L[Text.CallUpButton]</span>
+                    </button>
+                }
+                @if (MyFloor > Configuration.LowestFloor)
+                {
+                    <button type="button" class="es-cta es-cta--soft" disabled="@Journey.Busy" @onclick="@(() => Journey.CallAsync(CallDirection.Down))" data-testid="call-down">
+                        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 19 4 6H20Z" /></svg>
+                        <span>@L[Text.CallDownButton]</span>
+                    </button>
+                }
+            </div>
+            break;
+
+        case JourneyStage.Waiting:
+            <p class="journey__waiting" data-testid="waiting">
+                <span class="journey__waiting-dots" aria-hidden="true"><i></i><i></i><i></i></span>
+                <span>@L[Journey.Me!.Waiting == CallDirection.Up ? Text.WaitingUp : Text.WaitingDown]</span>
+            </p>
+            @if (!CallPending)
+            {
+                <p class="journey__hint">@L[Text.CallAgainHint]</p>
+                <button type="button" class="es-cta es-cta--soft" disabled="@Journey.Busy" @onclick="@(() => Journey.CallAsync(Journey.Me!.Waiting!.Value))" data-testid="call-again">
+                    <span>@L[Text.CallAgainButton]</span>
+                </button>
+            }
+            break;
+
+        case JourneyStage.DoorOpenHere:
+            <p class="journey__hint">@L[Text.DoorOpenHereHint]</p>
+            <button type="button" class="es-cta es-cta--go" disabled="@Journey.Busy" @onclick="Journey.BoardAsync" data-testid="enter">
+                <MudIcon Icon="@Icons.Material.Outlined.Login" aria-hidden="true" />
+                <span>@L[Text.EnterButton]</span>
+            </button>
+            <DoorCountdown Status="Store.Status" Duration="Configuration.DoorOpenDuration" />
+            break;
+
+        case JourneyStage.InCar:
+            <p class="journey__hint">
+                @(Journey.Me!.Destination is { } destination
+                    ? L[Text.GoingTo, destination]
+                    : L[Text.ChooseFloorHint])
+            </p>
+            <CarPanel Configuration="Configuration" Status="Store.Status" OnSelectFloor="Journey.ChooseFloorAsync" LabelledBy="journey-heading" />
+            <div class="journey__leave">
+                <button type="button" class="es-cta es-cta--leave" disabled="@(Journey.Busy || !DoorsOpen)" @onclick="Journey.LeaveAsync" data-testid="leave">
+                    <MudIcon Icon="@Icons.Material.Outlined.Logout" aria-hidden="true" />
+                    <span>@L[Text.LeaveButton]</span>
+                </button>
+                <DoorCountdown Status="Store.Status" Duration="Configuration.DoorOpenDuration" ShowClosed="true" />
+            </div>
+            <p class="journey__note">@L[DoorsOpen ? Text.RideOnHint : Text.LeaveHintClosed]</p>
+            break;
+    }
+
+    @if (Message is { } message)
+    {
+        <MudAlert Severity="Severity.Warning" Variant="Variant.Text" Class="journey__message" role="alert" data-testid="journey-message">@message</MudAlert>
+    }
+</section>
+
+@code {
+    private static readonly string[] Steps = [Text.StepArrive, Text.StepCall, Text.StepEnter, Text.StepChoose, Text.StepLeave];
+
+    [Parameter, EditorRequired]
+    public ElevatorConfigurationDto Configuration { get; set; } = default!;
+
+    private JourneyStage Stage => Journey.Stage(Store.Status);
+
+    private int MyFloor => Journey.Floor(Store.Status) ?? Configuration.LowestFloor;
+
+    private bool DoorsOpen => Store.Status?.Status == ElevatorStatus.DoorOpen;
+
+    private int CurrentStep => Stage switch
+    {
+        JourneyStage.Outside => 0,
+        JourneyStage.OnFloor or JourneyStage.Waiting => 1,
+        JourneyStage.DoorOpenHere => 2,
+        _ => Journey.Me?.Destination is null ? 3 : 4,
+    };
+
+    private string Where => Stage switch
+    {
+        JourneyStage.Outside => L[Text.YouAreOutside],
+        JourneyStage.InCar => L[Text.YouAreInCar, MyFloor],
+        _ => L[Text.YouAreOnFloor, MyFloor],
+    };
+
+    /// <summary>The call they are waiting for is still pending (the car has not left without them).</summary>
+    private bool CallPending => Journey.Me is { Waiting: { } direction } me
+        && Store.Status?.PendingCalls.Any(pending => pending.Call is { Kind: CallKind.Hall } call && call.Floor == me.Floor && call.Direction == direction) == true;
+
+    private string? Message => Journey.Refusal is { } refusal ? L[RefusalKey(refusal)] : Journey.Problem;
+
+    protected override void OnInitialized()
+    {
+        Journey.Changed += OnChanged;
+        Store.Changed += OnChanged;
+    }
+
+    public void Dispose()
+    {
+        Journey.Changed -= OnChanged;
+        Store.Changed -= OnChanged;
+    }
+
+    /// <summary>The <see cref="Text"/> key that explains a refused step to the passenger.</summary>
+    public static string RefusalKey(PassengerRefusalReason reason) => reason switch
+    {
+        PassengerRefusalReason.DoorNotOpenHere => Text.RefusalDoorNotOpenHere,
+        PassengerRefusalReason.CarFull => Text.RefusalCarFull,
+        PassengerRefusalReason.NotInCar => Text.RefusalNotInCar,
+        PassengerRefusalReason.InCar => Text.RefusalInCar,
+        PassengerRefusalReason.DoorClosed => Text.RefusalDoorClosed,
+        PassengerRefusalReason.UnknownPassenger => Text.RefusalUnknownPassenger,
+        PassengerRefusalReason.BuildingFull => Text.RefusalBuildingFull,
+        PassengerRefusalReason.OutOfService => Text.RefusedOutOfService,
+        PassengerRefusalReason.Busy => Text.RefusedBusy,
+        _ => Text.RefusalInvalidRequest,
+    };
+
+    private void OnChanged(object? sender, EventArgs e) => _ = InvokeAsync(StateHasChanged);
+}

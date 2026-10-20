@@ -1,0 +1,72 @@
+@* How long the doors stay open (ADR-0025): a bar that empties as the countdown runs, a calm note while the car waits
+   open with nowhere to go, and nothing while it travels. *@
+@implements IDisposable
+@inject TimeProvider Clock
+@inject IStringLocalizer<SharedResource> L
+
+@if (Status is { Status: ElevatorStatus.DoorOpen })
+{
+    @if (Status.DoorsCloseAt is { } closesAt)
+    {
+        var left = Remaining(closesAt);
+        <div class="door-countdown door-countdown--counting" role="timer" aria-live="off" data-testid="door-countdown">
+            <span class="door-countdown__label">@L[Text.DoorsCloseIn, Math.Ceiling(left.TotalSeconds).ToString("0", CultureInfo.CurrentCulture)]</span>
+            <span class="door-countdown__track" aria-hidden="true">
+                <span class="door-countdown__bar" style="@BarStyle(left)"></span>
+            </span>
+        </div>
+    }
+    else
+    {
+        <div class="door-countdown door-countdown--held" data-testid="door-held">
+            <span class="door-countdown__pulse" aria-hidden="true"></span>
+            <span class="door-countdown__label">@L[Text.DoorsHeldOpen]</span>
+        </div>
+    }
+}
+else if (ShowClosed && Status is not null)
+{
+    <div class="door-countdown door-countdown--closed" data-testid="door-closed">
+        <span class="door-countdown__label">@L[Text.DoorsClosedLabel]</span>
+    </div>
+}
+
+@code {
+    private ITimer? _timer;
+
+    [Parameter]
+    public ElevatorStatusDto? Status { get; set; }
+
+    /// <summary>How long a full countdown lasts, to size the bar.</summary>
+    [Parameter]
+    public TimeSpan Duration { get; set; } = TimeSpan.FromSeconds(4);
+
+    [Parameter]
+    public bool ShowClosed { get; set; }
+
+    protected override void OnParametersSet()
+    {
+        // Redraw a few times a second only while a countdown runs.
+        if (Status is { Status: ElevatorStatus.DoorOpen, DoorsCloseAt: not null })
+        {
+            _timer ??= Clock.CreateTimer(_ => _ = InvokeAsync(StateHasChanged), null, TimeSpan.FromMilliseconds(200), TimeSpan.FromMilliseconds(200));
+        }
+        else
+        {
+            _timer?.Dispose();
+            _timer = null;
+        }
+    }
+
+    public void Dispose() => _timer?.Dispose();
+
+    private TimeSpan Remaining(DateTimeOffset closesAt)
+    {
+        var left = closesAt - Clock.GetUtcNow();
+        return left < TimeSpan.Zero ? TimeSpan.Zero : left > Duration ? Duration : left;
+    }
+
+    private string BarStyle(TimeSpan left) => string.Create(
+        CultureInfo.InvariantCulture,
+        $"width: {(Duration <= TimeSpan.Zero ? 0 : left / Duration * 100):0.#}%");
+}

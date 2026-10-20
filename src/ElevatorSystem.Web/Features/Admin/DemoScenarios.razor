@@ -1,0 +1,78 @@
+@* Demo scenarios (ADR-0027): press one and watch simulated passengers arrive on floor 1 and ride around. Admins only. *@
+@inject IStaffApiClient Api
+@inject IStringLocalizer<SharedResource> L
+
+<section aria-labelledby="demo-heading">
+    <h2 id="demo-heading" class="es-panel__title">@L[Text.DemoHeading]</h2>
+    <p class="es-panel__hint">@L[Text.DemoHint]</p>
+
+    <div class="demo-grid">
+        @foreach (var (scenario, title, hint, icon) in Scenarios)
+        {
+            <button type="button" class="demo-card demo-card--@scenario.ToString().ToLowerInvariant()" disabled="@_busy"
+                    @onclick="@(() => StartAsync(scenario, title))" data-testid="demo-@scenario">
+                <span class="demo-card__icon" aria-hidden="true"><MudIcon Icon="@icon" /></span>
+                <span class="demo-card__title">@L[title]</span>
+                <span class="demo-card__hint">@L[hint]</span>
+            </button>
+        }
+    </div>
+
+    <div class="d-flex align-center flex-wrap gap-2 mt-3">
+        <MudButton Variant="Variant.Outlined" Color="Color.Default" Disabled="_busy" OnClick="StopAsync" StartIcon="@Icons.Material.Outlined.CleaningServices" data-testid="demo-stop">
+            @L[Text.DemoStop]
+        </MudButton>
+        @if (_message is { } message)
+        {
+            <span class="demo-message@(_messageIsError ? " demo-message--error" : null)" role="status" data-testid="demo-message">@message</span>
+        }
+    </div>
+</section>
+
+@code {
+    private static readonly (DemoScenario Scenario, string Title, string Hint, string Icon)[] Scenarios =
+    [
+        (DemoScenario.MorningRush, Text.DemoMorning, Text.DemoMorningHint, Icons.Material.Outlined.WbSunny),
+        (DemoScenario.LunchBreak, Text.DemoLunch, Text.DemoLunchHint, Icons.Material.Outlined.Restaurant),
+        (DemoScenario.BusyDay, Text.DemoBusy, Text.DemoBusyHint, Icons.Material.Outlined.Groups),
+    ];
+
+    private bool _busy;
+    private string? _message;
+    private bool _messageIsError;
+
+    private async Task StartAsync(DemoScenario scenario, string title)
+    {
+        _busy = true;
+        try
+        {
+            var result = await Api.StartScenarioAsync(scenario);
+            Report(result, L[Text.DemoStarted, L[title].Value]);
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private async Task StopAsync()
+    {
+        _busy = true;
+        try
+        {
+            Report(await Api.StopScenariosAsync(), L[Text.DemoStopped]);
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private void Report(StaffResult<ScenarioAcceptedResponse> result, string success)
+    {
+        _messageIsError = !result.Succeeded;
+        _message = result.Succeeded
+            ? success
+            : result.Failure == StaffFailure.Conflict ? L[Text.DemoDisabled] : L[StaffText.For(result.Failure!.Value)];
+    }
+}

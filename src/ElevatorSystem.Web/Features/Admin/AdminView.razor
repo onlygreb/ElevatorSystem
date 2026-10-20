@@ -39,34 +39,46 @@ else
         else
         {
             <ConnectionBanner State="Store.Connection" />
-            <MudGrid Spacing="4">
-                <MudItem xs="12" md="5">
-                    <div class="es-stack">
-                        <MudPaper Class="es-panel" Elevation="0">
-                            <section aria-labelledby="elevator-heading">
-                                <h2 id="elevator-heading" class="es-panel__title">@L[Text.ElevatorHeading]</h2>
-                                <StatusLine Status="Store.Status" />
-                            </section>
-                        </MudPaper>
-                        @if (Session.IsAdmin)
+            <div class="es-columns es-columns--admin">
+                <div class="es-panel es-panel--building">
+                    <section aria-labelledby="building-heading">
+                        <h2 id="building-heading" class="es-panel__title">@L[Text.FloorsHeading]</h2>
+                        <div class="building-legend" aria-hidden="true">
+                            <span><i class="person person--waiting"></i>@L[Text.WaitingColumn]</span>
+                            <span><i class="person person--present"></i>@L[Text.PresentColumn]</span>
+                            <span><i class="person person--riding"></i>@L[Text.LegendRiding]</span>
+                        </div>
+                        @if (Store.Configuration is { } configuration)
                         {
-                            <MudPaper Class="es-panel" Elevation="0">
-                                <ServiceControls Status="Store.Status" />
-                            </MudPaper>
+                            <BuildingView Configuration="configuration" Status="Store.Status" Occupancy="Store.Occupancy" />
                         }
+                    </section>
+                </div>
+                <div class="es-stack">
+                    <div class="es-panel">
+                        <section aria-labelledby="elevator-heading">
+                            <h2 id="elevator-heading" class="es-panel__title">@L[Text.ElevatorHeading]</h2>
+                            <StatusLine Status="Store.Status" />
+                            <DoorCountdown Status="Store.Status" Duration="@(Store.Configuration?.DoorOpenDuration ?? TimeSpan.FromSeconds(4))" ShowClosed="true" />
+                        </section>
                     </div>
-                </MudItem>
-                <MudItem xs="12" md="7">
-                    <MudPaper Class="es-panel" Elevation="0">
+                    @if (Session.IsAdmin)
+                    {
+                        <div class="es-panel es-panel--demo">
+                            <DemoScenarios />
+                        </div>
+                        <div class="es-panel">
+                            <ServiceControls Status="Store.Status" />
+                        </div>
+                    }
+                    <div class="es-panel">
                         <OccupancyPanel Occupancy="Store.Occupancy" />
-                    </MudPaper>
-                </MudItem>
-                <MudItem xs="12">
-                    <MudPaper Class="es-panel" Elevation="0">
-                        <AuditTrailPanel />
-                    </MudPaper>
-                </MudItem>
-            </MudGrid>
+                    </div>
+                </div>
+            </div>
+            <div class="es-panel">
+                <AuditTrailPanel />
+            </div>
         }
     </div>
 }
@@ -115,6 +127,11 @@ else
 
         try
         {
+            if (Store.Configuration is null)
+            {
+                Store.SetConfiguration(await ElevatorApi.GetConfigurationAsync());
+            }
+
             if (Store.Status is null)
             {
                 Store.ApplyStatus(await ElevatorApi.GetStatusAsync());

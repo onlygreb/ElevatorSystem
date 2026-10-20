@@ -57,6 +57,22 @@
     --es-button-size: 2.25rem;
     --es-car-width: 4.5rem;
 
+    /* Lively layer: the app bar, hero gradients and the people in the building */
+    --es-color-chrome: #0d2b3e;
+    --es-color-chrome-2: #134e63;
+    --es-color-on-chrome: #f2f8fb;
+    --es-color-accent-2: #4338ca;
+    --es-gradient-accent: linear-gradient(135deg, #0f6b74 0%, #2f5fb3 55%, #4338ca 100%);
+    --es-gradient-page: radial-gradient(1200px 600px at 85% -10%, rgb(67 56 202 / 0.10), transparent 60%),
+        radial-gradient(900px 500px at -10% 10%, rgb(15 107 116 / 0.12), transparent 55%);
+    --es-color-waiting: #c27c00;
+    --es-color-present: #64748b;
+    --es-color-riding: #2f5fb3;
+    --es-color-you: #db2777;
+    --es-color-car-light: #fff4d6;
+    --es-radius-xl: 22px;
+    --es-shadow-lift: 0 10px 30px rgb(16 24 32 / 0.10), 0 2px 6px rgb(16 24 32 / 0.06);
+
     /* Motion. The car's travel time comes from the server configuration, set inline per move. */
     --es-door-duration: 600ms;
     --es-ease: cubic-bezier(0.2, 0.7, 0.2, 1);
@@ -94,5 +110,19 @@
         --es-color-shaft-line: #2f3b47;
 
         --es-shadow: 0 1px 2px rgb(0 0 0 / 0.4), 0 4px 16px rgb(0 0 0 / 0.3);
+
+        --es-color-chrome: #0a1c28;
+        --es-color-chrome-2: #0f3a4a;
+        --es-color-on-chrome: #e7f3f8;
+        --es-color-accent-2: #a5b4fc;
+        --es-gradient-accent: linear-gradient(135deg, #2aa6b0 0%, #4f7fd6 55%, #6d63e8 100%);
+        --es-gradient-page: radial-gradient(1200px 600px at 85% -10%, rgb(109 99 232 / 0.16), transparent 60%),
+            radial-gradient(900px 500px at -10% 10%, rgb(92 198 207 / 0.12), transparent 55%);
+        --es-color-waiting: #ffc94d;
+        --es-color-present: #94a3b8;
+        --es-color-riding: #8ab4ff;
+        --es-color-you: #f472b6;
+        --es-color-car-light: #3d3420;
+        --es-shadow-lift: 0 12px 32px rgb(0 0 0 / 0.45), 0 2px 6px rgb(0 0 0 / 0.3);
     }
 }
