@@ -35,6 +35,8 @@ public sealed class BrowserFixture : IAsyncLifetime
         _server = await ApiServer.StartAsync();
         _playwright = await Playwright.CreateAsync();
         Browser = await _playwright.Chromium.LaunchAsync(new() { Headless = true });
+        Assertions.SetDefaultExpectTimeout(20_000);
+        await WarmUpAsync();
     }
 
     public async ValueTask DisposeAsync()
@@ -51,6 +53,20 @@ public sealed class BrowserFixture : IAsyncLifetime
         }
     }
 
+    /// <summary>
+    /// Loads the app once before any test, with a generous timeout: the first load JIT-compiles the server and fetches the
+    /// WebAssembly runtime, which on a busy CI runner can take longer than a test should wait for a page.
+    /// </summary>
+    private async Task WarmUpAsync()
+    {
+        var page = await NewPageAsync();
+        await page.GotoAsync("/", new() { Timeout = 120_000 });
+        await page.GetByTestId("arrive").WaitForAsync(new() { Timeout = 120_000 });
+        await page.GotoAsync("/admin", new() { Timeout = 120_000 });
+        await page.GetByTestId("email").WaitForAsync(new() { Timeout = 120_000 });
+        await page.Context.CloseAsync();
+    }
+
     /// <summary>A fresh browser (its own cookies and storage), on the given culture.</summary>
     public async Task<IPage> NewPageAsync(string locale = "en-US")
     {
@@ -61,7 +77,7 @@ public sealed class BrowserFixture : IAsyncLifetime
             Locale = locale,
             ViewportSize = new() { Width = 1280, Height = 900 },
         });
-        context.SetDefaultTimeout(20_000);
+        context.SetDefaultTimeout(30_000);
         return await context.NewPageAsync();
     }
 }
