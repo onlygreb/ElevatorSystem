@@ -71,4 +71,18 @@ public sealed class AuditTrailPanelTests : WebTestContext
 
         panel.WaitForAssertion(() => panel.Find("[data-testid=audit-message]").TextContent.ShouldContain("Your session ended."));
     }
+
+    [Fact]
+    public void AnActionAuditedOnThisPage_ReloadsTheEntries_AndDropsTheOldVerification()
+    {
+        var panel = Render<AuditTrailPanel>();
+        panel.Find("[data-testid=audit-verify]").Click();
+        panel.WaitForAssertion(() => panel.Find("[data-testid=audit-verification]"));
+        var loads = Staff.AuditPageRequests.Count;
+
+        Services.GetRequiredService<StaffSession>().ReportActionAudited();
+
+        panel.WaitForAssertion(() => Staff.AuditPageRequests.Count.ShouldBe(loads + 1));
+        panel.WaitForAssertion(() => panel.FindAll("[data-testid=audit-verification]").ShouldBeEmpty("it no longer covers the newest entry"));
+    }
 }
