@@ -312,10 +312,14 @@ dotnet run --project src/ElevatorSystem.ConsoleDemo -- --interactive
 
 - **Ride the elevator.** On the home page, enter the building (everyone starts on floor 1), call the car,
   walk in while its doors are open, choose a floor, and walk out when the doors open there, or ride on.
-- **Administer it.** Open `/admin` and sign in as the first admin (`admin@elevator.local` unless you changed it).
-  The first sign-in asks you to register an authenticator app (any TOTP app: scan the QR code), then shows
-  one-time recovery codes; every staff feature needs that second factor. Then start a demo scenario and watch
-  the building fill up, or take the car out of service and return it.
+- **Administer it.** Open `/admin`. To look around quickly (A and B), sign in as the **test admin**: e-mail
+  `tester@elevator.local`, password `elevator-test-account`. It needs no authenticator app, and the page says it is a
+  test account. The password is public, so turn the account off wherever others can reach the system: an empty
+  `TEST_ADMIN_PASSWORD` in `deploy/.env`, or an empty `test-admin-password` parameter in Aspire
+  ([ADR-0030](docs/adr/0030-test-account-without-second-factor.md)). The real admin (`admin@elevator.local` unless you
+  changed it) registers an authenticator app at the first sign-in (any TOTP app: scan the QR code), then gets one-time
+  recovery codes; every real staff account needs that second factor.
+- **Watch it run.** Start a demo scenario and watch the building fill up, or take the car out of service and return it.
 - **See failover** (A and B). Two engines run: one drives the car, the other stands by. Stop the one that leads
   (`docker compose -f deploy/compose.yaml stop <container>`, or stop the replica in the Aspire dashboard) and the
   standby takes over from the last saved state within seconds.
