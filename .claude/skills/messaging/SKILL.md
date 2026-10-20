@@ -111,9 +111,34 @@ bounded drop-oldest inbox per subscriber. Nothing survives the process.
 
 - The engine holds a PostgreSQL advisory lock (`pg_try_advisory_lock`) on a dedicated connection.
   Only the lock holder runs the control loop and consumes commands.
-- If the lock or the connection is lost, the loop stops accepting work at once. The car finishes
-  its current floor and opens its doors (fail-safe), and a standby instance takes over.
+- If the lock or the connection is lost, the engine stops driving and consuming at once, and a standby
+  takes over: it restores the saved snapshot and opens the door where the car stands. Only a graceful
+  stop parks the car with its door open before releasing the lock (ADR-0021).
 - The queue's single active consumer is the second guard: even two consumers never both receive commands.
+
+## Hosting (ADR-0021)
+
+- **Engine** (`src/ElevatorSystem.Engine`, `Application/Hosting/ElevatorEngine`): migrate (a hosted service
+  started before the persistence services), then repeat: acquire the lease, restore the snapshot, open the
+  door where the car stands, drive while consuming. Lease lost: stop driving, consuming and saving at once.
+  Graceful stop: consumption first, then the loop, park the car with its door open, flush, release. Role
+  at `/health/role` and in the `elevator-engine` readiness check.
+- **Commands:** `EngineCommandHandler` marks the `CommandId` in `IProcessedCommandStore` before applying it
+  (a copy is dropped; a crash between the mark and the next save loses that call), submits calls with
+  `RequestId = CommandId`, reports refusals as a `RequestRejected` update and acknowledges once the loop has
+  taken the call in. An unreachable deduplication store applies the command anyway.
+- **Updates:** one `ElevatorUpdateV1` per event and one `OccupancyUpdateV1` per change of the counts, from a
+  bounded drop-oldest buffer; an elevator update waits until its snapshot is saved (unless saving fails).
+  After `Engine:StatusRefreshInterval` (5 s) idle the latest updates are re-sent **with the same ids**, so a
+  late subscriber catches up and the others drop the copies.
+- **API:** publishes commands (`503` with `Retry-After: 2` and reason `Busy` on `MessagingUnavailableException`)
+  and reads `ElevatorStateCache`, fed by the subscription in arrival order with copies dropped by id.
+- **Modes:** `Hosting:Mode` = `Distributed` (default; RabbitMQ) or `SingleProcess` (the engine inside the API
+  over `InMemoryMessageBus` and the in-memory stores, through the same `AddElevatorEngine`; Development and the
+  API tests).
+- **Aspire:** resources `messaging` (RabbitMQ 4.1 + management) and `postgres`/`elevatordb` (17.6); the
+  connection string `messaging` becomes `Messaging:Uri`, `elevatordb` is the persistence default. User names are
+  parameters, passwords generated parameters in the AppHost user secrets. Two engine replicas, one API.
 
 ## Connection, recovery and health
 
@@ -158,3 +183,7 @@ bounded drop-oldest inbox per subscriber. Nothing survives the process.
   - a broker restart loses no confirmed command, and clients recover by themselves
   - logs hold IDs and types, never bodies
 - `tests/ElevatorSystem.Application.Tests/InMemory/Messaging`: the same semantics for the in-memory bus.
+- `tests/ElevatorSystem.Integration.Tests`: the whole system (Testcontainers broker and database, the API on the
+  test server, engines as child processes): a hall call reaches hub clients, a duplicate is applied once, the
+  standby takes over from a killed leader, a restarted engine restores floor and calls, a broker outage gives
+  `503` and recovers, the API serves the last state while no engine runs.

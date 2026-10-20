@@ -27,7 +27,9 @@ test depth are core requirements, not extras. Read `README.md` for the product v
 dotnet build ElevatorSystem.slnx
 dotnet test --solution ElevatorSystem.slnx
 dotnet format ElevatorSystem.slnx --verify-no-changes
-dotnet run --project src/ElevatorSystem.AppHost       # whole stack + Aspire dashboard (needs Docker from phase 3)
+dotnet test --project tests/ElevatorSystem.Integration.Tests   # end to end; needs Docker
+dotnet run --project src/ElevatorSystem.AppHost       # whole stack + Aspire dashboard (needs Docker)
+dotnet run --project src/ElevatorSystem.Api           # API with the engine in process, no Docker (Development)
 dotnet run --project src/ElevatorSystem.ConsoleDemo   # core only
 ```
 
@@ -76,7 +78,7 @@ Load the matching skill before working in an area:
 
 0. Foundation: solution, build policies, CI/CD, ADRs ✅
 1. Domain, `ElevatorController` with trip watchdog, console demo, domain and controller test suites ✅
-2. REST API, SignalR, Blazor passenger view (in-memory bus)
-3. RabbitMQ, PostgreSQL, persistence and recovery, failover, occupancy counting and a test traffic generator (ADR-0017)
+2. REST API, SignalR, Blazor passenger view (in-memory bus) ✅
+3. RabbitMQ, PostgreSQL, persistence and recovery, failover, occupancy counting and a test traffic generator (ADR-0017) ✅
 4. Authentication, admin view (people in the car, waiting and present per floor; maintenance, emergency stop, return to service), tamper-evident audit log
 5. LGPD features and documents, observability, load, end-to-end and mutation testing

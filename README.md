@@ -71,6 +71,8 @@ Each core requirement maps to the code that implements it and the tests that pro
 | Reasonable memory under load | Repeated calls merged: at most 28 pending calls | `ElevatorRequestTests`, concurrency tests |
 | Invalid floor requests handled gracefully | `Building.Validate` returns a `RequestRejectionReason` and never throws | `BuildingTests`, `ElevatorControllerRequestTests` |
 | Timeouts for stuck elevators | Trip watchdog → out of service (`Fault`) ([ADR-0007](docs/adr/0007-fail-safe-operation.md)) | `ElevatorControllerFailSafeTests` |
+| A stuck elevator stays out of service across restarts | The fault is saved in the snapshot and restored, with every call cancelled, until a return to service ([ADR-0021](docs/adr/0021-engine-hosting-topology-and-single-process-mode.md)) | `RestoredOutOfServiceCar_StaysOutOfService_WithItsDoorClosed` |
+| Recovery after a crash or restart; one controller at a time | Snapshot in PostgreSQL, advisory-lock leader with a hot standby, commands kept in RabbitMQ until applied ([ADR-0019](docs/adr/0019-postgresql-snapshots-deduplication-and-leader-lease.md), [ADR-0021](docs/adr/0021-engine-hosting-topology-and-single-process-mode.md)) | `ElevatorEngineTests`, integration tests: killing the leader, restarting the only engine, broker outage, engine down |
 | Exception handling for concurrent operations | Failures contained per request, per trip and per subscriber; the loop fails safe | `ElevatorControllerFailSafeTests` |
 | Logging of elevator actions | Source-generated messages with stable event IDs ([`ElevatorControllerLog`](src/ElevatorSystem.Application/ElevatorControllerLog.cs)) | Console demo with `--verbose` |
 
@@ -92,25 +94,24 @@ flowchart LR
 
     subgraph Broker["RabbitMQ"]
         CMD[["elevator.commands<br/>single active consumer"]]
-        EVT[["elevator.events"]]
+        EVT[["elevator.updates<br/>one queue per API instance"]]
     end
 
-    subgraph Engine["ElevatorSystem.Engine"]
+    subgraph Engine["ElevatorSystem.Engine × 2 (leader + standby)"]
         CTRL["ElevatorController<br/>FIFO scheduler"]
         CAR["Elevator<br/>state machine"]
         WD["Watchdog"]
     end
 
-    DB[("PostgreSQL<br/>state snapshots · audit · identity")]
+    DB[("PostgreSQL<br/>snapshots · processed commands · leader lock")]
 
     UI -- "HTTPS, cookie auth" --> REST
     HUB -- "live state" --> UI
     REST -- "commands, publisher-confirmed" --> CMD --> CTRL
     CTRL --> CAR
     WD -. "stuck detection" .-> CAR
-    CTRL -- "domain events" --> EVT --> HUB
+    CTRL -- "updates, after the snapshot is saved" --> EVT --> HUB
     Engine --- DB
-    API --- DB
 ```
 
 ### Life of a request
@@ -125,14 +126,14 @@ sequenceDiagram
     participant EN as Engine
 
     P->>UI: Presses "up" on floor 3
-    UI->>API: POST /api/v1/requests/hall {floor: 3, direction: up}
-    API->>API: Validate · rate limit · idempotency check
+    UI->>API: POST /api/v1/hall-calls {floor: 3, direction: Up}
+    API->>API: Validate · rate limit
     API->>MQ: Publish command (waits for broker confirm)
     API-->>UI: 202 Accepted + request id
     MQ->>EN: Deliver command
-    EN->>EN: Queue (FIFO, duplicates merged) and schedule
-    EN-->>MQ: Events: assigned, moving, arrived, doors open
-    MQ-->>API: Events
+    EN->>EN: Drop a redelivered copy, queue (FIFO, repeats merged), save the snapshot
+    EN-->>MQ: Updates: queued, moving, doors open, served (status + activity)
+    MQ-->>API: Updates (cached for GET and the hub)
     API-->>UI: Live state via SignalR
 ```
 
@@ -211,8 +212,8 @@ The car never moves with its doors open, never leaves the 1–10 range, and chan
 ## Getting started
 
 **Prerequisites:** [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0) (10.0.100 or
-later). [Docker](https://www.docker.com/) is needed for the full stack once the broker and
-database are added.
+later) and [Docker](https://www.docker.com/) (Docker Desktop or any engine the Docker CLI reaches) for
+the full stack and the integration tests.
 
 ```bash
 git clone https://github.com/onlygreb/ElevatorSystem.git
@@ -225,6 +226,18 @@ Run the whole system with the Aspire dashboard (logs, traces and metrics for eve
 
 ```bash
 dotnet run --project src/ElevatorSystem.AppHost
+```
+
+Aspire starts RabbitMQ (with its management UI), PostgreSQL, two engines (one leads, one stands by)
+and the API. Open the `api` endpoint from the dashboard, call the elevator and watch it move; stop the
+leading `engine` replica in the dashboard and the standby takes over from the saved state. Passwords are
+generated on the first run and kept in the AppHost's user secrets; nothing secret is in the repository.
+
+Without Docker, the API alone runs the engine in its own process over in-memory messaging and storage
+(`Hosting:Mode=SingleProcess`, the Development default; [ADR-0021](docs/adr/0021-engine-hosting-topology-and-single-process-mode.md)):
+
+```bash
+dotnet run --project src/ElevatorSystem.Api
 ```
 
 Run only the elevator core in the terminal, with no infrastructure. A narrated tour of about
@@ -285,8 +298,9 @@ test strategy targets them directly ([ADR-0010](docs/adr/0010-testing-strategy.m
 | Load | 100+ concurrent requests within the assignment-latency budget |
 | Mutation testing | The tests actually detect injected faults |
 
-The architecture, domain and application suites run on every build today. Each remaining layer
-arrives with the feature it covers. The unit tests run in simulated time
+The architecture, domain, application, API, UI component and integration suites run on every build
+today; the integration tests start RabbitMQ and PostgreSQL in Docker and the engines as real processes.
+Browser end-to-end, load and mutation testing arrive in phase 5. The unit tests run in simulated time
 ([`FakeTimeProvider`](https://learn.microsoft.com/dotnet/api/microsoft.extensions.time.testing.faketimeprovider)),
 so the suite never sleeps and never flakes on timing.
 
@@ -315,8 +329,8 @@ gh attestation verify oci://ghcr.io/onlygreb/elevatorsystem-api:<version> --owne
 
 - [x] **Foundation:** solution architecture, build and supply-chain policies, CI/CD, architecture decisions
 - [x] **Elevator core:** state machine, FIFO and LOOK scheduling, thread-safe controller with watchdog, console demo, domain and controller test suites
-- [ ] **API and live UI:** REST API, SignalR, Blazor passenger view, English and Portuguese
-- [ ] **Messaging and resilience:** RabbitMQ, PostgreSQL, state recovery, failover, occupancy counting, test traffic generator
+- [x] **API and live UI:** REST API, SignalR, Blazor passenger view, English and Portuguese
+- [x] **Messaging and resilience:** RabbitMQ, PostgreSQL, state recovery, failover, occupancy counting, test traffic generator
 - [ ] **Administration and security:** authentication with 2FA, admin view with service control, tamper-evident audit log
 - [ ] **Privacy and observability:** LGPD features and documents, dashboards, load, end-to-end and mutation testing
 
