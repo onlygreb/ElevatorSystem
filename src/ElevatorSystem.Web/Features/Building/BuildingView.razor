@@ -12,9 +12,10 @@
             <li class="@storeyClass" data-floor="@floor">
                 <span class="storey__number">@floor</span>
                 <span class="storey__name">@(floor == Configuration.LowestFloor ? L[Text.LobbyLabel] : string.Empty)</span>
-                <span class="storey__people" aria-label="@PeopleLabel(counts)">
+                <span class="storey__people">
                     @if (counts is { } known)
                     {
+                        <span class="visually-hidden" data-testid="floor-people">@PeopleLabel(known)</span>
                         @foreach (var dot in Dots(known.Waiting))
                         {
                             <span class="person person--waiting@(dot.More ? " person--more" : null)" aria-hidden="true">@dot.Label</span>
@@ -111,9 +112,7 @@
 
     private FloorOccupancyDto? FloorCounts(int floor) => Occupancy?.Floors.FirstOrDefault(counts => counts.Floor == floor);
 
-    private string PeopleLabel(FloorOccupancyDto? counts) => counts is { } known
-        ? L[Text.FloorPeople, known.Waiting, known.Present]
-        : string.Empty;
+    private string PeopleLabel(FloorOccupancyDto counts) => L[Text.FloorPeople, counts.Waiting, counts.Present];
 
     /// <summary>Up to <see cref="MaxDots"/> dots, then one "+n" dot for the rest.</summary>
     private static IEnumerable<(string Label, bool More)> Dots(int count)

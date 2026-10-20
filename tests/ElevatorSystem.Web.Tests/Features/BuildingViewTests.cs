@@ -57,7 +57,7 @@ public sealed class BuildingViewTests : WebTestContext
         var lobby = building.Find(".storey[data-floor='1'] .storey__people");
         lobby.QuerySelectorAll(".person--waiting").Length.ShouldBe(2);
         lobby.QuerySelectorAll(".person--present").Length.ShouldBe(1);
-        lobby.GetAttribute("aria-label").ShouldBe("2 waiting, 1 on the floor");
+        lobby.QuerySelector("[data-testid=floor-people]")!.TextContent.ShouldBe("2 waiting, 1 on the floor");
         building.Find(".storey[data-floor='7'] .storey__people").QuerySelectorAll(".person--present").Length.ShouldBe(4);
         building.FindAll(".cabin__riders .person--riding").Count.ShouldBe(3);
     }
@@ -79,7 +79,7 @@ public sealed class BuildingViewTests : WebTestContext
         var building = RenderBuilding();
 
         building.FindAll(".storey .person--waiting, .storey .person--present").ShouldBeEmpty();
-        building.Find(".storey[data-floor='1'] .storey__people").GetAttribute("aria-label").ShouldBeNullOrEmpty();
+        building.FindAll("[data-testid=floor-people]").ShouldBeEmpty();
     }
 
     [Fact]
