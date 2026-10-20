@@ -533,3 +533,119 @@ h1:focus {
         font-size: 2.25rem;
     }
 }
+
+/* ---------- Navigation ---------- */
+
+.es-nav {
+    display: flex;
+    gap: var(--es-space-1);
+    margin-right: var(--es-space-3);
+}
+
+.es-nav__link {
+    padding: var(--es-space-1) var(--es-space-3);
+    border-radius: var(--es-radius-sm);
+    color: var(--es-color-text-muted);
+    font-size: 0.875rem;
+    font-weight: 500;
+    text-decoration: none;
+}
+
+.es-nav__link:hover {
+    color: var(--es-color-text);
+    background: var(--es-color-sunken);
+}
+
+.es-nav__link.active {
+    color: var(--es-color-accent);
+    background: var(--es-color-sunken);
+}
+
+.es-nav__link:focus-visible {
+    outline: 2px solid var(--es-color-focus);
+    outline-offset: 2px;
+}
+
+/* ---------- Admin view ---------- */
+
+.es-narrow.mud-paper {
+    max-width: 28rem;
+    margin-inline: auto;
+}
+
+.es-account {
+    color: var(--es-color-text-muted);
+    font-size: 0.875rem;
+}
+
+.es-enrol {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--es-space-4);
+    margin-bottom: var(--es-space-4);
+}
+
+/* The QR code keeps a white quiet zone in both themes, or phone cameras cannot read it. */
+.es-qr {
+    background: #fff;
+    padding: var(--es-space-2);
+    border-radius: var(--es-radius-sm);
+    image-rendering: pixelated;
+}
+
+.es-key,
+.es-hash {
+    font-family: var(--es-font-numeric);
+    word-break: break-all;
+}
+
+.es-codes {
+    columns: 2;
+    margin: 0 0 var(--es-space-4);
+    padding-left: var(--es-space-5);
+    font-family: var(--es-font-numeric);
+}
+
+.es-figures {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+    gap: var(--es-space-4);
+    margin: 0 0 var(--es-space-4);
+}
+
+.es-figures dt {
+    font-size: 0.8125rem;
+    color: var(--es-color-text-muted);
+}
+
+.es-figures dd {
+    margin: 0;
+    font-family: var(--es-font-numeric);
+    font-size: 1.5rem;
+    font-weight: 600;
+}
+
+.es-table .es-number {
+    text-align: right;
+    font-family: var(--es-font-numeric);
+}
+
+.es-scroll {
+    overflow-x: auto;
+}
+
+.es-outcome {
+    font-size: 0.8125rem;
+    font-weight: 600;
+}
+
+.es-outcome--failed,
+.es-outcome--locked-out,
+.es-outcome--refused {
+    color: var(--es-color-error);
+}
+
+.es-outcome--succeeded {
+    color: var(--es-color-success);
+}

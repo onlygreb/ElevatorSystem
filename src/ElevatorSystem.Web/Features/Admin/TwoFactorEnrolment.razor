@@ -1,0 +1,117 @@
+@* Registers an authenticator app, then shows the recovery codes once. Every staff feature waits for this. *@
+@inject IStaffApiClient Api
+@inject IStringLocalizer<SharedResource> L
+
+<MudPaper Class="es-panel es-narrow" Elevation="0">
+    @if (_recoveryCodes is { } codes)
+    {
+        <section aria-labelledby="recovery-heading">
+            <h2 id="recovery-heading" class="es-panel__title">@L[Text.RecoveryCodesHeading]</h2>
+            <p class="es-panel__hint">@L[Text.RecoveryCodesHint]</p>
+            <ol class="es-codes" data-testid="recovery-codes">
+                @foreach (var recoveryCode in codes)
+                {
+                    <li><code>@recoveryCode</code></li>
+                }
+            </ol>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="ContinueAsync" data-testid="codes-saved">@L[Text.RecoveryCodesSaved]</MudButton>
+        </section>
+    }
+    else
+    {
+        <section aria-labelledby="enrol-heading">
+            <h2 id="enrol-heading" class="es-panel__title">@L[Text.EnrolHeading]</h2>
+            <p class="es-panel__hint">@L[Text.EnrolHint]</p>
+
+            @if (_failure is { } failure)
+            {
+                <MudAlert Severity="Severity.Error" Class="mb-4" role="alert" data-testid="enrol-message">@L[StaffText.For(failure)]</MudAlert>
+            }
+
+            @if (_setup is { } setup)
+            {
+                <div class="es-enrol">
+                    <img src="@_qrCode" alt="@L[Text.EnrolQrAlt]" width="205" height="205" class="es-qr" data-testid="qr" />
+                    <p>
+                        <span class="es-panel__hint">@L[Text.EnrolKeyLabel]</span><br />
+                        <code class="es-key" data-testid="shared-key">@setup.SharedKey</code>
+                    </p>
+                </div>
+
+                <form @onsubmit="EnableAsync" @onsubmit:preventDefault="true" class="es-stack" novalidate>
+                    <MudTextField @bind-Value="_code" Label="@L[Text.TwoFactorCodeLabel]" Variant="Variant.Outlined"
+                                  UserAttributes="@(new() { ["autocomplete"] = "one-time-code", ["inputmode"] = "numeric", ["data-testid"] = "code" })" MaxLength="32" />
+                    <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary" Disabled="_busy" data-testid="enable">@L[Text.EnrolConfirm]</MudButton>
+                </form>
+            }
+            else if (_failure is null)
+            {
+                <div class="es-loading" role="status">
+                    <MudProgressCircular Indeterminate="true" Size="Size.Small" aria-hidden="true" />
+                    <span>@L[Text.Loading]</span>
+                </div>
+            }
+        </section>
+    }
+</MudPaper>
+
+@code {
+    private TwoFactorSetupDto? _setup;
+    private string? _qrCode;
+    private string _code = "";
+    private bool _busy;
+    private StaffFailure? _failure;
+    private IReadOnlyList<string>? _recoveryCodes;
+
+    /// <summary>Called once the codes were shown and the staff member continues.</summary>
+    [Parameter, EditorRequired]
+    public EventCallback OnEnabled { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        var result = await Api.SetUpTwoFactorAsync();
+        if (result.Value is { } setup)
+        {
+            _setup = setup;
+            _qrCode = StaffText.QrCodeDataUri(setup.AuthenticatorUri);
+        }
+        else
+        {
+            _failure = result.Failure;
+        }
+    }
+
+    private async Task EnableAsync()
+    {
+        if (_busy)
+        {
+            return;
+        }
+
+        _busy = true;
+        try
+        {
+            var result = await Api.EnableTwoFactorAsync(_code.Trim());
+            _code = "";
+            if (result.Value is { } codes)
+            {
+                _recoveryCodes = codes.RecoveryCodes;
+                _failure = null;
+            }
+            else
+            {
+                _failure = result.Failure;
+            }
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private Task ContinueAsync()
+    {
+        _recoveryCodes = null;
+        return OnEnabled.InvokeAsync();
+    }
+}

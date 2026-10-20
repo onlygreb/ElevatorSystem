@@ -1,0 +1,89 @@
+@* Take the car out of service or return it, each after an explicit confirmation. Admins never place calls (ADR-0017). *@
+@inject IStaffApiClient Api
+@inject IStringLocalizer<SharedResource> L
+
+<section aria-labelledby="service-heading">
+    <h2 id="service-heading" class="es-panel__title">@L[Text.ServiceHeading]</h2>
+    <p class="es-panel__hint">@L[Text.ServiceHint]</p>
+
+    @if (_pending is { } pending)
+    {
+        <MudAlert Severity="@(pending.Action == ServiceAction.EmergencyStop ? Severity.Warning : Severity.Info)" role="alertdialog" data-testid="confirm" data-action="@pending.Action">
+            <p><strong>@L[Text.ConfirmAction, L[StaffText.For(pending.Action)].Value]</strong></p>
+            <p>@L[StaffText.ConsequenceOf(pending.Action)]</p>
+            <div class="d-flex gap-2 mt-2">
+                <MudButton Variant="Variant.Filled" Color="@(pending.Action == ServiceAction.EmergencyStop ? Color.Error : Color.Primary)" Disabled="_busy" OnClick="ConfirmAsync" data-testid="confirm-yes">@L[Text.Confirm]</MudButton>
+                <MudButton Variant="Variant.Outlined" Disabled="_busy" OnClick="Cancel" data-testid="confirm-no">@L[Text.Cancel]</MudButton>
+            </div>
+        </MudAlert>
+    }
+    else
+    {
+        <div class="d-flex flex-wrap gap-2">
+            <MudButton Variant="Variant.Outlined" Color="Color.Primary" Disabled="!CanTakeOutOfService" OnClick="@(() => Ask(ServiceAction.StartMaintenance))" data-testid="action-StartMaintenance"
+                       StartIcon="@Icons.Material.Outlined.Build">@L[Text.ActionStartMaintenance]</MudButton>
+            <MudButton Variant="Variant.Filled" Color="Color.Error" Disabled="!CanTakeOutOfService" OnClick="@(() => Ask(ServiceAction.EmergencyStop))" data-testid="action-EmergencyStop"
+                       StartIcon="@Icons.Material.Outlined.Report">@L[Text.ActionEmergencyStop]</MudButton>
+            <MudButton Variant="Variant.Filled" Color="Color.Success" Disabled="!CanReturn" OnClick="@(() => Ask(ServiceAction.ReturnToService))" data-testid="action-ReturnToService"
+                       StartIcon="@Icons.Material.Outlined.PlayCircle">@L[Text.ActionReturnToService]</MudButton>
+        </div>
+    }
+
+    @if (_message is { } message)
+    {
+        <MudAlert Severity="@(_messageIsError ? Severity.Error : Severity.Success)" Class="mt-3" role="status" data-testid="action-message">@message</MudAlert>
+    }
+</section>
+
+@code {
+    private PendingAction? _pending;
+    private bool _busy;
+    private string? _message;
+    private bool _messageIsError;
+
+    /// <summary>The car's current status; decides which actions make sense.</summary>
+    [Parameter]
+    public ElevatorStatusDto? Status { get; set; }
+
+    private bool CanTakeOutOfService => Status is not null && Status.Status != ElevatorStatus.OutOfService;
+
+    private bool CanReturn => Status is { Status: ElevatorStatus.OutOfService };
+
+    /// <summary>One key per confirmed action, reused if the same request has to be retried.</summary>
+    private sealed record PendingAction(ServiceAction Action, Guid IdempotencyKey);
+
+    private void Ask(ServiceAction action)
+    {
+        _pending = new PendingAction(action, Guid.NewGuid());
+        _message = null;
+    }
+
+    private void Cancel() => _pending = null;
+
+    private async Task ConfirmAsync()
+    {
+        if (_pending is not { } pending || _busy)
+        {
+            return;
+        }
+
+        _busy = true;
+        try
+        {
+            var result = await Api.RequestServiceActionAsync(pending.Action, pending.IdempotencyKey);
+            _messageIsError = !result.Succeeded;
+            _message = result.Succeeded
+                ? L[Text.ActionRequested, L[StaffText.For(pending.Action)].Value]
+                : L[StaffText.For(result.Failure!.Value)];
+            // On a refusal the confirmation stays, so "Confirm" retries with the same key.
+            if (result.Succeeded)
+            {
+                _pending = null;
+            }
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+}

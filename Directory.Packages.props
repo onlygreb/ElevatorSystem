@@ -17,6 +17,8 @@
     <PackageVersion Include="Microsoft.AspNetCore.SignalR.Client" Version="10.0.13" />
     <PackageVersion Include="Microsoft.Extensions.Localization" Version="10.0.13" />
     <PackageVersion Include="MudBlazor" Version="9.11.0" />
+    <!-- The authenticator enrolment QR code, drawn in the browser as a PNG (MIT, no native code). -->
+    <PackageVersion Include="QRCoder" Version="1.7.0" />
     <PackageVersion Include="Scalar.AspNetCore" Version="2.18.0" />
   </ItemGroup>
 

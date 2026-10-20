@@ -123,6 +123,33 @@ public sealed class ElevatorStateStoreTests
     }
 
     [Fact]
+    public void ApplyOccupancy_KeepsTheNewestCounts_AndIgnoresOlderOnes()
+    {
+        var store = new ElevatorStateStore();
+        var newer = FakeStaffApiClient.OccupancyOf(inCar: 4) with { TakenAt = TestData.Noon.AddSeconds(5) };
+        var older = FakeStaffApiClient.OccupancyOf(inCar: 1);
+
+        store.ApplyOccupancy(newer).ShouldBeTrue();
+        store.ApplyOccupancy(older).ShouldBeFalse();
+
+        store.Occupancy.ShouldBe(newer);
+    }
+
+    [Fact]
+    public void ClearOccupancy_ForgetsTheCounts_AndNotifies()
+    {
+        var store = new ElevatorStateStore();
+        store.ApplyOccupancy(FakeStaffApiClient.OccupancyOf(inCar: 2));
+        var notified = 0;
+        store.Changed += (_, _) => notified++;
+
+        store.ClearOccupancy();
+
+        store.Occupancy.ShouldBeNull();
+        notified.ShouldBe(1);
+    }
+
+    [Fact]
     public void Connection_BeforeAnyAttempt_IsConnecting() =>
         new ElevatorStateStore().Connection.ShouldBe(ConnectionState.Connecting);
 

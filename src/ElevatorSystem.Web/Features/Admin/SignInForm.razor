@@ -1,0 +1,111 @@
+@* Staff sign-in: e-mail and password, then the second factor when the server asks for it. *@
+@inject IStaffApiClient Api
+@inject IStringLocalizer<SharedResource> L
+
+<MudPaper Class="es-panel es-narrow" Elevation="0">
+    <section aria-labelledby="sign-in-heading">
+        <h2 id="sign-in-heading" class="es-panel__title">@L[Text.SignInHeading]</h2>
+        <p class="es-panel__hint">@L[Text.SignInHint]</p>
+
+        @if (_failure is { } failure)
+        {
+            <MudAlert Severity="@(failure == StaffFailure.TwoFactorRequired ? Severity.Info : Severity.Error)" Class="mb-4" role="alert" data-testid="sign-in-message">
+                @L[StaffText.For(failure)]
+            </MudAlert>
+        }
+
+        <form @onsubmit="SignInAsync" @onsubmit:preventDefault="true" class="es-stack" novalidate>
+            <MudTextField @bind-Value="_email" Label="@L[Text.EmailLabel]" Variant="Variant.Outlined" InputType="InputType.Email"
+                          UserAttributes="@(new() { ["autocomplete"] = "username", ["data-testid"] = "email" })" Required="true" MaxLength="256" Disabled="_askForCode" />
+            <MudTextField @bind-Value="_password" Label="@L[Text.PasswordLabel]" Variant="Variant.Outlined" InputType="InputType.Password"
+                          UserAttributes="@(new() { ["autocomplete"] = "current-password", ["data-testid"] = "password" })" Required="true" MaxLength="128" Disabled="_askForCode" />
+
+            @if (_askForCode)
+            {
+                @if (_useRecoveryCode)
+                {
+                    <MudTextField @bind-Value="_code" Label="@L[Text.RecoveryCodeLabel]" Variant="Variant.Outlined" AutoFocus="true"
+                                  UserAttributes="@(new() { ["autocomplete"] = "off", ["data-testid"] = "code" })" MaxLength="32" />
+                }
+                else
+                {
+                    <MudTextField @bind-Value="_code" Label="@L[Text.TwoFactorCodeLabel]" Variant="Variant.Outlined" AutoFocus="true"
+                                  UserAttributes="@(new() { ["autocomplete"] = "one-time-code", ["inputmode"] = "numeric", ["data-testid"] = "code" })" MaxLength="32" />
+                }
+
+                <MudButton Variant="Variant.Text" Size="Size.Small" OnClick="ToggleRecoveryCode" data-testid="toggle-recovery">
+                    @L[_useRecoveryCode ? Text.UseAuthenticatorCode : Text.UseRecoveryCode]
+                </MudButton>
+            }
+
+            <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary" Disabled="_busy" data-testid="sign-in">
+                @L[Text.SignInButton]
+            </MudButton>
+        </form>
+    </section>
+</MudPaper>
+
+@code {
+    private string _email = "";
+    private string _password = "";
+    private string _code = "";
+    private bool _askForCode;
+    private bool _useRecoveryCode;
+    private bool _busy;
+    private StaffFailure? _failure;
+
+    /// <summary>Called with the new session once the server accepted the sign-in.</summary>
+    [Parameter, EditorRequired]
+    public EventCallback<StaffSessionDto> OnSignedIn { get; set; }
+
+    private async Task SignInAsync()
+    {
+        if (_busy)
+        {
+            return;
+        }
+
+        _busy = true;
+        try
+        {
+            var code = string.IsNullOrWhiteSpace(_code) ? null : _code.Trim();
+            var request = new SignInRequest(
+                _email.Trim(),
+                _password,
+                _askForCode && !_useRecoveryCode ? code : null,
+                _askForCode && _useRecoveryCode ? code : null);
+            var result = await Api.SignInAsync(request);
+            if (result.Value is { } session)
+            {
+                _password = "";
+                _code = "";
+                await OnSignedIn.InvokeAsync(session);
+                return;
+            }
+
+            _failure = result.Failure;
+            if (result.Failure is StaffFailure.TwoFactorRequired or StaffFailure.InvalidTwoFactorCode)
+            {
+                _askForCode = true;
+                _code = "";
+            }
+            else if (result.Failure == StaffFailure.InvalidCredentials)
+            {
+                // Start over: the code step only follows a correct password.
+                _askForCode = false;
+                _password = "";
+                _code = "";
+            }
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private void ToggleRecoveryCode()
+    {
+        _useRecoveryCode = !_useRecoveryCode;
+        _code = "";
+    }
+}

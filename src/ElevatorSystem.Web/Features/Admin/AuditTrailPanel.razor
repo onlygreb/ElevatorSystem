@@ -1,0 +1,140 @@
+@* The audit trail, newest first, and a check of its hash chain (ADR-0023). *@
+@inject IStaffApiClient Api
+@inject IStringLocalizer<SharedResource> L
+
+<section aria-labelledby="audit-heading">
+    <div class="d-flex align-center flex-wrap gap-2">
+        <h2 id="audit-heading" class="es-panel__title mb-0">@L[Text.AuditHeading]</h2>
+        <MudSpacer />
+        <MudButton Variant="Variant.Text" Size="Size.Small" OnClick="RefreshAsync" Disabled="_busy" data-testid="audit-refresh">@L[Text.AuditRefresh]</MudButton>
+        <MudButton Variant="Variant.Outlined" Size="Size.Small" Color="Color.Primary" OnClick="VerifyAsync" Disabled="_busy" data-testid="audit-verify"
+                   StartIcon="@Icons.Material.Outlined.VerifiedUser">@L[Text.AuditVerify]</MudButton>
+    </div>
+    <p class="es-panel__hint">@L[Text.AuditHint]</p>
+
+    @if (_verification is { } verification)
+    {
+        <MudAlert Severity="@(verification.Intact ? Severity.Success : Severity.Error)" Class="mb-3" role="status" data-testid="audit-verification" data-intact="@(verification.Intact ? "true" : "false")">
+            @if (verification.Intact)
+            {
+                <span>@L[Text.AuditIntact, verification.EntriesChecked]</span>
+                @if (verification.HeadHash is { } hash)
+                {
+                    <br />
+                    <span class="es-panel__hint">@L[Text.AuditHeadHash]: <code class="es-hash">@hash</code></span>
+                }
+            }
+            else
+            {
+                <span>@L[Text.AuditBroken, verification.FirstBrokenSequence ?? 0, verification.Fault ?? ""]</span>
+            }
+        </MudAlert>
+    }
+
+    @if (_failure is { } failure)
+    {
+        <MudAlert Severity="Severity.Error" Class="mb-3" role="alert" data-testid="audit-message">@L[StaffText.For(failure)]</MudAlert>
+    }
+
+    @if (_entries.Count == 0)
+    {
+        <p class="es-empty">@L[Text.AuditEmpty]</p>
+    }
+    else
+    {
+        <div class="es-scroll">
+            <MudSimpleTable Dense="true" Hover="true" Class="es-table" data-testid="audit-entries">
+                <thead>
+                    <tr>
+                        <th scope="col" class="es-number">#</th>
+                        <th scope="col">@L[Text.AuditTimeColumn]</th>
+                        <th scope="col">@L[Text.AuditActionColumn]</th>
+                        <th scope="col">@L[Text.AuditTargetColumn]</th>
+                        <th scope="col">@L[Text.AuditOutcomeColumn]</th>
+                        <th scope="col">@L[Text.AuditActorColumn]</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var entry in _entries)
+                    {
+                        <tr data-sequence="@entry.Sequence">
+                            <td class="es-number">@entry.Sequence</td>
+                            <td><time datetime="@entry.RecordedAt.ToString("O", CultureInfo.InvariantCulture)">@entry.RecordedAt.ToLocalTime().ToString("g", CultureInfo.CurrentCulture)</time></td>
+                            <td><code>@entry.Action</code></td>
+                            <td>@entry.Target</td>
+                            <td><span class="es-outcome es-outcome--@entry.Outcome">@entry.Outcome</span></td>
+                            <td>
+                                @if (entry.Anonymised)
+                                {
+                                    <em>@L[Text.AuditAnonymised]</em>
+                                }
+                                else
+                                {
+                                    @(entry.Actor ?? L[Text.AuditUnknownActor].Value)
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </MudSimpleTable>
+        </div>
+
+        @if (_nextBefore is not null)
+        {
+            <MudButton Variant="Variant.Text" Class="mt-2" OnClick="LoadMoreAsync" Disabled="_busy" data-testid="audit-more">@L[Text.AuditLoadMore]</MudButton>
+        }
+    }
+</section>
+
+@code {
+    private readonly List<AuditEntryDto> _entries = [];
+    private long? _nextBefore;
+    private AuditVerificationDto? _verification;
+    private StaffFailure? _failure;
+    private bool _busy;
+
+    protected override Task OnInitializedAsync() => RefreshAsync();
+
+    private async Task RefreshAsync()
+    {
+        _entries.Clear();
+        _nextBefore = null;
+        await LoadAsync(null);
+    }
+
+    private Task LoadMoreAsync() => LoadAsync(_nextBefore);
+
+    private async Task LoadAsync(long? before)
+    {
+        _busy = true;
+        try
+        {
+            var result = await Api.GetAuditPageAsync(before);
+            _failure = result.Failure;
+            if (result.Value is { } page)
+            {
+                _entries.AddRange(page.Entries);
+                _nextBefore = page.NextBefore;
+            }
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private async Task VerifyAsync()
+    {
+        _busy = true;
+        try
+        {
+            var result = await Api.VerifyAuditAsync();
+            _failure = result.Failure;
+            _verification = result.Value;
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+}

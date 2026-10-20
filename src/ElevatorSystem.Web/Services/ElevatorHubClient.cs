@@ -16,7 +16,9 @@ internal sealed partial class ElevatorHubClient : IElevatorHubClient, IAsyncDisp
     private readonly TimeProvider _timeProvider;
     private readonly ILogger<ElevatorHubClient> _logger;
     private readonly CancellationTokenSource _disposing = new();
+    private CancellationTokenSource? _attempts;
     private Task? _connecting;
+    private bool _restarting;
 
     public ElevatorHubClient(Uri hubUrl, ElevatorStateStore store, TimeProvider timeProvider, ILogger<ElevatorHubClient> logger)
     {
@@ -32,6 +34,7 @@ internal sealed partial class ElevatorHubClient : IElevatorHubClient, IAsyncDisp
 
         _connection.On<ElevatorStatusDto>(nameof(IElevatorClient.StatusChanged), status => store.ApplyStatus(status));
         _connection.On<ElevatorActivityDto>(nameof(IElevatorClient.ActivityOccurred), store.AddActivity);
+        _connection.On<BuildingOccupancyDto>(nameof(IElevatorClient.OccupancyChanged), occupancy => store.ApplyOccupancy(occupancy));
         _connection.Reconnecting += _ =>
         {
             store.SetConnection(ConnectionState.Reconnecting);
@@ -46,10 +49,10 @@ internal sealed partial class ElevatorHubClient : IElevatorHubClient, IAsyncDisp
         {
             // Automatic reconnect never gives up, so this happens only when the server ends the connection
             // for good, or on dispose. Start over unless the page is going away.
-            if (!_disposing.IsCancellationRequested)
+            if (!_disposing.IsCancellationRequested && !_restarting)
             {
                 store.SetConnection(ConnectionState.Reconnecting);
-                _connecting = ConnectAsync(_disposing.Token);
+                _connecting = StartConnecting();
             }
 
             return Task.CompletedTask;
@@ -68,15 +71,51 @@ internal sealed partial class ElevatorHubClient : IElevatorHubClient, IAsyncDisp
 
     public Task StartAsync(CancellationToken cancellationToken = default)
     {
-        _connecting ??= ConnectAsync(_disposing.Token);
+        _connecting ??= StartConnecting();
         return Task.CompletedTask;
+    }
+
+    public async Task RestartAsync(CancellationToken cancellationToken = default)
+    {
+        _restarting = true;
+        try
+        {
+            // Only one connect loop at a time: an old one still retrying would fight the new connection.
+            if (_attempts is { } attempts)
+            {
+                await attempts.CancelAsync();
+            }
+
+            if (_connecting is { } loop)
+            {
+                await loop;
+            }
+
+            await _connection.StopAsync(cancellationToken);
+        }
+        finally
+        {
+            _restarting = false;
+        }
+
+        _store.SetConnection(ConnectionState.Reconnecting);
+        _connecting = StartConnecting();
     }
 
     public async ValueTask DisposeAsync()
     {
         await _disposing.CancelAsync();
         await _connection.DisposeAsync();
+        _attempts?.Dispose();
         _disposing.Dispose();
+    }
+
+    /// <summary>Starts a connect loop that the next restart (or dispose) can cancel.</summary>
+    private Task StartConnecting()
+    {
+        _attempts?.Dispose();
+        _attempts = CancellationTokenSource.CreateLinkedTokenSource(_disposing.Token);
+        return ConnectAsync(_attempts.Token);
     }
 
     /// <summary>The first connection: <c>WithAutomaticReconnect</c> only covers connections that were once established.</summary>
@@ -84,6 +123,13 @@ internal sealed partial class ElevatorHubClient : IElevatorHubClient, IAsyncDisp
     {
         for (var attempt = 0; !cancellationToken.IsCancellationRequested; attempt++)
         {
+            // Already connected (by an earlier loop, or a reconnect): nothing to start.
+            if (_connection.State == HubConnectionState.Connected)
+            {
+                _store.SetConnection(ConnectionState.Connected);
+                return;
+            }
+
             try
             {
                 await _connection.StartAsync(cancellationToken);

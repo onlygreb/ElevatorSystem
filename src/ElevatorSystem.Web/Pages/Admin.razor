@@ -1,0 +1,15 @@
+@page "/admin"
+@inject IStringLocalizer<SharedResource> L
+
+<PageTitle>@L[Text.AdminPageTitle]</PageTitle>
+
+<h1 class="visually-hidden" tabindex="-1">@L[Text.AdminPageTitle]</h1>
+
+<ErrorBoundary>
+    <ChildContent>
+        <AdminView />
+    </ChildContent>
+    <ErrorContent>
+        <MudAlert Severity="Severity.Error" Variant="Variant.Filled" role="alert">@L[Text.UnhandledError]</MudAlert>
+    </ErrorContent>
+</ErrorBoundary>

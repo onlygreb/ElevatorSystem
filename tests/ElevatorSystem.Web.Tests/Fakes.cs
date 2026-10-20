@@ -52,9 +52,17 @@ internal sealed class FakeElevatorHubClient : IElevatorHubClient
 {
     public int StartCalls { get; private set; }
 
+    public int RestartCalls { get; private set; }
+
     public Task StartAsync(CancellationToken cancellationToken = default)
     {
         StartCalls++;
+        return Task.CompletedTask;
+    }
+
+    public Task RestartAsync(CancellationToken cancellationToken = default)
+    {
+        RestartCalls++;
         return Task.CompletedTask;
     }
 }

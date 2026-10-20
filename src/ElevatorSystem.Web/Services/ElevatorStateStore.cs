@@ -35,6 +35,9 @@ public sealed class ElevatorStateStore
 
     public ConnectionState Connection { get; private set; } = ConnectionState.Connecting;
 
+    /// <summary>How many people are where; only staff connections receive it (ADR-0022).</summary>
+    public BuildingOccupancyDto? Occupancy { get; private set; }
+
     /// <summary>Recent activity, newest first, never more than <see cref="ActivityCapacity"/> entries.</summary>
     public IReadOnlyList<ElevatorActivityDto> Activity
     {
@@ -95,6 +98,37 @@ public sealed class ElevatorStateStore
         }
 
         ActivityReceived?.Invoke(this, activity);
+        OnChanged();
+    }
+
+    /// <summary>Shows <paramref name="occupancy"/> unless newer counts are already shown.</summary>
+    /// <returns><c>true</c> when the counts were applied.</returns>
+    public bool ApplyOccupancy(BuildingOccupancyDto occupancy)
+    {
+        ArgumentNullException.ThrowIfNull(occupancy);
+
+        lock (_gate)
+        {
+            if (Occupancy is { } shown && occupancy.TakenAt < shown.TakenAt)
+            {
+                return false;
+            }
+
+            Occupancy = occupancy;
+        }
+
+        OnChanged();
+        return true;
+    }
+
+    /// <summary>Forgets the counts, for example after signing out.</summary>
+    public void ClearOccupancy()
+    {
+        lock (_gate)
+        {
+            Occupancy = null;
+        }
+
         OnChanged();
     }
 
