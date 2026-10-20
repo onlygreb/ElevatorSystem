@@ -5,6 +5,16 @@ var builder = DistributedApplication.CreateBuilder(args);
 var messagingUser = builder.AddParameter("messaging-username", "elevator");
 var databaseUser = builder.AddParameter("database-username", "elevator");
 
+// The first admin (ADR-0022). Its password is generated like the others; read it from the dashboard's
+// parameters, sign in, and register an authenticator app before any admin capability is available.
+var adminEmail = builder.AddParameter("admin-email", "admin@elevator.local");
+var adminPassword = builder.AddParameter(
+    "admin-password", new GenerateParameterDefault { MinLength = 24, Special = false }, secret: true, persist: true);
+
+// HMAC key that pseudonymises client addresses in the audit trail: 44 base64 characters, 33 bytes.
+var auditPseudonymKey = builder.AddParameter(
+    "audit-pseudonym-key", new GenerateParameterDefault { MinLength = 44, Special = false }, secret: true, persist: true);
+
 // Same broker major version as the messaging tests (rabbitmq:4.1), with the management UI.
 var messaging = builder.AddRabbitMQ("messaging", messagingUser)
     .WithManagementPlugin()
@@ -26,10 +36,17 @@ builder.AddProject<Projects.ElevatorSystem_Engine>("engine")
     .WaitFor(database)
     .WithHttpHealthCheck("/health");
 
+// Staff accounts, the audit trail and the Data Protection keys live in the staff schema of the same database.
 builder.AddProject<Projects.ElevatorSystem_Api>("api")
     .WithEnvironment("Hosting__Mode", "Distributed")
+    .WithEnvironment("Staff__Accounts__0__Email", adminEmail)
+    .WithEnvironment("Staff__Accounts__0__Password", adminPassword)
+    .WithEnvironment("Staff__Accounts__0__Role", "Admin")
+    .WithEnvironment("Audit__ClientPseudonymKey", auditPseudonymKey)
     .WithReference(messaging)
+    .WithReference(database)
     .WaitFor(messaging)
+    .WaitFor(database)
     .WithExternalHttpEndpoints()
     .WithHttpHealthCheck("/health");
 
