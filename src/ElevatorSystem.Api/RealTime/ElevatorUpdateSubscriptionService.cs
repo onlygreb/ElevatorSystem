@@ -37,6 +37,12 @@ internal sealed class ElevatorUpdateSubscriptionService(
             await _stopping.CancelAsync();
         }
 
+        // Wait for the subscription itself: the base class may not have started ExecuteAsync yet on a busy thread pool.
+        if (_subscription is { } subscription)
+        {
+            await subscription.WaitAsync(cancellationToken).ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
+        }
+
         await base.StopAsync(cancellationToken);
     }
 
