@@ -42,8 +42,10 @@ Microsoft.Testing.Platform, Shouldly, code coverage). Don't add those packages a
   certificate, short car timings, demo scenarios on, a test admin) and one headless Chromium for the whole run.
   - `NewPageAsync(locale)` opens a fresh context (own cookies and storage), so each test starts outside
   - the test classes share the `OneElevator` collection and run one at a time: they share one car
-  - `PassengerJourneyTests.BoardAsync` walks into the car wherever it is; `AdminTests.SignInAsync` registers
-    the authenticator on first use (`Totp`) and never replays a code
+  - the fixture warms up once with generous timeouts: it loads the app and registers the test admin's
+    authenticator (`AdminTests.RegisterAsync`, `Totp`), so a cold runner never fails the first test
+  - `PassengerJourneyTests.BoardAsync` walks into the car wherever it is; `AdminTests.SignInAsync` signs in
+    with a fresh code (never a replayed one) and fails with the page text and the API's output
   - `AccessibilityTests` run axe with the WCAG 2.2 A and AA tags and expect no violation
 
 ## Prove a new test can fail
