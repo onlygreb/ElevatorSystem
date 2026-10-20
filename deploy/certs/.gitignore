@@ -1,0 +1,3 @@
+# The HTTPS certificate for the compose stack lives here and never in git (see deploy/README.md).
+*
+!.gitignore

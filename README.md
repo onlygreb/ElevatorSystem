@@ -241,6 +241,14 @@ view (the account is created once, so keep the same password). The first sign-in
 (any TOTP app: scan the QR code), then shows one-time recovery codes. Every staff feature needs that second factor.
 Then press a demo scenario and watch the building fill up.
 
+With Docker alone, no .NET SDK needed, [`deploy/compose.yaml`](deploy/compose.yaml) builds and runs the same system: both
+engines, the API on https://localhost:8443, RabbitMQ, PostgreSQL and the Aspire dashboard. Fill in `deploy/.env` and
+add an HTTPS certificate first, as [`deploy/README.md`](deploy/README.md) explains ([ADR-0029](docs/adr/0029-docker-compose-and-dockerfile.md)):
+
+```bash
+docker compose -f deploy/compose.yaml up --build --detach
+```
+
 Without Docker, the API alone runs the engine in its own process over in-memory messaging and storage
 (`Hosting:Mode=SingleProcess`, the Development default; [ADR-0021](docs/adr/0021-engine-hosting-topology-and-single-process-mode.md)):
 
@@ -328,7 +336,7 @@ Quality gates enforced by the build:
 
 | Workflow | Trigger | What it does |
 |---|---|---|
-| [CI](.github/workflows/ci.yml) | Push to `main`, pull requests | Locked restore with vulnerability audit, format check, Release build, tests with coverage; dependency review on pull requests |
+| [CI](.github/workflows/ci.yml) | Push to `main`, pull requests | Locked restore with vulnerability audit, format check, Release build, tests with coverage, browser tests; builds the Compose images from `deploy/Dockerfile`; dependency review on pull requests |
 | [CodeQL](.github/workflows/codeql.yml) | Push, pull requests, weekly | Security analysis of the C# code and of the workflows themselves |
 | [Quality](.github/workflows/quality.yml) | Weekly, on demand | Mutation testing of Domain and the Application core (fails below 80%) and the k6 load test |
 | [Release](.github/workflows/release.yml) | Tag `vX.Y.Z` | Re-verifies, publishes the API and engine images to GitHub Container Registry with signed build provenance, creates the GitHub release |

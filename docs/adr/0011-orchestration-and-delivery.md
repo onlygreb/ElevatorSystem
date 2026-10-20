@@ -1,6 +1,6 @@
 # 0011. Local orchestration and container delivery
 
-- **Status:** Accepted
+- **Status:** Accepted; amended by [0029](0029-docker-compose-and-dockerfile.md) (Compose and a Dockerfile for Docker-only runs)
 - **Date:** 2026-10-19
 
 ## Context

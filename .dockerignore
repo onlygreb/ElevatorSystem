@@ -1,0 +1,14 @@
+# Only what deploy/Dockerfile needs reaches the build: no build outputs, tests, secrets or local state.
+**/bin/
+**/obj/
+**/TestResults/
+**/node_modules/
+.git/
+.vs/
+.claude/
+tests/
+docs/
+deploy/certs/
+deploy/.env
+**/*.user
+**/appsettings.*.local.json
