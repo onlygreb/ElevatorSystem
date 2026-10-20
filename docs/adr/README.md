@@ -25,9 +25,11 @@ supersedes the old one instead of editing it. New records start from [`template.
 | [0017](0017-manual-passengers-occupancy-and-admin-service-control.md) | Manual passengers, occupancy counts and admin service control | Accepted |
 | [0018](0018-rabbitmq-messaging-adapter.md) | RabbitMQ messaging adapter: delivery, recovery and update fan-out | Accepted |
 | [0019](0019-postgresql-snapshots-deduplication-and-leader-lease.md) | Store snapshots, processed commands and the leader lease in PostgreSQL | Accepted |
-| [0020](0020-occupancy-counting-rules-and-traffic-generator.md) | Count passengers by explicit rules and mirror them in the traffic generator | Accepted |
+| [0020](0020-occupancy-counting-rules-and-traffic-generator.md) | Count passengers by explicit rules and mirror them in the traffic generator | Superseded by [0026](0026-passengers-walk-in-and-out.md) |
 | [0021](0021-engine-hosting-topology-and-single-process-mode.md) | Engine hosting topology and the single-process mode | Accepted |
 | [0022](0022-staff-authentication-and-authorization.md) | Authenticate staff with Identity cookies and a mandatory second factor | Accepted |
 | [0023](0023-audit-trail-writer-and-verification.md) | The API writes the audit trail, before acting, as one hash chain | Accepted |
 | [0024](0024-drop-lgpd-compliance-scope.md) | Keep privacy by design, without an LGPD compliance programme | Accepted |
 | [0025](0025-doors-wait-open-when-idle.md) | The car waits with its door open, and a call starts the door countdown | Accepted |
+| [0026](0026-passengers-walk-in-and-out.md) | Passengers walk in and out of the car themselves, and are counted as they move | Accepted |
+| [0027](0027-admin-demo-scenarios.md) | Admins can start demo scenarios with simulated passengers | Accepted |

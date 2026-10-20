@@ -46,6 +46,10 @@ ADR-0012 (control loop), ADR-0015 (real-time fan-out), ADR-0022 (staff authentic
 | `POST /api/v1/admin/service-actions` (`ServiceActionRequest`, optional `Idempotency-Key`) | `service-control` policy, antiforgery | `202` `ServiceActionAcceptedResponse` | `400`, `401`, `403`, `422` key reused, `503` `Busy` |
 | `GET /api/v1/admin/audit/entries?before=&limit=` | `staff` policy | `200` `AuditPageDto`, newest first | `400`, `401`, `403` |
 | `GET /api/v1/admin/audit/verification` | `staff` policy | `200` `AuditVerificationDto` | `401`, `403` |
+| `POST /api/v1/passengers` | anonymous, `passenger` limit | `202` `PassengerAcceptedResponse` (a random passenger id on floor 1) | `429`, `503` `Busy` |
+| `GET /api/v1/passengers/{id}` | anonymous, `read` limit | `200` `PassengerDto` (from the activity feed) | `404` `UnknownPassenger`, `429` |
+| `POST /api/v1/passengers/{id}/hall-call` (`PassengerHallCallRequest`), `/board`, `/car-call` (`PassengerCarCallRequest`), `/leave` | anonymous, `passenger` limit, 1 KB | `202` `PassengerAcceptedResponse`; the engine reports the step, or `PassengerRefused` and its reason, on the hub under the request id | `400`, `429`, `503` `Busy` |
+| `POST /api/v1/admin/scenarios` (`StartScenarioRequest`), `/admin/scenarios/stop` | `service-control` policy, antiforgery, audited | `202` `ScenarioAcceptedResponse` | `400`, `401`, `403`, `409` disabled (`Simulation:Enabled`), `503` |
 
 Policies (`Staff/StaffPolicies.cs`): `staff` is `Admin` or `Auditor` signed in with the second factor (`amr: mfa`);
 `service-control` is `Admin` with the second factor. A password-only session reaches only `session` and the two-factor

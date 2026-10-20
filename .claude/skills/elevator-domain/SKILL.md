@@ -107,56 +107,39 @@ being travelled to, and the drive performs the trip.
   - any other loop failure takes the car out of service with `Fault`, and the loop keeps running
 - **Event sinks** (`IElevatorEventSink`) must be thread-safe and fast; never do I/O inline.
 
-## Occupancy
+## Passengers and occupancy
 
-Decisions: ADR-0017 (passengers are counted from their calls) and ADR-0020 (the exact rules).
-Code: `Application/Occupancy` (`OccupancyTracker`, `OccupancyOptions`, `IOccupancyObserver`,
-`CompositeElevatorEventSink`) and `Application/Simulation` (`TrafficGenerator`, `ArrivalSchedule`).
-Passengers are anonymous counts; nothing identifies a person (ADR-0024).
+Decisions: ADR-0026 (passengers walk in and out themselves) and ADR-0027 (demo scenarios).
+Code: `Application/Passengers` (`PassengerRegistry`, `PassengerService`, `PassengerOptions`,
+`PassengerEvent`s, `IPassengerObserver`) and `Application/Simulation/DemoScenarioRunner`.
+A passenger is a random id the browser keeps; nothing identifies a person (ADR-0024).
 
-**Counting rules** (`OccupancyTracker`, an `IElevatorEventSink`):
+**Rules** (`PassengerRegistry`, an `IElevatorEventSink`, one lock, checked against `Elevator.Snapshot()`):
 
-- A hall call (queued, merged, or served on the spot) is one person waiting on its floor, taken
-  from `Present` there if anyone is present. If someone on that floor was left behind, the call is
-  theirs, placed again, and nobody new is counted.
-- While the door is open at a floor, the people waiting there board oldest first, up to
-  `OccupancyOptions.CarCapacity` (default 8). This happens on `DoorsOpened` and again after each
-  served car call, so riders always get off before anyone boards.
-- People who don't fit stay waiting with no pending call (`LeftBehind`) and must call again.
-- A served car call lets `RequestCount` riders off: they become present on that floor and count as
-  delivered.
-- The wait runs from the request's `RequestedAt` to boarding, averaged over everyone who boarded.
-- **Out of service:** riders get off at the car's floor (present, counted as `Evacuated`, not
-  delivered). Waiting people stay waiting, but their calls were cancelled, so they are all left
-  behind until they call again. Events published after the out-of-service event move nobody.
-- Nothing goes negative: an inconsistent event is clamped, logged (event IDs 1800–1803) and
-  counted in `OccupancyTotals.Corrections`.
-- Invariant (property-tested): `Waiting + LeftBehind + Riding + Present == PeopleCounted`, and
-  `Riding == Boarded − Delivered − Evacuated ≤ CarCapacity`.
+- `Join`: arrive on the lowest floor, present. Again with the same id: no change. Refused
+  `BuildingFull` beyond `MaxPassengers` (300).
+- `Call(direction)`: on a floor, in a direction the building allows, car in service; the passenger is
+  now waiting. The caller places the hall call (`PassengerService`, or the engine's handler) and calls
+  `WithdrawCall` if the controller refuses it.
+- `Board`: door open on their floor (`DoorNotOpenHere`) and fewer than `CarCapacity` (8) riders
+  (`CarFull`). Records the wait from the call.
+- `ChooseFloor(floor)`: inside the car (`NotInCar`); the caller places the car call.
+- `Leave`: inside, door open (`DoorClosed`); they are now present on that floor. A ride counts when
+  they leave on another floor than the one they boarded.
+- Whoever does not leave rides on. Waiting passengers keep waiting when the car leaves without them.
+- `ElevatorTakenOutOfService`: riders walk out where the car stopped. People idle for `IdleTimeout`
+  (30 min) are removed on the next `DoorsOpened`; simulated passengers stay until their scenario ends.
+- Counts (`Current`): waiting/present per floor, riding, rides, average wait. Calls without a passenger
+  move the car but count nobody.
 
-**Wiring** (the host does this):
+**Wiring**: the registry comes first in the controller's `CompositeElevatorEventSink`. The observer
+hears every `PassengerEvent` and every change of the counts in order, under the lock: hand them to a
+buffer (the engine turns them into `ElevatorUpdateV1` and `OccupancyUpdateV1`). Event IDs 1840–1859.
 
-- Create one tracker per elevator and put it first in a `CompositeElevatorEventSink` passed to the
-  controller, ahead of the real-time fan-out. A sink that throws is logged (1806) and skipped.
-- `Current` gives the `BuildingOccupancyDto`. The `IOccupancyObserver` is told about every change,
-  in order, under the tracker's lock, so it must be fast and thread-safe: hand the counts to the
-  bus or the hub, never do I/O inline.
-
-**Traffic generator** (a test and load tool, off by default):
-
-- Simulated people press buttons through `ElevatorController` like real people. They follow the
-  tracker's rules with the same capacity, so with no other traffic they are exactly where the
-  tracker counts them, after every event.
-- It is seeded and driven by `TimeProvider`, so the same seed gives the same calls at the same
-  simulated times.
-- It caps the people in the building at once (`MaxActivePeople`) and, optionally, in total
-  (`MaxPeople`).
-- It must also receive the elevator's events (add it to the composite sink), and it is started
-  with `Start(controller)`.
-- People the counts already include press again only from the control loop's `DoorsClosed`
-  (and one of them after a return to service). A press from another thread could arrive after
-  they boarded and be counted as a new person (ADR-0020 §5).
-- Event IDs 1820–1839.
+**Demo scenarios** (`DemoScenarioRunner`, `SimulationOptions`, off unless `Enabled`): morning rush,
+lunch break, busy day. Simulated passengers arrive on the lowest floor and use `PassengerService` like
+people, at a human pace, on a `TimeProvider` timer (`TickInterval`), seeded for reproducible runs.
+`StopAll` removes them. `DemoScenarioTests` drive whole scenarios in simulated time.
 
 ## Before you finish a change here
 
