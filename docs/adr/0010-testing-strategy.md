@@ -42,3 +42,17 @@ Shared rules:
 - CI needs Docker for the integration layer (available on GitHub-hosted Linux runners).
 - Concurrency and timing bugs are found by generated scenarios instead of by luck.
 - The suite will be larger than usual. Keeping unit tests in virtual time keeps it fast.
+
+## Amendment (2026-10-20)
+
+- **Where the slow checks run.** Mutation testing (about an hour for Application on a loaded machine) and
+  the load test run in a separate Quality workflow, weekly and on demand, not on every pull request. Both
+  fail the run below their thresholds: a mutation score under 80%, a p95 acceptance of 100 ms or more, or
+  any `503 Busy` refusal under the sustained load.
+- **What Application mutation covers.** Its deterministic core only: the controller, the passenger
+  registry, the audit chain and trail, the pseudonymizer and the mappers. The engine host, the command
+  handler and the demo runner are proven by real-time engine and integration tests, which are too slow to
+  run once per mutant.
+- **Browser tests** (Playwright with axe) run in CI in a step of their own, after the other suites:
+  containers starting and stopping change the runner's network interfaces, and Chromium aborts requests
+  in flight when that happens.
