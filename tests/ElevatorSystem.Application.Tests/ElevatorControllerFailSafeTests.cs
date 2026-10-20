@@ -27,6 +27,21 @@ public sealed class ElevatorControllerFailSafeTests
     }
 
     [Fact]
+    public async Task ProcessRequests_AnUnexpectedFailureInTheLoop_TakesTheCarOutOfService_AndTheLoopKeepsRunning()
+    {
+        await using var harness = ControllerHarness.Create(startFloor: 1, strategy: new BrokenStrategy()).Start();
+
+        harness.Controller.RequestDestination(5);
+        var outOfService = await harness.NextAsync<ElevatorTakenOutOfService>();
+
+        outOfService.Reason.ShouldBe(OutOfServiceReason.Fault);
+        outOfService.CancelledCalls.ShouldHaveSingleItem().Call.ShouldBe(new CarCall(new Floor(5)));
+        harness.Loop.IsCompleted.ShouldBeFalse("the loop fails safe instead of crashing");
+        harness.Controller.ReturnToService().Succeeded.ShouldBeTrue();
+        harness.Controller.RequestDestination(3).IsAccepted.ShouldBeTrue();
+    }
+
+    [Fact]
     public async Task ProcessRequests_SlowTripWithinTolerance_IsNotAFault()
     {
         var slowTravel = ControllerHarness.Step * 2;

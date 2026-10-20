@@ -48,7 +48,7 @@ ElevatorSystem controls an elevator serving floors 1 to 10 and gives passengers 
 | Capability | Description |
 |---|---|
 | **Passenger journeys** | Every passenger enters the building on floor 1, calls the car, walks in while its doors are open on their floor (a bar counts down the last seconds, ending one second early so a late press still makes it), chooses a floor and walks out when the doors open, or rides on. With nowhere to go, the car waits with its doors open. Invalid requests are refused with a reason. |
-| **Scheduling** | First-in, first-out by default, with duplicate presses merged. A LOOK strategy can be switched on to compare average wait times. |
+| **Scheduling** | First-in, first-out by default, with duplicate presses merged. A LOOK strategy can be chosen in configuration (`Elevator:Scheduling`, or `ELEVATOR_SCHEDULING` in Docker Compose) to compare average wait times, which the admin view shows with the strategy they were measured under. |
 | **Real-time simulation** | Car movement and doors run in real time; every change streams live to connected browsers. |
 | **Concurrency** | 100+ simultaneous requests handled safely; target time from request to assignment under 100 ms. |
 | **Fail-safe operation** | Stuck-car detection, out-of-service mode, emergency stop, recovery after restart, and a guarantee that only one controller drives the car. |
@@ -85,13 +85,13 @@ Each core requirement maps to the code that implements it and the tests that pro
 | Pickup (floor + direction) and destination requests | `HallCall`, `CarCall` | `ElevatorRequestTests`, `ElevatorControllerJourneyTests` |
 | FIFO scheduling | [`FifoSchedulingStrategy`](src/ElevatorSystem.Domain/Scheduling/FifoSchedulingStrategy.cs) ([ADR-0005](docs/adr/0005-fifo-scheduling-semantics.md)) | `SchedulingPropertyTests` (1,000 random workloads), journey tests |
 | Locks, thread-safe collections, atomic state changes, no races in assignment | `System.Threading.Lock` in `Elevator`; bounded `Channel<T>` intake with a single consumer; immutable snapshots ([ADR-0004](docs/adr/0004-concurrency-model-and-time-abstraction.md)) | `ElevatorConcurrencyTests`, `ElevatorControllerConcurrencyTests` |
-| 100+ concurrent requests, assignment under 100 ms | Requests applied while the car travels ([ADR-0012](docs/adr/0012-elevator-control-loop.md)) | 2,000 simultaneous requests with the 99th percentile asserted under 100 ms; end to end, the [k6 load test](tests/load/README.md) (200 at once, then 2,000 a second) with p95 acceptance under 100 ms |
+| 100+ concurrent requests, assignment under 100 ms | Requests applied while the car travels ([ADR-0012](docs/adr/0012-elevator-control-loop.md)) | 2,000 simultaneous requests with the 99th percentile asserted under 100 ms (the test raises the intake to 4,000; at the default of 1,024 waiting requests a bigger burst is refused as busy, never blocked); end to end, the [k6 load test](tests/load/README.md) (200 at once, then 2,000 a second) with p95 acceptance under 100 ms |
 | Reasonable memory under load | Repeated calls merged: at most 28 pending calls | `ElevatorRequestTests`, concurrency tests |
-| Invalid floor requests handled gracefully | `Building.Validate` returns a `RequestRejectionReason` and never throws | `BuildingTests`, `ElevatorControllerRequestTests` |
+| Invalid floor requests handled gracefully | `Building.Validate` returns a `RequestRejectionReason` instead of throwing | `BuildingTests`, `ElevatorControllerRequestTests` |
 | Timeouts for stuck elevators | Trip watchdog → out of service (`Fault`) ([ADR-0007](docs/adr/0007-fail-safe-operation.md)) | `ElevatorControllerFailSafeTests` |
 | A stuck elevator stays out of service across restarts | The fault is saved in the snapshot and restored, with every call cancelled, until a return to service ([ADR-0021](docs/adr/0021-engine-hosting-topology-and-single-process-mode.md)) | `RestoredOutOfServiceCar_StaysOutOfService_WithItsDoorClosed` |
 | Recovery after a crash or restart; one controller at a time | Snapshot in PostgreSQL, advisory-lock leader with a hot standby, commands kept in RabbitMQ until applied ([ADR-0019](docs/adr/0019-postgresql-snapshots-deduplication-and-leader-lease.md), [ADR-0021](docs/adr/0021-engine-hosting-topology-and-single-process-mode.md)) | `ElevatorEngineTests`, integration tests: killing the leader, restarting the only engine, broker outage, engine down |
-| Exception handling for concurrent operations | Failures contained per request, per trip and per subscriber; the loop fails safe | `ElevatorControllerFailSafeTests` |
+| Exception handling for concurrent operations | Failures contained per trip and per subscriber; any other failure in the control loop takes the car out of service instead of crashing it; a request that fails to apply is logged and dropped | `ElevatorControllerFailSafeTests`: a jammed car, a failing or throwing drive, failing subscribers, a broken scheduler |
 | Logging of elevator actions | Source-generated messages with stable event IDs ([`ElevatorControllerLog`](src/ElevatorSystem.Application/ElevatorControllerLog.cs)) | Console demo with `--verbose` |
 
 ## Architecture
@@ -387,10 +387,11 @@ test strategy targets them directly ([ADR-0010](docs/adr/0010-testing-strategy.m
 Every build runs the architecture, domain, application, API, UI component, integration and browser suites.
 The integration tests start RabbitMQ and PostgreSQL in Docker and the engines as real processes; the browser
 tests start the API as a process and drive it in Chromium with Playwright. Mutation testing and the load test
-take too long for every pull request, so the Quality workflow runs them weekly and on demand. The unit tests run
-in simulated time
+take too long for every pull request, so the Quality workflow runs them weekly and on demand. The behaviour tests
+run in simulated time
 ([`FakeTimeProvider`](https://learn.microsoft.com/dotnet/api/microsoft.extensions.time.testing.faketimeprovider)),
-so the suite never sleeps and never flakes on timing.
+so they never sleep and never depend on timing. The concurrency tests use the real clock on purpose: they measure
+assignment latency with real threads.
 
 The [screenshots](#screenshots) come from the browser suite too. To refresh them, point `ELEVATOR_SCREENSHOTS`
 at the images folder (an absolute path) and run it:

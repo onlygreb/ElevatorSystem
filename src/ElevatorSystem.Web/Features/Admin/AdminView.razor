@@ -77,7 +77,7 @@ else
                         </div>
                     }
                     <div class="es-panel">
-                        <OccupancyPanel Occupancy="Store.Occupancy" />
+                        <OccupancyPanel Occupancy="Store.Occupancy" Scheduling="@Store.Configuration?.SchedulingStrategy" />
                     </div>
                 </div>
             </div>

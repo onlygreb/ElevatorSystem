@@ -642,4 +642,7 @@
   <data name="ActivitySpeedNormal" xml:space="preserve">
     <value>Back to normal speed.</value>
   </data>
+  <data name="SchedulingNote" xml:space="preserve">
+    <value>with {0} scheduling</value>
+  </data>
 </root>

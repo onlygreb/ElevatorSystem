@@ -15,7 +15,7 @@ and ADR-0012 (control loop and core semantics).
 | One elevator serving floors 1–10 | `Building` (`Default`, `Contains`, `Validate`, `CanTravel`), `Floor` |
 | States `IDLE`, `MOVING_UP`, `MOVING_DOWN`, `DOOR_OPEN` | `ElevatorState` (+ `OutOfService` with an `OutOfServiceReason`) |
 | Pickup requests (floor + direction) and destination requests | `HallCall`, `CarCall` (both `ElevatorCall`); `PassengerRequest` adds id and time |
-| FIFO scheduling | `FifoSchedulingStrategy` behind `ISchedulingStrategy` (`LookSchedulingStrategy` for comparison) |
+| FIFO scheduling | `FifoSchedulingStrategy` behind `ISchedulingStrategy`; `ElevatorControllerOptions.Scheduling` (`Elevator:Scheduling`) can choose `LookSchedulingStrategy` for comparison |
 | Thread-safe handling of concurrent requests | `ElevatorController` intake channel + `Elevator` lock + `ElevatorSnapshot` |
 | Logging of elevator actions | Domain events, logged by `ElevatorControllerLog` (event IDs 1500–1999) |
 | Invalid floor requests handled gracefully | `Building.Validate` → `RequestRejectionReason`, never an exception |

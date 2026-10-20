@@ -1,6 +1,7 @@
 using ElevatorSystem.Application.Ports;
 using ElevatorSystem.Domain;
 using ElevatorSystem.Domain.Events;
+using ElevatorSystem.Domain.Scheduling;
 
 namespace ElevatorSystem.Application.Tests;
 
@@ -16,6 +17,15 @@ internal sealed class ThrowingDrive : IElevatorDrive
 {
     public Task MoveOneFloorAsync(Direction direction, CancellationToken cancellationToken) =>
         throw new InvalidOperationException("Drive controller unreachable");
+}
+
+/// <summary>A scheduler with a bug: fine while nothing is pending, it throws as soon as there is a call to plan.</summary>
+internal sealed class BrokenStrategy : ISchedulingStrategy
+{
+    public string Name => "Broken";
+
+    public Floor? SelectTarget(ElevatorSnapshot snapshot) =>
+        snapshot.PendingCalls.IsEmpty ? null : throw new InvalidOperationException("Scheduler bug");
 }
 
 /// <summary>A subscriber that records the event and then throws, as a broken downstream consumer would.</summary>

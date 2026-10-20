@@ -26,8 +26,8 @@ public static class ElevatorEngineServiceCollectionExtensions
 
     /// <summary>
     /// Binds <see cref="ElevatorControllerOptions"/> from <see cref="ElevatorSection"/>, validated at start-up,
-    /// and registers the <see cref="Building"/>, the FIFO strategy and <see cref="TimeProvider.System"/>
-    /// unless the host chose others. Every host that describes the elevator needs these.
+    /// and registers the <see cref="Building"/>, the configured scheduling strategy (FIFO by default) and
+    /// <see cref="TimeProvider.System"/> unless the host chose others. Every host that describes the elevator needs these.
     /// </summary>
     public static IServiceCollection AddElevatorOptions(this IServiceCollection services)
     {
@@ -35,7 +35,7 @@ public static class ElevatorEngineServiceCollectionExtensions
 
         services.TryAddSingleton(TimeProvider.System);
         services.TryAddSingleton(Building.Default);
-        services.TryAddSingleton<ISchedulingStrategy, FifoSchedulingStrategy>();
+        services.TryAddSingleton(provider => provider.GetRequiredService<ElevatorControllerOptions>().CreateStrategy());
         services.AddOptions<ElevatorControllerOptions>().BindConfiguration(ElevatorSection).ValidateOnStart();
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IValidateOptions<ElevatorControllerOptions>, ControllerOptionsValidator>());
         services.TryAddSingleton(provider => provider.GetRequiredService<IOptions<ElevatorControllerOptions>>().Value);
