@@ -5,15 +5,17 @@ var builder = DistributedApplication.CreateBuilder(args);
 var messagingUser = builder.AddParameter("messaging-username", "elevator");
 var databaseUser = builder.AddParameter("database-username", "elevator");
 
-// The first admin (ADR-0022). Its password is generated like the others; read it from the dashboard's
-// parameters, sign in, and register an authenticator app before any admin capability is available.
+// The first admin (ADR-0022). Its password is a secret you choose: the dashboard asks for it on the first run and
+// can save it to user secrets, or set it with `dotnet user-secrets set Parameters:admin-password <value>`. The account
+// is created once, so the password must stay the same across runs; after signing in, register an authenticator app.
 var adminEmail = builder.AddParameter("admin-email", "admin@elevator.local");
-var adminPassword = builder.AddParameter(
-    "admin-password", new GenerateParameterDefault { MinLength = 24, Special = false }, secret: true, persist: true);
+var adminPassword = builder.AddParameter("admin-password", secret: true)
+    .WithDescription("Password of the first admin account: at least 12 characters, with at least 4 different ones.");
 
-// HMAC key that pseudonymises client addresses in the audit trail: 44 base64 characters, 33 bytes.
+// HMAC key that pseudonymises client addresses in the audit trail: 44 base64 characters, 33 bytes. Generated per run
+// unless set in user secrets, so locally pseudonyms link only within one run (ADR-0023).
 var auditPseudonymKey = builder.AddParameter(
-    "audit-pseudonym-key", new GenerateParameterDefault { MinLength = 44, Special = false }, secret: true, persist: true);
+    "audit-pseudonym-key", new GenerateParameterDefault { MinLength = 44, Special = false }, secret: true);
 
 // Same broker major version as the messaging tests (rabbitmq:4.1), with the management UI.
 var messaging = builder.AddRabbitMQ("messaging", messagingUser)

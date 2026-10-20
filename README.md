@@ -234,7 +234,8 @@ leading `engine` replica in the dashboard and the standby takes over from the sa
 generated on the first run and kept in the AppHost's user secrets; nothing secret is in the repository.
 
 To use the admin view, open `/admin` on the `api` endpoint and sign in as `admin@elevator.local` with the
-`admin-password` parameter shown in the dashboard. The first sign-in asks you to register an authenticator app
+`admin-password` parameter: the dashboard asks you to choose it on the first run and shows it in its Parameters
+view (the account is created once, so keep the same password). The first sign-in asks you to register an authenticator app
 (any TOTP app: scan the QR code), then shows one-time recovery codes. Every staff feature needs that second factor.
 
 Without Docker, the API alone runs the engine in its own process over in-memory messaging and storage
