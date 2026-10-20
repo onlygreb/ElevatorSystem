@@ -1,4 +1,3 @@
-using ElevatorSystem.Application.Ports;
 using ElevatorSystem.Contracts;
 
 namespace ElevatorSystem.Api.RealTime;
@@ -10,13 +9,18 @@ internal static class RealTimeExtensions
     /// </summary>
     public const long MaximumReceiveMessageSize = 4 * 1024;
 
+    /// <summary>
+    /// Registers the update subscription, the cache of the latest state it feeds, the lossy buffer and the hub
+    /// broadcaster (ADR-0015). The <c>IElevatorUpdateSubscriber</c> comes from the hosting mode.
+    /// </summary>
     public static IHostApplicationBuilder AddElevatorRealTime(this IHostApplicationBuilder builder)
     {
         var services = builder.Services;
 
         services.AddOptions<RealTimeOptions>().BindConfiguration(RealTimeOptions.Section).ValidateDataAnnotations().ValidateOnStart();
+        services.AddSingleton<ElevatorStateCache>();
         services.AddSingleton<ElevatorEventBuffer>();
-        services.AddSingleton<IElevatorEventSink>(provider => provider.GetRequiredService<ElevatorEventBuffer>());
+        services.AddHostedService<ElevatorUpdateSubscriptionService>();
         services.AddHostedService<ElevatorBroadcastService>();
 
         services.AddSignalR(options =>

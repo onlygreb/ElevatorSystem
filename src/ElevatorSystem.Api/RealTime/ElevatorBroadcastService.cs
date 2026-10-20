@@ -1,31 +1,29 @@
-using ElevatorSystem.Application;
 using ElevatorSystem.Contracts;
-using ElevatorSystem.Domain.Events;
 using Microsoft.AspNetCore.SignalR;
 
 namespace ElevatorSystem.Api.RealTime;
 
 /// <summary>
-/// Drains <see cref="ElevatorEventBuffer"/> and fans each event out to every hub client, away from the
-/// control loop's thread.
+/// Drains <see cref="ElevatorEventBuffer"/> and fans each update out to every hub client, away from the
+/// subscription's thread (ADR-0015).
 /// </summary>
 /// <remarks>
-/// Every event becomes an <see cref="IElevatorClient.ActivityOccurred"/> message, in order. After each
-/// batch (at most <see cref="MaxBatchSize"/> events) clients get one <see cref="IElevatorClient.StatusChanged"/>
-/// with the current snapshot, and only if its version changed since the last one sent, so a burst of
-/// hundreds of requests produces a handful of status messages rather than hundreds of identical ones.
-/// A failing send is logged and skipped; it never stops the broadcast or reaches the elevator. A send
-/// that never completes is abandoned on shutdown, so a stuck client cannot hold the host open.
+/// Every elevator update becomes an <see cref="IElevatorClient.ActivityOccurred"/> message, in order. After
+/// each batch (at most <see cref="MaxBatchSize"/> updates) clients get one <see cref="IElevatorClient.StatusChanged"/>
+/// with the newest status and one <see cref="IElevatorClient.OccupancyChanged"/> with the newest counts, each only
+/// if it changed since the last one sent, so a burst of hundreds of requests produces a handful of status messages
+/// rather than hundreds of identical ones. A failing send is logged and skipped; it never stops the broadcast. A
+/// send that never completes is abandoned on shutdown, so a stuck client cannot hold the host open.
 /// </remarks>
 internal sealed class ElevatorBroadcastService(
     ElevatorEventBuffer buffer,
-    ElevatorController controller,
     IHubContext<ElevatorStatusHub, IElevatorClient> hub,
     ILogger<ElevatorBroadcastService> logger) : BackgroundService
 {
     public const int MaxBatchSize = 64;
 
-    private long _lastStatusVersion = -1;
+    private ElevatorStatusDto? _lastStatusSent;
+    private BuildingOccupancyDto? _lastOccupancySent;
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -34,12 +32,33 @@ internal sealed class ElevatorBroadcastService(
         {
             while (await reader.WaitToReadAsync(stoppingToken))
             {
-                for (var sent = 0; sent < MaxBatchSize && reader.TryRead(out var elevatorEvent); sent++)
+                ElevatorStatusDto? status = null;
+                BuildingOccupancyDto? occupancy = null;
+                for (var taken = 0; taken < MaxBatchSize && reader.TryRead(out var update); taken++)
                 {
-                    await SendActivityAsync(elevatorEvent, stoppingToken);
+                    switch (update)
+                    {
+                        case ElevatorUpdateV1 elevatorUpdate:
+                            await SendAsync(client => client.ActivityOccurred(elevatorUpdate.Activity), nameof(IElevatorClient.ActivityOccurred), stoppingToken);
+                            status = elevatorUpdate.Status;
+                            break;
+                        case OccupancyUpdateV1 occupancyUpdate:
+                            occupancy = occupancyUpdate.Occupancy;
+                            break;
+                    }
                 }
 
-                await SendStatusIfChangedAsync(stoppingToken);
+                if (status is not null && !SameStatus(status, _lastStatusSent))
+                {
+                    _lastStatusSent = status;
+                    await SendAsync(client => client.StatusChanged(status), nameof(IElevatorClient.StatusChanged), stoppingToken);
+                }
+
+                if (occupancy is not null && !ReferenceEquals(occupancy, _lastOccupancySent))
+                {
+                    _lastOccupancySent = occupancy;
+                    await SendAsync(client => client.OccupancyChanged(occupancy), nameof(IElevatorClient.OccupancyChanged), stoppingToken);
+                }
             }
         }
         // Shutdown: an abandoned or failing send no longer matters.
@@ -48,36 +67,20 @@ internal sealed class ElevatorBroadcastService(
         }
     }
 
-    private async Task SendActivityAsync(ElevatorEvent elevatorEvent, CancellationToken stoppingToken)
+    // One status per version: the updates of one control-loop step, and refused requests, share a version.
+    private static bool SameStatus(ElevatorStatusDto status, ElevatorStatusDto? last) =>
+        last is not null && last.Version == status.Version;
+
+    private async Task SendAsync(Func<IElevatorClient, Task> send, string message, CancellationToken stoppingToken)
     {
         try
         {
-            await hub.Clients.All.ActivityOccurred(ElevatorContractMapper.ToActivity(elevatorEvent)).WaitAsync(stoppingToken);
+            await send(hub.Clients.All).WaitAsync(stoppingToken);
         }
         // One failed message must not end the feed for everyone (ADR-0015).
         catch (Exception exception) when (!stoppingToken.IsCancellationRequested)
         {
-            ApiLog.BroadcastFailed(logger, exception, nameof(IElevatorClient.ActivityOccurred));
-        }
-    }
-
-    private async Task SendStatusIfChangedAsync(CancellationToken stoppingToken)
-    {
-        var snapshot = controller.Elevator.Snapshot();
-        if (snapshot.Version == _lastStatusVersion)
-        {
-            return;
-        }
-
-        _lastStatusVersion = snapshot.Version;
-        try
-        {
-            await hub.Clients.All.StatusChanged(ElevatorContractMapper.ToStatus(snapshot)).WaitAsync(stoppingToken);
-        }
-        // Clients resynchronise from the next status; the broadcast goes on.
-        catch (Exception exception) when (!stoppingToken.IsCancellationRequested)
-        {
-            ApiLog.BroadcastFailed(logger, exception, nameof(IElevatorClient.StatusChanged));
+            ApiLog.BroadcastFailed(logger, exception, message);
         }
     }
 }

@@ -1,23 +1,23 @@
 using System.Threading.Channels;
-using ElevatorSystem.Application.Ports;
-using ElevatorSystem.Domain.Events;
+using ElevatorSystem.Contracts;
 using Microsoft.Extensions.Options;
 
 namespace ElevatorSystem.Api.RealTime;
 
 /// <summary>
-/// The control loop's only contact with the real-time channel: a bounded buffer that never blocks.
+/// The hand-off between the update subscription and the hub broadcaster: a bounded buffer of
+/// <see cref="ElevatorUpdateV1"/> and <see cref="OccupancyUpdateV1"/> messages that never blocks.
 /// </summary>
 /// <remarks>
-/// When browsers cannot keep up, the oldest event is dropped, counted and logged (at most once per
-/// <see cref="DropLogInterval"/>), and the next status message resynchronises every client. Losing a
-/// line of the activity feed is acceptable; stalling the elevator is not (ADR-0007, ADR-0015).
+/// When browsers cannot keep up, the oldest update is dropped, counted and logged (at most once per
+/// <see cref="DropLogInterval"/>), and the next status message resynchronises every client. Losing a line
+/// of the activity feed is acceptable; holding back the subscription is not (ADR-0015).
 /// </remarks>
-internal sealed class ElevatorEventBuffer : IElevatorEventSink
+internal sealed class ElevatorEventBuffer
 {
     public static readonly TimeSpan DropLogInterval = TimeSpan.FromSeconds(10);
 
-    private readonly Channel<ElevatorEvent> _channel;
+    private readonly Channel<object> _channel;
     private readonly TimeProvider _timeProvider;
     private readonly ILogger<ElevatorEventBuffer> _logger;
     private readonly Lock _dropLogGate = new();
@@ -32,7 +32,7 @@ internal sealed class ElevatorEventBuffer : IElevatorEventSink
         _timeProvider = timeProvider;
         _logger = logger;
         Capacity = options.Value.EventBufferCapacity;
-        _channel = Channel.CreateBounded<ElevatorEvent>(
+        _channel = Channel.CreateBounded<object>(
             new BoundedChannelOptions(Capacity)
             {
                 FullMode = BoundedChannelFullMode.DropOldest,
@@ -44,13 +44,17 @@ internal sealed class ElevatorEventBuffer : IElevatorEventSink
 
     public int Capacity { get; }
 
-    /// <summary>How many events have been dropped since start-up.</summary>
+    /// <summary>How many updates have been dropped since start-up.</summary>
     public long DroppedCount => Interlocked.Read(ref _dropped);
 
-    public ChannelReader<ElevatorEvent> Reader => _channel.Reader;
+    /// <summary>Holds <see cref="ElevatorUpdateV1"/> and <see cref="OccupancyUpdateV1"/> messages, oldest first.</summary>
+    public ChannelReader<object> Reader => _channel.Reader;
 
-    /// <summary>Called by the control loop. Always returns at once: a full buffer drops its oldest event.</summary>
-    public void Publish(ElevatorEvent elevatorEvent) => _channel.Writer.TryWrite(elevatorEvent);
+    /// <summary>Always returns at once: a full buffer drops its oldest update.</summary>
+    public void Publish(ElevatorUpdateV1 update) => _channel.Writer.TryWrite(update);
+
+    /// <summary>Always returns at once: a full buffer drops its oldest update.</summary>
+    public void Publish(OccupancyUpdateV1 update) => _channel.Writer.TryWrite(update);
 
     private void OnDropped()
     {

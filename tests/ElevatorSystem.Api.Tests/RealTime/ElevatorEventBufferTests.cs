@@ -1,6 +1,5 @@
 using ElevatorSystem.Api.RealTime;
-using ElevatorSystem.Domain;
-using ElevatorSystem.Domain.Events;
+using ElevatorSystem.Contracts;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Testing;
 using Microsoft.Extensions.Options;
@@ -31,7 +30,7 @@ public sealed class ElevatorEventBufferTests
 
         Publish(buffer, 1, 2, 3, 4, 5);
 
-        ReadAll(buffer).ShouldBe([3, 4, 5], "the newest events matter most to clients catching up");
+        ReadAll(buffer).ShouldBe([3, 4, 5], "the newest updates matter most to clients catching up");
         buffer.DroppedCount.ShouldBe(2);
     }
 
@@ -56,16 +55,16 @@ public sealed class ElevatorEventBufferTests
     {
         foreach (var floor in floors)
         {
-            buffer.Publish(new DoorsOpened(ApiFactory.StartTime, new Floor(floor)));
+            buffer.Publish(ElevatorBroadcastServiceTests.Update(ElevatorActivityKind.DoorsOpened, floor, version: 1));
         }
     }
 
     private static List<int> ReadAll(ElevatorEventBuffer buffer)
     {
         var floors = new List<int>();
-        while (buffer.Reader.TryRead(out var elevatorEvent))
+        while (buffer.Reader.TryRead(out var update))
         {
-            floors.Add(elevatorEvent.Floor.Number);
+            floors.Add(((ElevatorUpdateV1)update).Activity.Floor);
         }
 
         return floors;

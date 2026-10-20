@@ -1,5 +1,4 @@
 using ElevatorSystem.Api.RealTime;
-using ElevatorSystem.Application;
 using ElevatorSystem.Contracts;
 using ElevatorSystem.Domain;
 using Microsoft.AspNetCore.SignalR;
@@ -22,7 +21,7 @@ public sealed class FanOutIsolationTests
     {
         var hub = FakeHubContext.Hanging();
         await using var factory = CreateFactory(hub);
-        var controller = factory.Services.GetRequiredService<ElevatorController>();
+        var controller = await factory.ControllerAsync();
         var buffer = factory.Services.GetRequiredService<ElevatorEventBuffer>();
 
         controller.RequestDestination(10).IsAccepted.ShouldBeTrue();
@@ -42,7 +41,7 @@ public sealed class FanOutIsolationTests
     {
         var hub = FakeHubContext.Throwing();
         await using var factory = CreateFactory(hub);
-        var controller = factory.Services.GetRequiredService<ElevatorController>();
+        var controller = await factory.ControllerAsync();
 
         controller.RequestDestination(5).IsAccepted.ShouldBeTrue();
 

@@ -1,6 +1,11 @@
 using System.Net;
+using ElevatorSystem.Api.Hosting;
 using ElevatorSystem.Application;
+using ElevatorSystem.Application.Hosting;
+using ElevatorSystem.Application.Ports;
+using ElevatorSystem.Contracts;
 using ElevatorSystem.Domain;
+using ElevatorSystem.Infrastructure.Messaging;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 
@@ -9,20 +14,36 @@ namespace ElevatorSystem.Api.Tests;
 public sealed class HostingTests
 {
     [Fact]
-    public async Task ControlLoop_RunsInTheHost_AndServesRequests()
+    public async Task SingleProcess_RunsTheEngineInTheHost_AndServesRequests()
     {
         await using var factory = new ApiFactory().WithFakeTime();
-        _ = factory.CreateClient();
-        var controller = factory.Services.GetRequiredService<ElevatorController>();
+        using var client = factory.CreateClient();
+        var controller = await factory.ControllerAsync();
 
-        var result = controller.RequestDestination(4);
+        using var response = await client.PostJsonAsync(ApiRoutes.CarCalls, """{"floor":4}""");
 
-        result.IsAccepted.ShouldBeTrue();
+        response.StatusCode.ShouldBe(HttpStatusCode.Accepted);
         await Eventually.HoldsAsync(
             () => controller.Elevator.Snapshot() is { CurrentFloor.Number: 4, State: ElevatorState.DoorOpen },
             "the car to open its door at floor 4",
             factory.Time,
             cancellationToken: TestContext.Current.CancellationToken);
+        await factory.StatusAsync(status => status is { CurrentFloor: 4, Status: ElevatorStatus.DoorOpen });
+    }
+
+    [Fact]
+    public async Task Distributed_IsTheDefault_AndUsesRabbitMq()
+    {
+        await using var factory = new ApiFactory()
+            .WithoutOverride("Hosting:Mode")
+            .InEnvironment("Production")
+            .WithSetting("ConnectionStrings:messaging", "amqp://api:secret@127.0.0.1:1/");
+        _ = factory.Server;
+
+        factory.Services.GetRequiredService<IOptions<HostingOptions>>().Value.Mode.ShouldBe(HostingMode.Distributed);
+        factory.Services.GetRequiredService<IElevatorCommandPublisher>().ShouldBeOfType<RabbitMqElevatorCommandPublisher>();
+        factory.Services.GetService<ElevatorEngine>().ShouldBeNull("in distributed mode the engine runs in its own processes");
+        factory.Services.GetRequiredService<IOptions<MessagingOptions>>().Value.Uri.ShouldBe(new Uri("amqp://api:secret@127.0.0.1:1/"));
     }
 
     [Fact]
@@ -32,9 +53,8 @@ public sealed class HostingTests
             .WithSetting("Elevator:TravelTimePerFloor", "00:00:02")
             .WithSetting("Elevator:DoorOpenDuration", "00:00:04")
             .WithSetting("Elevator:IntakeCapacity", "16");
-        _ = factory.CreateClient();
 
-        var options = factory.Services.GetRequiredService<ElevatorController>().Options;
+        var options = (await factory.ControllerAsync()).Options;
 
         options.TravelTimePerFloor.ShouldBe(TimeSpan.FromSeconds(2));
         options.DoorOpenDuration.ShouldBe(TimeSpan.FromSeconds(4));
@@ -47,9 +67,9 @@ public sealed class HostingTests
         await using var factory = new ApiFactory()
             .WithoutOverride("Elevator:TravelTimePerFloor")
             .WithoutOverride("Elevator:DoorOpenDuration");
-        _ = factory.CreateClient();
+        _ = factory.Server;
 
-        var options = factory.Services.GetRequiredService<ElevatorController>().Options;
+        var options = factory.Services.GetRequiredService<ElevatorControllerOptions>();
 
         options.TravelTimePerFloor.ShouldBe(TimeSpan.FromSeconds(1.5));
         options.DoorOpenDuration.ShouldBe(TimeSpan.FromSeconds(3));
@@ -66,10 +86,11 @@ public sealed class HostingTests
     }
 
     [Fact]
-    public async Task Readiness_WhileTheControlLoopRuns_IsHealthy()
+    public async Task Readiness_OnceTheEngineReported_IsHealthy()
     {
         await using var factory = new ApiFactory();
         using var client = factory.CreateClient();
+        await factory.StatusAsync();
 
         using var response = await client.GetAsync(new Uri("/health", UriKind.Relative), TestContext.Current.CancellationToken);
 
@@ -78,9 +99,9 @@ public sealed class HostingTests
     }
 
     [Fact]
-    public async Task Readiness_WithoutTheControlLoop_IsUnhealthy()
+    public async Task Readiness_WithoutTheEngine_IsUnhealthy()
     {
-        await using var factory = new ApiFactory().WithoutControlLoop();
+        await using var factory = new ApiFactory().WithoutEngine();
         using var client = factory.CreateClient();
 
         using var response = await client.GetAsync(new Uri("/health", UriKind.Relative), TestContext.Current.CancellationToken);

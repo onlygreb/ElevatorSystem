@@ -16,7 +16,7 @@ public sealed class ElevatorHubTests
         var status = await client.NextStatusAsync();
 
         status.CurrentFloor.ShouldBe(1);
-        status.Status.ShouldBe(ElevatorStatus.Idle);
+        status.Status.ShouldBeOneOf([ElevatorStatus.DoorOpen, ElevatorStatus.Idle], "the engine opens the door where it takes over, then closes it");
         status.PendingCalls.ShouldBeEmpty();
     }
 
@@ -28,7 +28,7 @@ public sealed class ElevatorHubTests
 
         var json = await client.NextRawStatusAsync();
 
-        json.GetProperty("status").GetString().ShouldBe("Idle", "enums travel as names, never numbers");
+        json.GetProperty("status").GetString().ShouldBeOneOf(["DoorOpen", "Idle"], "enums travel as names, never numbers");
         json.GetProperty("currentFloor").GetInt32().ShouldBe(1);
         json.TryGetProperty("CurrentFloor", out _).ShouldBeFalse("properties are camelCase");
     }
@@ -53,6 +53,31 @@ public sealed class ElevatorHubTests
         served.Floor.ShouldBe(3);
         var arrived = await client.NextStatusAsync(status => status.CurrentFloor == 3);
         arrived.Version.ShouldBeGreaterThan(initial.Version);
+    }
+
+    [Fact]
+    public async Task Connect_ReceivesThePassengerCounts()
+    {
+        await using var factory = new ApiFactory();
+        await using var client = await HubClient.ConnectAsync(factory);
+
+        var occupancy = await client.NextOccupancyAsync();
+
+        occupancy.Floors.Count.ShouldBe(10);
+        occupancy.CarCapacity.ShouldBe(8);
+    }
+
+    [Fact]
+    public async Task HallCall_ChangesTheCounts_AndTheyArePushed()
+    {
+        await using var factory = new ApiFactory();
+        await using var client = await HubClient.ConnectAsync(factory);
+        using var http = factory.CreateClient();
+
+        using var response = await http.PostJsonAsync(ApiRoutes.HallCalls, """{"floor":6,"direction":"Down"}""");
+
+        response.StatusCode.ShouldBe(HttpStatusCode.Accepted);
+        await client.NextOccupancyAsync(occupancy => occupancy.Floors[5].Waiting == 1 || occupancy.PassengersInCar == 1);
     }
 
     [Fact]
