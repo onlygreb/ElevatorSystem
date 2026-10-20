@@ -61,8 +61,35 @@ public sealed class BrowserFixture : IAsyncLifetime
     private async Task WarmUpAsync()
     {
         var page = await NewPageAsync();
-        await page.GotoAsync("/", new() { Timeout = 120_000 });
-        await page.GetByTestId("arrive").WaitForAsync(new() { Timeout = 120_000 });
+        var console = new List<string>();
+        page.Console += (_, message) => console.Add($"{message.Type}: {message.Text}");
+        page.PageError += (_, error) => console.Add($"page error: {error}");
+        page.RequestFailed += (_, request) => console.Add($"request failed: {request.Url} {request.Failure}");
+
+        // A first load that stalls is reloaded rather than waited on forever; three tries before giving up.
+        for (var attempt = 1; ; attempt++)
+        {
+            try
+            {
+                await page.GotoAsync("/", new() { Timeout = 60_000 });
+                await page.GetByTestId("arrive").WaitForAsync(new() { Timeout = 60_000 });
+                break;
+            }
+            catch (TimeoutException) when (attempt < 3)
+            {
+                console.Add($"-- attempt {attempt} timed out, reloading");
+            }
+            catch (TimeoutException exception)
+            {
+                var shown = await page.Locator("body").InnerTextAsync(new() { Timeout = 5_000 });
+                throw new InvalidOperationException(
+                    $"The app never loaded.{Environment.NewLine}The page showed:{Environment.NewLine}{shown}{Environment.NewLine}"
+                    + $"The browser reported:{Environment.NewLine}{string.Join(Environment.NewLine, console)}{Environment.NewLine}"
+                    + $"The API wrote:{Environment.NewLine}{ServerOutput}",
+                    exception);
+            }
+        }
+
         await AdminTests.RegisterAsync(page, this, timeout: 120_000);
         await page.Context.CloseAsync();
     }
