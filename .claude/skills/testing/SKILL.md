@@ -47,6 +47,10 @@ Microsoft.Testing.Platform, Shouldly, code coverage). Don't add those packages a
   - `PassengerJourneyTests.BoardAsync` walks into the car wherever it is; `AdminTests.SignInAsync` signs in
     with a fresh code (never a replayed one) and fails with the page text and the API's output
   - `AccessibilityTests` run axe with the WCAG 2.2 A and AA tags and expect no violation
+  - every navigation goes through `OpenAsync`, which reloads a stalled app start and logs it; failures report the
+    page, the browser's log and the API's output
+  - CI runs them in a step of their own (`ELEVATOR_E2E=defer` skips them in the main run): containers starting in
+    parallel change the network interfaces and Chromium aborts requests in flight (`net::ERR_NETWORK_CHANGED`)
 
 ## Prove a new test can fail
 

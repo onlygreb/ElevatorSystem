@@ -50,11 +50,21 @@ jobs:
           dotnet dev-certs https
           pwsh tests/ElevatorSystem.E2E.Tests/bin/Release/net10.0/playwright.ps1 install --with-deps chromium
 
+      # The browser tests wait for their own step: containers started by the integration tests change the network
+      # interfaces, and Chromium aborts requests in flight when that happens.
       - name: Test
+        env:
+          ELEVATOR_E2E: defer
         run: >-
           dotnet test --solution ElevatorSystem.slnx --configuration Release --no-build
           --results-directory TestResults
           --coverage --coverage-output-format cobertura
+          --report-xunit-trx
+
+      - name: End-to-end tests
+        run: >-
+          dotnet test --project tests/ElevatorSystem.E2E.Tests --configuration Release --no-build
+          --results-directory TestResults
           --report-xunit-trx
 
       - name: Upload test results
