@@ -36,6 +36,50 @@ public sealed class BuildingViewTests : WebTestContext
         building.Find("[data-testid=car]").GetAttribute("style")!.ShouldContain("transition-duration: 250ms");
     }
 
+    [Fact]
+    public void Car_GlidesTheWholeDistance_WhenAStatusSkipsFloors_WithItsDoorsShutUntilItArrives()
+    {
+        var building = RenderBuilding(TestData.Status(floor: 1, status: ElevatorStatus.DoorOpen));
+
+        building.Render(parameters => parameters.Add(view => view.Status, TestData.Status(floor: 4, status: ElevatorStatus.DoorOpen, version: 2)));
+
+        var car = building.Find("[data-testid=car]");
+        car.GetAttribute("style")!.ShouldContain("transition-duration: 4500ms", customMessage: "three floors at 1.5 s each, not one");
+        car.ClassList.ShouldContain("cabin--closed", "the doors open once the car gets there");
+        Clock.Advance(TimeSpan.FromSeconds(4.5));
+        building.WaitForAssertion(() => building.Find("[data-testid=car]").ClassList.ShouldContain("cabin--open"));
+    }
+
+    [Fact]
+    public void Car_ANewFloorMidGlide_GlidesOnFromWhereItIsOnScreen_AtTheSamePace()
+    {
+        var building = RenderBuilding(TestData.Status(floor: 1));
+        building.Render(parameters => parameters.Add(view => view.Status, TestData.Status(floor: 2, status: ElevatorStatus.MovingUp, version: 2)));
+
+        Clock.Advance(TimeSpan.FromSeconds(0.75));
+        building.Render(parameters => parameters.Add(view => view.Status, TestData.Status(floor: 3, status: ElevatorStatus.MovingUp, version: 3)));
+
+        building.Find("[data-testid=car]").GetAttribute("style")!.ShouldContain("transition-duration: 2250ms", customMessage: "halfway past floor 1, one and a half floors to go");
+    }
+
+    [Fact]
+    public void Car_ALongJump_GlidesAtMostThreeFloorsLong()
+    {
+        var building = RenderBuilding(TestData.Status(floor: 1));
+
+        building.Render(parameters => parameters.Add(view => view.Status, TestData.Status(floor: 10, version: 2)));
+
+        building.Find("[data-testid=car]").GetAttribute("style")!.ShouldContain("transition-duration: 4500ms");
+    }
+
+    [Fact]
+    public void Doors_FastForwarded_SlideThatMuchFaster()
+    {
+        var building = RenderBuilding(TestData.Status(floor: 2, status: ElevatorStatus.DoorOpen) with { Speed = 8 });
+
+        building.Find("[data-testid=car]").GetAttribute("style")!.ShouldContain("--es-door-duration: calc(var(--es-door-slide) / 8)");
+    }
+
     [Theory]
     [InlineData(ElevatorStatus.DoorOpen, "cabin--open", "open")]
     [InlineData(ElevatorStatus.Idle, "cabin--closed", "closed")]

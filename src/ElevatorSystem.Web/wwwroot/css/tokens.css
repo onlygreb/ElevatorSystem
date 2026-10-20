@@ -74,7 +74,8 @@
     --es-shadow-lift: 0 10px 30px rgb(16 24 32 / 0.10), 0 2px 6px rgb(16 24 32 / 0.06);
 
     /* Motion. The car's travel time comes from the server configuration, set inline per move. */
-    --es-door-duration: 600ms;
+    --es-door-slide: 600ms;
+    --es-door-duration: var(--es-door-slide);
     --es-ease: cubic-bezier(0.2, 0.7, 0.2, 1);
 }
 

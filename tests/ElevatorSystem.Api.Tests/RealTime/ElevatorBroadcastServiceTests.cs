@@ -47,6 +47,27 @@ public sealed class ElevatorBroadcastServiceTests : IAsyncDisposable
     }
 
     [Fact]
+    public async Task Broadcast_ABurstWithTheCarMoving_SendsAStatusForEveryFloor()
+    {
+        var hub = new FakeHubContext();
+        for (var floor = 2; floor <= 5; floor++)
+        {
+            // Each move comes with a crowd of merged presses that change nothing but the queue.
+            _buffer.Publish(Update(ElevatorActivityKind.Moved, floor, version: floor * 10, ElevatorStatus.MovingUp));
+            for (var press = 1; press <= 5; press++)
+            {
+                _buffer.Publish(Update(ElevatorActivityKind.CallMerged, floor, version: (floor * 10) + press, ElevatorStatus.MovingUp));
+            }
+        }
+
+        await StartAsync(hub);
+
+        await Eventually.HoldsAsync(() => hub.Activities.Count == 24, "every activity of the burst", cancellationToken: TestContext.Current.CancellationToken);
+        await Eventually.HoldsAsync(() => hub.Statuses.Count == 4, "a status per floor", cancellationToken: TestContext.Current.CancellationToken);
+        hub.Statuses.Select(status => status.CurrentFloor).ShouldBe([2, 3, 4, 5], "the car must never be seen to skip a floor");
+    }
+
+    [Fact]
     public async Task Broadcast_AfterTheElevatorChanges_SendsTheNewStatus()
     {
         var hub = new FakeHubContext();

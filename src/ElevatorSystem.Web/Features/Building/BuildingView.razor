@@ -1,5 +1,7 @@
 @* The building as a picture: the floors (top first) with the people on them, and the shaft where the car glides between
    floors and opens its doors. Counts appear only when the viewer may see them (staff); a passenger sees themself. *@
+@implements IDisposable
+@inject TimeProvider Clock
 @inject IStringLocalizer<SharedResource> L
 
 <div class="tower" style="--es-floor-count: @FloorCount" data-testid="building">
@@ -71,6 +73,16 @@
     /// <summary>The most dots drawn for one group before the rest show as "+n".</summary>
     public const int MaxDots = 6;
 
+    /// <summary>The most floors one glide covers in time; a longer jump (after a reconnection, say) glides faster.</summary>
+    public const int MaxGlideFloors = 3;
+
+    private int? _shownFloor;
+    private double _glideFrom;
+    private DateTimeOffset _glideStartedAt;
+    private TimeSpan _glide;
+    private DateTimeOffset _arrivesAt;
+    private ITimer? _arrival;
+
     [Parameter, EditorRequired]
     public ElevatorConfigurationDto Configuration { get; set; } = default!;
 
@@ -93,7 +105,52 @@
     // Before the first status arrives the car waits at the lowest floor.
     private int CarFloor => Math.Clamp(Status?.CurrentFloor ?? Configuration.LowestFloor, Configuration.LowestFloor, Configuration.HighestFloor);
 
-    private bool DoorsOpen => Status?.Status == ElevatorStatus.DoorOpen;
+    private double Speed => Math.Max(1, Status?.Speed ?? 1);
+
+    private TimeSpan FloorTime => Configuration.TravelTimePerFloor / Speed;
+
+    // While the car glides to a new floor its doors stay shut, even if the status already says they are open there.
+    private bool DoorsOpen => Status?.Status == ElevatorStatus.DoorOpen && Clock.GetUtcNow() >= _arrivesAt;
+
+    protected override void OnParametersSet()
+    {
+        var floor = CarFloor;
+        if (_shownFloor is { } previous && previous != floor)
+        {
+            // Statuses arrive in clumps (each update waits for its snapshot to be saved), and can skip floors. The car
+            // glides from where it is on screen at its own pace, so a clump plays out over the time the trip took
+            // instead of in a flash, and its doors open once it gets there. A jump of more than a few floors is
+            // compressed into the time of MaxGlideFloors, so the picture never falls far behind.
+            var now = Clock.GetUtcNow();
+            var from = ShownPosition(previous, now);
+            _glide = FloorTime * Math.Min(Math.Abs(floor - from), MaxGlideFloors);
+            _glideFrom = from;
+            _glideStartedAt = now;
+            _arrivesAt = now + _glide;
+            _arrival?.Dispose();
+            _arrival = Clock.CreateTimer(_ => _ = InvokeAsync(StateHasChanged), null, _glide, Timeout.InfiniteTimeSpan);
+        }
+        else if (_shownFloor is null)
+        {
+            _glide = FloorTime;
+        }
+
+        _shownFloor = floor;
+    }
+
+    /// <summary>Where the car is on screen now: part of the way along the glide in progress, or at its floor.</summary>
+    private double ShownPosition(int target, DateTimeOffset now)
+    {
+        if (now >= _arrivesAt || _glide <= TimeSpan.Zero)
+        {
+            return target;
+        }
+
+        var progress = (now - _glideStartedAt) / _glide;
+        return _glideFrom + ((target - _glideFrom) * progress);
+    }
+
+    public void Dispose() => _arrival?.Dispose();
 
     private int Riders => Occupancy?.PassengersInCar is { } riding ? Math.Max(0, riding - (YouInCar ? 1 : 0)) : 0;
 
@@ -103,10 +160,11 @@
         + (Status?.Status is ElevatorStatus.MovingUp or ElevatorStatus.MovingDown ? " cabin--moving" : null)
         + (Status?.Status == ElevatorStatus.OutOfService ? " cabin--out-of-service" : null);
 
-    // One floor per move, so each move glides over exactly the travel time per floor, shorter while a demo fast-forwards.
+    // Each move glides over the travel time of the floors it covers; a fast-forwarded demo (ADR-0031) shortens the
+    // glide and the doors' slide alike.
     private string CarStyle => string.Create(
         CultureInfo.InvariantCulture,
-        $"transform: translateY(calc({-(CarFloor - Configuration.LowestFloor)} * var(--es-floor-height))); transition-duration: {(long)(Configuration.TravelTimePerFloor / Math.Max(1, Status?.Speed ?? 1)).TotalMilliseconds}ms");
+        $"transform: translateY(calc({-(CarFloor - Configuration.LowestFloor)} * var(--es-floor-height))); transition-duration: {(long)_glide.TotalMilliseconds}ms; --es-door-duration: calc(var(--es-door-slide) / {Speed:0.##})");
 
     private string CarDescription => L[Text.CarDescription, CarFloor, L[DoorsOpen ? Text.DoorsOpen : Text.DoorsClosed]];
 
