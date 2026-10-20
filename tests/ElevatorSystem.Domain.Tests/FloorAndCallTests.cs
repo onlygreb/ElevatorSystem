@@ -58,4 +58,13 @@ public sealed class FloorAndCallTests
         first.ShouldNotBe(second);
         first.Value.CompareTo(second.Value).ShouldBeLessThan(0, "version 7 identifiers sort by creation time");
     }
+
+    [Fact]
+    public void HallCallGoingUp_AndRequestIds_DescribeThemselvesForLogs()
+    {
+        var id = new RequestId(Guid.Parse("0192f0a1-0000-7000-8000-000000000001"));
+
+        Hall(3, Direction.Up).ToString().ShouldBe("hall call at floor 3 going up");
+        id.ToString().ShouldBe("0192f0a1-0000-7000-8000-000000000001");
+    }
 }

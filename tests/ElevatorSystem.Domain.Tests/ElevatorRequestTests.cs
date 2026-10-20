@@ -181,4 +181,27 @@ public sealed class ElevatorRequestTests
         before.CurrentFloor.ShouldBe(new Floor(1));
         elevator.Snapshot().Version.ShouldBeGreaterThan(before.Version);
     }
+
+    [Fact]
+    public void InvalidFloor_WhileOutOfService_IsRefusedForTheFloor()
+    {
+        var elevator = InState(ElevatorState.OutOfService);
+
+        var result = elevator.AddRequest(Request(Car(12)));
+
+        result.RejectionReason.ShouldBe(RequestRejectionReason.InvalidFloor, "a floor that doesn't exist is the more lasting reason");
+    }
+
+    [Fact]
+    public void RequestStampedAfterItWasServed_WaitedNoTime()
+    {
+        var clock = Clock();
+        var elevator = At(4, clock);
+        elevator.OpenDoor();
+        var stampedLater = new PassengerRequest(RequestId.New(clock), Car(4), clock.GetUtcNow().AddSeconds(5));
+
+        var result = elevator.AddRequest(stampedLater);
+
+        result.Events.OfType<CallServed>().ShouldHaveSingleItem().WaitTime.ShouldBe(TimeSpan.Zero, "a clock ahead of ours never makes a negative wait");
+    }
 }

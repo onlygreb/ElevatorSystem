@@ -71,4 +71,11 @@ public sealed class LookSchedulingStrategyTests
 
         _look.SelectTarget(snapshot).ShouldBe(new Floor(expected));
     }
+
+    [Fact]
+    public void Name_IsWhatTheConfigurationAndStatusShow()
+    {
+        new FifoSchedulingStrategy().Name.ShouldBe("FIFO");
+        new LookSchedulingStrategy().Name.ShouldBe("LOOK");
+    }
 }
