@@ -39,7 +39,7 @@ public sealed class DemoScenariosTests : WebTestContext
         demos.Find("[data-testid=demo-stop]").Click();
 
         Staff.Scenarios.ShouldBe([null]);
-        demos.Find("[data-testid=demo-message]").TextContent.ShouldBe("The demo passengers are leaving.");
+        demos.Find("[data-testid=demo-message]").TextContent.ShouldBe("The demo passengers are leaving. The queue is cleared and the car returns to floor 1.");
     }
 
     [Fact]

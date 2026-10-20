@@ -77,6 +77,17 @@ public sealed class ElevatorMetricsTests : IDisposable
     }
 
     [Fact]
+    public void ClearingTheQueue_CountsTheCancelledCalls()
+    {
+        using var cancelled = Collect<long>("elevator.calls.cancelled");
+        ImmutableArray<PendingCall> calls = [new(Hall(4), RequestId(), At, 1), new(new CarCall(new Floor(9)), RequestId(), At, 3), new(Hall(7), RequestId(), At, 2)];
+
+        _metrics.Publish(new RequestsCleared(At, new Floor(2), calls));
+
+        cancelled.GetMeasurementSnapshot().Select(m => m.Value).ShouldBe([3L]);
+    }
+
+    [Fact]
     public void PassengerSteps_AreCountedByStepAndOutcome()
     {
         using var steps = Collect<long>("elevator.passenger.steps");

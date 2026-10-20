@@ -24,7 +24,8 @@ public sealed class ElevatorInvariantTests
         (2, Gen.Const(new Step(StepKind.OpenDoor))),
         (2, Gen.Const(new Step(StepKind.CloseDoor))),
         (1, Gen.Enum<OutOfServiceReason>().Select(reason => new Step(StepKind.TakeOutOfService, Reason: reason))),
-        (1, Gen.Const(new Step(StepKind.ReturnToService))));
+        (1, Gen.Const(new Step(StepKind.ReturnToService))),
+        (1, AnyFloor.Select(floor => new Step(StepKind.ClearRequests, floor))));
 
     private static readonly Gen<(int StartFloor, Step[] Steps)> AnyScenario = Gen.Select(Gen.Int[1, 10], AnyStep.Array[1, 80]);
 
@@ -59,6 +60,7 @@ public sealed class ElevatorInvariantTests
                     accepted += wasAccepted ? 1 : 0;
                     served += events.OfType<CallServed>().Sum(e => e.Call.RequestCount);
                     cancelled += events.OfType<ElevatorTakenOutOfService>().Sum(e => e.CancelledCalls.Sum(call => call.RequestCount));
+                    cancelled += events.OfType<RequestsCleared>().Sum(e => e.CancelledCalls.Sum(call => call.RequestCount));
                 }
 
                 var pending = elevator.Snapshot().PendingCalls.Sum(call => call.RequestCount);
@@ -127,6 +129,10 @@ public sealed class ElevatorInvariantTests
                 return (false, elevator.TakeOutOfService(step.Reason).Events);
             case StepKind.ReturnToService:
                 return (false, elevator.ReturnToService().Events);
+            case StepKind.ClearRequests:
+                // Keeps whatever waits at one floor, as an admin's clear keeps the calls of people still waiting.
+                var keep = elevator.Snapshot().PendingCalls.Select(pending => pending.Call).Where(call => call.Floor.Number == step.Floor).ToList();
+                return (false, elevator.ClearRequests(keep).Events);
             default:
                 throw new ArgumentOutOfRangeException(nameof(step), step, null);
         }
@@ -142,6 +148,7 @@ public sealed class ElevatorInvariantTests
         CloseDoor,
         TakeOutOfService,
         ReturnToService,
+        ClearRequests,
     }
 
     internal sealed record Step(
@@ -155,6 +162,7 @@ public sealed class ElevatorInvariantTests
             StepKind.HallCall => $"HallCall({Floor}, {Direction})",
             StepKind.CarCall => $"CarCall({Floor})",
             StepKind.TakeOutOfService => $"TakeOutOfService({Reason})",
+            StepKind.ClearRequests => $"ClearRequests(keep floor {Floor})",
             _ => Kind.ToString(),
         };
     }

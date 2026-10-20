@@ -77,9 +77,9 @@ public sealed class ElevatorContractTests
         var activities = harness.Probe.Events.Select(ElevatorContractMapper.ToActivity).ToList();
 
         activities.Select(a => a.Kind).Distinct().ToList().ShouldBe(
-            [.. Enum.GetValues<ElevatorActivityKind>().Where(kind => !kind.ToString().StartsWith("Passenger", StringComparison.Ordinal)).Except([ElevatorActivityKind.RequestRejected, ElevatorActivityKind.SpeedChanged])],
+            [.. Enum.GetValues<ElevatorActivityKind>().Where(kind => !kind.ToString().StartsWith("Passenger", StringComparison.Ordinal)).Except([ElevatorActivityKind.RequestRejected, ElevatorActivityKind.SpeedChanged, ElevatorActivityKind.RequestsCleared])],
             ignoreOrder: true,
-            "every elevator kind except RequestRejected and SpeedChanged is produced by this journey; passenger kinds come from the registry, the speed from the engine");
+            "every elevator kind except RequestRejected, SpeedChanged and RequestsCleared is produced by this journey; passenger kinds come from the registry, the speed from the engine");
         var moved = activities.First(a => a.Kind == ElevatorActivityKind.Moved);
         moved.ShouldBe(new ElevatorActivityDto(moved.OccurredAt, ElevatorActivityKind.Moved, 2, FromFloor: 1, Direction: CallDirection.Up));
         var served = activities.Single(a => a.Kind == ElevatorActivityKind.CallServed);
@@ -98,6 +98,19 @@ public sealed class ElevatorContractTests
 
         ElevatorContractMapper.ToStatus(harness.Elevator.Snapshot()).Speed.ShouldBe(1);
         ElevatorContractMapper.ToStatus(harness.Elevator.Snapshot(), speed: 4).Speed.ShouldBe(4);
+    }
+
+    [Fact]
+    public void ToActivity_ClearedQueue_CarriesHowManyCallsWereCancelled()
+    {
+        var pending = new PendingCall(new CarCall(new Floor(4)), RequestId.New(TimeProvider.System), ControllerHarness.StartTime, 3);
+        var cleared = new RequestsCleared(ControllerHarness.StartTime, new Floor(2), [pending, pending with { Call = new CarCall(new Floor(6)) }]);
+
+        var activity = ElevatorContractMapper.ToActivity(cleared);
+
+        activity.Kind.ShouldBe(ElevatorActivityKind.RequestsCleared);
+        activity.Floor.ShouldBe(2);
+        activity.CancelledCalls.ShouldBe(2);
     }
 
     [Fact]

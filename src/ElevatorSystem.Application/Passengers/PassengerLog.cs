@@ -28,6 +28,9 @@ internal static partial class PassengerLog
     [LoggerMessage(1845, LogLevel.Information, "Demo scenarios stopped; {Passengers} simulated passenger(s) left")]
     public static partial void ScenariosStopped(ILogger logger, int passengers);
 
+    [LoggerMessage(1848, LogLevel.Warning, "The queue was not cleared: the controller's intake is full")]
+    public static partial void ClearRefused(ILogger logger);
+
     [LoggerMessage(1846, LogLevel.Warning, "Demo scenario {Scenario} refused: demo scenarios are disabled")]
     public static partial void ScenariosDisabled(ILogger logger, DemoScenario scenario);
 

@@ -92,7 +92,7 @@ public sealed class DemoScenarioTests
     }
 
     [Fact]
-    public async Task HugeLoad_FastForwardsTheOtherScenariosToo_UntilTheScenariosStopAndTheirCallsAreServed()
+    public async Task HugeLoad_FastForwardsTheOtherScenariosToo_UntilTheScenariosStop()
     {
         await using var world = World.Create(seed: 4, hugeLoad: 30);
         world.Runner.Start(DemoScenario.BusyDay);
@@ -101,13 +101,43 @@ public sealed class DemoScenarioTests
         world.Runner.Start(DemoScenario.HugeLoad);
         await world.RunForAsync(TimeSpan.FromSeconds(10));
         world.Runner.Speed.ShouldBe(4);
-        world.Harness.Elevator.Snapshot().PendingCalls.ShouldNotBeEmpty("the crowd is still calling");
         world.Runner.StopAll();
-        world.Runner.Speed.ShouldBe(4, "the car first serves the calls the crowd left behind");
-        await world.RunUntilAsync(() => world.Runner.Speed == 1);
 
-        world.Harness.Elevator.Snapshot().PendingCalls.ShouldBeEmpty();
+        world.Runner.Speed.ShouldBe(1);
         world.Harness.Controller.Speed.ShouldBe(1);
+    }
+
+    [Fact]
+    public async Task StopAll_ClearsTheQueue_AndSendsTheCarToTheLobby()
+    {
+        await using var world = World.Create(seed: 4, hugeLoad: 30);
+        world.Runner.Start(DemoScenario.HugeLoad);
+        await world.RunUntilAsync(() => world.Harness.Elevator.Snapshot() is { CurrentFloor.Number: > 3, PendingCalls.Length: > 2 });
+
+        world.Runner.StopAll();
+        await world.Harness.Probe.WaitForAsync<Domain.Events.RequestsCleared>();
+
+        world.Harness.Elevator.Snapshot().PendingCalls.Select(pending => pending.Call).ShouldBe([new CarCall(new Floor(1))], "only the trip to the lobby is left");
+        await world.RunUntilAsync(() => world.Harness.Elevator.Snapshot() is { CurrentFloor.Number: 1, State: ElevatorState.DoorOpen });
+    }
+
+    [Fact]
+    public async Task StopAll_KeepsTheCallOfAPersonStillWaiting()
+    {
+        await using var world = World.Create(seed: 2);
+        var person = Guid.NewGuid();
+        var service = new PassengerService(world.Registry, world.Harness.Controller, world.Harness.Time);
+        service.Join(person);
+        world.Runner.Start(DemoScenario.MorningRush);
+        await world.RunUntilAsync(() => world.Harness.Elevator.CurrentFloor != new Floor(1));
+        service.CallElevator(person, Direction.Up).Succeeded.ShouldBeTrue();
+
+        world.Runner.StopAll();
+        await world.Harness.Probe.WaitForAsync<Domain.Events.RequestsCleared>();
+
+        world.Harness.Elevator.Snapshot().PendingCalls.Select(pending => pending.Call)
+            .ShouldBe([new HallCall(new Floor(1), Direction.Up), new CarCall(new Floor(1))], ignoreOrder: false);
+        world.Registry.Find(person)!.Waiting.ShouldBe(CallDirection.Up);
     }
 
     [Theory]

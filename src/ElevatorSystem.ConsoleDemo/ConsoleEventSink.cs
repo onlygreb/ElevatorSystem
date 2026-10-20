@@ -162,6 +162,9 @@ internal sealed class ConsoleEventSink(ConsoleOutput output) : IElevatorEventSin
                     ConsoleColor.Red,
                     $"{outOfService.Reason} at floor {outOfService.Floor}; {outOfService.CancelledCalls.Length} pending call(s) cancelled");
                 break;
+            case RequestsCleared cleared:
+                output.Event("cleared", ConsoleColor.Yellow, $"{cleared.CancelledCalls.Length} pending call(s) cancelled");
+                break;
             case ElevatorReturnedToService returned:
                 output.Event("in service", ConsoleColor.Green, $"at floor {returned.Floor}");
                 break;

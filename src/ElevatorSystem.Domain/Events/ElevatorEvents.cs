@@ -38,5 +38,9 @@ public sealed record ElevatorTakenOutOfService(
     OutOfServiceReason Reason,
     ImmutableArray<PendingCall> CancelledCalls) : ElevatorEvent(OccurredAt, Floor);
 
+/// <summary>The queue was cleared: every pending call but the ones kept was cancelled (ADR-0032).</summary>
+public sealed record RequestsCleared(DateTimeOffset OccurredAt, Floor Floor, ImmutableArray<PendingCall> CancelledCalls)
+    : ElevatorEvent(OccurredAt, Floor);
+
 /// <summary>The car is back in service, idle with the door closed.</summary>
 public sealed record ElevatorReturnedToService(DateTimeOffset OccurredAt, Floor Floor) : ElevatorEvent(OccurredAt, Floor);

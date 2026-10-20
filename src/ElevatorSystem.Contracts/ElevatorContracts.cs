@@ -63,6 +63,7 @@ public sealed record PendingCallDto(CallDto Call, int RequestCount, DateTimeOffs
 /// <item><c>Moved</c>: <see cref="FromFloor"/> and <see cref="Direction"/>; <see cref="Floor"/> is the destination.</item>
 /// <item><c>CallServed</c>: <see cref="Call"/>, <see cref="RequestId"/> (the first request), <see cref="RequestCount"/>, <see cref="WaitTime"/>.</item>
 /// <item><c>OutOfService</c>: <see cref="OutOfServiceCause"/>, <see cref="CancelledCalls"/>.</item>
+/// <item><c>RequestsCleared</c> (ADR-0032): <see cref="CancelledCalls"/>; <see cref="Floor"/> is where the car is.</item>
 /// <item><c>DoorsOpened</c>, <c>DoorsClosed</c>, <c>ReturnedToService</c>: <see cref="Floor"/> only.</item>
 /// <item>Passenger kinds (ADR-0026): <see cref="PassengerId"/>, <see cref="Simulated"/> and the <see cref="RequestId"/> of the step;
 /// <c>PassengerCalled</c> adds <see cref="Direction"/>, <c>PassengerChoseFloor</c> the chosen floor as <see cref="Floor"/>,
@@ -182,4 +183,5 @@ public enum ElevatorActivityKind
     PassengerRemoved,
     PassengerRefused,
     SpeedChanged,
+    RequestsCleared,
 }

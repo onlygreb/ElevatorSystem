@@ -49,8 +49,7 @@ public sealed record SimulationOptions
 /// <para>
 /// While a huge load is on, the car and the simulation run <see cref="SimulationOptions.HugeLoadSpeed"/> times faster
 /// (ADR-0031): the passengers follow their own clock, which runs that much faster than the real one, and look around
-/// that much more often. The speed returns to normal once the last of them is done, or the scenarios stop, and the car
-/// has served the calls they left behind.
+/// that much more often. The speed returns to normal when the last of them is done, or the scenarios stop.
 /// </para>
 /// </remarks>
 public sealed class DemoScenarioRunner : IDisposable
@@ -135,15 +134,24 @@ public sealed class DemoScenarioRunner : IDisposable
         }
     }
 
-    /// <summary>Stops every scenario and removes all simulated passengers, wherever they are.</summary>
+    /// <summary>
+    /// Stops every scenario and removes all simulated passengers, wherever they are; clears the queue, keeping only the
+    /// calls of people still in the building, and sends the car to the lowest floor (ADR-0032).
+    /// </summary>
     /// <returns>How many simulated passengers left the building.</returns>
     public int StopAll(Guid? requestId = null)
     {
         lock (_gate)
         {
             _passengers.Clear();
-            AdjustSpeed();
             var removed = _service.Registry.RemoveSimulated(requestId);
+            var keep = _service.Registry.Passengers.Where(passenger => !passenger.Simulated).SelectMany(CallsOf).ToList();
+            if (!_service.Controller.ClearRequests(keep, _elevator.Building.LowestFloor))
+            {
+                PassengerLog.ClearRefused(_logger);
+            }
+
+            AdjustSpeed();
             PassengerLog.ScenariosStopped(_logger, removed);
             return removed;
         }
@@ -188,6 +196,20 @@ public sealed class DemoScenarioRunner : IDisposable
 
     private TimeSpan TickPeriod => _options.TickInterval / _speed;
 
+    /// <summary>The calls a person in the building is waiting on: their hall call, or the floor they chose in the car.</summary>
+    private static IEnumerable<ElevatorCall> CallsOf(PassengerDto passenger)
+    {
+        if (passenger.Waiting is { } direction)
+        {
+            yield return new HallCall(new Floor(passenger.Floor), ElevatorContractMapper.ToDomain(direction));
+        }
+
+        if (passenger is { InCar: true, Destination: { } destination })
+        {
+            yield return new CarCall(new Floor(destination));
+        }
+    }
+
     /// <summary>The simulation's clock: it runs <see cref="_speed"/> times faster than the real one.</summary>
     private DateTimeOffset ReadClock()
     {
@@ -197,17 +219,10 @@ public sealed class DemoScenarioRunner : IDisposable
         return _clock;
     }
 
-    /// <summary>
-    /// Fast-forwards the car and the simulation while a huge load is on, and back to normal after it; keeps the timer
-    /// running while anyone acts or the speed is not back to normal.
-    /// </summary>
+    /// <summary>Fast-forwards the car and the simulation while a huge load is on, and back to normal after it; keeps the timer running while anyone acts.</summary>
     private void AdjustSpeed()
     {
-        var crowd = _passengers.Any(passenger => passenger.FastForward);
-        // After a huge load the car stays fast until it has served the calls the crowd left behind, so normal service
-        // resumes within seconds rather than after minutes of working through them at the normal pace.
-        var leftovers = !crowd && _speed > 1 && !_elevator.Snapshot().PendingCalls.IsEmpty;
-        var wanted = crowd ? _options.HugeLoadSpeed : leftovers ? _speed : 1;
+        var wanted = _passengers.Any(passenger => passenger.FastForward) ? _options.HugeLoadSpeed : 1;
         if (wanted != _speed)
         {
             ReadClock();
@@ -216,7 +231,7 @@ public sealed class DemoScenarioRunner : IDisposable
             _timer?.Change(TickPeriod, TickPeriod);
         }
 
-        if (_passengers.Count == 0 && _speed == 1)
+        if (_passengers.Count == 0)
         {
             _timer?.Dispose();
             _timer = null;
@@ -436,7 +451,12 @@ public sealed class DemoScenarioRunner : IDisposable
 
             if (doorOpenHere && me.Floor == leg.Target.Number)
             {
-                service.Leave(Id);
+                // The look around may be a moment old: if the doors just closed, stay in and try again at the next stop.
+                if (!service.Leave(Id).Succeeded)
+                {
+                    return false;
+                }
+
                 look.Riders--;
                 _waitForTheCarToLeave = true;
                 _legs.Dequeue();

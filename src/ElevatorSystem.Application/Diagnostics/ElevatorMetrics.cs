@@ -48,7 +48,7 @@ public sealed class ElevatorMetrics : IElevatorEventSink, IPassengerObserver
         _floorsTravelled = meter.CreateCounter<long>("elevator.floors_travelled", "{floor}", "Floors the car moved, by direction.");
         _doorOpenings = meter.CreateCounter<long>("elevator.door.openings", "{opening}", "Times the car stopped and opened its doors.");
         _outOfService = meter.CreateCounter<long>("elevator.out_of_service", "{interruption}", "Times the car was taken out of service, by reason.");
-        _cancelledCalls = meter.CreateCounter<long>("elevator.calls.cancelled", "{call}", "Pending calls cancelled when the car went out of service.");
+        _cancelledCalls = meter.CreateCounter<long>("elevator.calls.cancelled", "{call}", "Pending calls cancelled: when the car went out of service or the queue was cleared.");
         _passengerSteps = meter.CreateCounter<long>("elevator.passenger.steps", "{step}", "Passenger steps, by step and outcome.");
         _passengerWaitTime = meter.CreateHistogram("elevator.passenger.wait_time", "s", "Time from a passenger's call until they walked into the car.", advice: WaitBuckets);
 
@@ -93,6 +93,9 @@ public sealed class ElevatorMetrics : IElevatorEventSink, IPassengerObserver
                     _cancelledCalls.Add(outOfService.CancelledCalls.Length);
                 }
 
+                break;
+            case RequestsCleared cleared:
+                _cancelledCalls.Add(cleared.CancelledCalls.Length);
                 break;
         }
     }

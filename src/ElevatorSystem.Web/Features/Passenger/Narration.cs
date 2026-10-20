@@ -72,6 +72,7 @@ internal static class Narration
         ElevatorActivityKind.SpeedChanged when activity.Speed > 1 =>
             text[Text.ActivitySpeedFast, activity.Speed.Value.ToString("0.#", CultureInfo.CurrentCulture)],
         ElevatorActivityKind.SpeedChanged => text[Text.ActivitySpeedNormal],
+        ElevatorActivityKind.RequestsCleared => text[Text.ActivityRequestsCleared, activity.CancelledCalls ?? 0],
         _ => activity.Kind.ToString(),
     };
 

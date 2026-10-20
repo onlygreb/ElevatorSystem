@@ -28,9 +28,8 @@ a quarter of an hour for the car to work through the crowd.
      sped up; `SetSpeed` refuses anything else, so real machinery never runs faster than designed.
    - The scenario runner keeps its own clock, which runs that much faster than the real one, and looks
      around that much more often. Scenarios already running speed up too.
-   - The speed returns to 1 once the last huge load passenger is done, or the scenarios stop, and the car has
-     served the calls left behind (stopping a crowd does not withdraw its calls, and at normal speed they would
-     keep the car busy for minutes). A new engine term always starts at 1.
+   - The speed returns to 1 when the last huge load passenger is done or the scenarios stop (which also clears
+     the queue, ADR-0032). A new engine term always starts at 1.
 3. **Visible everywhere.** The status carries `Speed` (additive in `ElevatorStatusDto`), so browsers shorten
    the car's glide and the door countdown, and show a "Fast-forward 8×" badge. A change of speed is announced
    as a `SpeedChanged` activity with the status as it is. Because the speed changes without a new elevator

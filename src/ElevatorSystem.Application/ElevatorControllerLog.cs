@@ -65,4 +65,7 @@ internal static partial class ElevatorControllerLog
 
     [LoggerMessage(1518, LogLevel.Information, "The simulated car now runs at {Speed}x normal speed")]
     public static partial void SpeedChanged(ILogger logger, double speed);
+
+    [LoggerMessage(1519, LogLevel.Information, "Queue cleared: {Cancelled} pending call(s) cancelled")]
+    public static partial void RequestsCleared(ILogger logger, int cancelled);
 }
