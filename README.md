@@ -183,9 +183,9 @@ The car never moves with its doors open, never leaves the 1–10 range, and chan
 - See [ADR-0007](docs/adr/0007-fail-safe-operation.md).
 
 **Secure by default.**
-- Same-origin cookie authentication (no tokens in the browser), two-factor auth for administrators.
+- Same-origin cookie authentication (no tokens in the browser), with a second factor required for every staff role ([ADR-0022](docs/adr/0022-staff-authentication-and-authorization.md)).
 - Deny-by-default authorization, rate limiting and strict security headers.
-- A hash-chained audit log.
+- A hash-chained audit trail, written before each staff action takes effect, that pinpoints any entry changed outside the application ([ADR-0023](docs/adr/0023-audit-trail-writer-and-verification.md)).
 - A build that fails on any known-vulnerable dependency.
 - See [SECURITY.md](SECURITY.md) and [ADR-0008](docs/adr/0008-dependency-and-supply-chain-policy.md).
 
@@ -233,12 +233,20 @@ and the API. Open the `api` endpoint from the dashboard, call the elevator and w
 leading `engine` replica in the dashboard and the standby takes over from the saved state. Passwords are
 generated on the first run and kept in the AppHost's user secrets; nothing secret is in the repository.
 
+To use the admin view, open `/admin` on the `api` endpoint and sign in as `admin@elevator.local` with the
+`admin-password` parameter shown in the dashboard. The first sign-in asks you to register an authenticator app
+(any TOTP app: scan the QR code), then shows one-time recovery codes. Every staff feature needs that second factor.
+
 Without Docker, the API alone runs the engine in its own process over in-memory messaging and storage
 (`Hosting:Mode=SingleProcess`, the Development default; [ADR-0021](docs/adr/0021-engine-hosting-topology-and-single-process-mode.md)):
 
 ```bash
 dotnet run --project src/ElevatorSystem.Api
 ```
+
+In this mode staff accounts live in memory too: create one for the session with
+`dotnet user-secrets` on the API project (`Staff:Accounts:0:Email`, `Staff:Accounts:0:Password`,
+`Staff:Accounts:0:Role` = `Admin` or `Auditor`).
 
 Run only the elevator core in the terminal, with no infrastructure. A narrated tour of about
 15 seconds walks through each behaviour:
@@ -331,7 +339,7 @@ gh attestation verify oci://ghcr.io/onlygreb/elevatorsystem-api:<version> --owne
 - [x] **Elevator core:** state machine, FIFO and LOOK scheduling, thread-safe controller with watchdog, console demo, domain and controller test suites
 - [x] **API and live UI:** REST API, SignalR, Blazor passenger view, English and Portuguese
 - [x] **Messaging and resilience:** RabbitMQ, PostgreSQL, state recovery, failover, occupancy counting, test traffic generator
-- [ ] **Administration and security:** authentication with 2FA, admin view with service control, tamper-evident audit log
+- [x] **Administration and security:** staff sign-in with a mandatory second factor, admin view with live occupancy and service control, tamper-evident audit trail
 - [ ] **Privacy and observability:** LGPD features and documents, dashboards, load, end-to-end and mutation testing
 
 ## Documentation

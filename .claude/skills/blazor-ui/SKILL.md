@@ -15,10 +15,12 @@ the server).
 Pages/               routable pages only, kept thin (Home hosts PassengerView in an ErrorBoundary)
 Features/Passenger/  PassengerView, ElevatorShaft, HallButton, CarPanel, RequestQueue, ActivityFeed,
                      StatusLine, ConnectionBanner, ArrivalAnnouncer, Narration (contract values → words)
-Features/Admin/      dashboard, controls, audit viewer, users, privacy requests (phase 4)
+Features/Admin/      AdminView (sign-in → two-factor enrolment → dashboard), SignInForm, TwoFactorEnrolment,
+                     ServiceControls, OccupancyPanel, AuditTrailPanel, StaffText (failures and actions → words, QR code)
 Layout/              MainLayout: MudThemeProvider, app bar, error UI
 Shared/              AppTheme (MudBlazor theme), CulturePicker
-Services/            ElevatorApiClient, ElevatorHubClient, ElevatorStateStore, CulturePreference
+Services/            ElevatorApiClient, ElevatorHubClient, ElevatorStateStore, CulturePreference,
+                     StaffApiClient (antiforgery, idempotency keys, StaffFailure), StaffSession
 Resources/           SharedResource.resx (en-US, default), SharedResource.pt-BR.resx, Text (the keys)
 wwwroot/css/         tokens.css (design tokens), app.css (all custom styles)
 ```
@@ -110,10 +112,19 @@ wwwroot/css/         tokens.css (design tokens), app.css (all custom styles)
 
 ## Admin area
 
-- Routes under `/admin` use `[Authorize(Policy = ...)]` and `AuthorizeView`. **Hiding UI is
-  convenience, not security**: the API enforces every rule again.
+- `/admin` (`Pages/Admin.razor`) shows one step at a time from `StaffSession`: the sign-in form, the
+  two-factor enrolment for a password-only session, then the dashboard. There is no client-side
+  authorization framework: **hiding UI is convenience, not security**; the API enforces every rule
+  (ADR-0022), and an auditor simply gets no service controls.
+- `StaffApiClient` fetches the antiforgery token before the first `POST`, forgets it when the session
+  changes, retries once on an `Antiforgery` refusal, and reports refusals as `StaffFailure`; components
+  show `StaffText.For(failure)`, never server text.
+- After signing in or out, `StaffSession.ChangeAsync` restarts the hub so the server re-evaluates the
+  staff group; occupancy arrives only on staff connections and is cleared on sign-out.
+- The enrolment QR code is drawn in the browser (QRCoder, a PNG data URI): the key goes to no other service.
 - Destructive or safety actions (emergency stop, maintenance mode, data deletion) need a
-  confirmation dialog that names the effect.
+  confirmation dialog that names the effect. Each confirmed service action gets one `Idempotency-Key`,
+  reused if the request is retried after a refusal.
 
 ## Errors
 
