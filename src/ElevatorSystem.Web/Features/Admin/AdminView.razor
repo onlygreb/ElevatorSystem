@@ -1,0 +1,135 @@
+@* The admin view: sign in, register the second factor, then status, service controls, people and the audit trail. *@
+@implements IDisposable
+@inject StaffSession Session
+@inject ElevatorStateStore Store
+@inject IElevatorApiClient ElevatorApi
+@inject IStaffApiClient StaffApi
+@inject IElevatorHubClient Hub
+@inject IStringLocalizer<SharedResource> L
+
+@if (!Session.IsLoaded)
+{
+    <div class="es-loading" role="status">
+        <MudProgressCircular Indeterminate="true" Size="Size.Small" aria-hidden="true" />
+        <span>@L[Text.Loading]</span>
+    </div>
+}
+else if (Session.Current is null)
+{
+    <SignInForm OnSignedIn="SignedInAsync" />
+}
+else
+{
+    <div class="es-stack">
+        <div class="d-flex align-center flex-wrap gap-2 es-account" data-testid="account">
+            <MudIcon Icon="@Icons.Material.Outlined.AccountCircle" aria-hidden="true" />
+            <span>@L[Text.SignedInAs, Session.Current.Email]</span>
+            @foreach (var role in Session.Current.Roles)
+            {
+                <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined">@role</MudChip>
+            }
+            <MudSpacer />
+            <MudButton Variant="Variant.Text" OnClick="SignOutAsync" data-testid="sign-out">@L[Text.SignOutButton]</MudButton>
+        </div>
+
+        @if (!Session.IsVerified)
+        {
+            <TwoFactorEnrolment OnEnabled="TwoFactorEnabledAsync" />
+        }
+        else
+        {
+            <ConnectionBanner State="Store.Connection" />
+            <MudGrid Spacing="4">
+                <MudItem xs="12" md="5">
+                    <div class="es-stack">
+                        <MudPaper Class="es-panel" Elevation="0">
+                            <section aria-labelledby="elevator-heading">
+                                <h2 id="elevator-heading" class="es-panel__title">@L[Text.ElevatorHeading]</h2>
+                                <StatusLine Status="Store.Status" />
+                            </section>
+                        </MudPaper>
+                        @if (Session.IsAdmin)
+                        {
+                            <MudPaper Class="es-panel" Elevation="0">
+                                <ServiceControls Status="Store.Status" />
+                            </MudPaper>
+                        }
+                    </div>
+                </MudItem>
+                <MudItem xs="12" md="7">
+                    <MudPaper Class="es-panel" Elevation="0">
+                        <OccupancyPanel Occupancy="Store.Occupancy" />
+                    </MudPaper>
+                </MudItem>
+                <MudItem xs="12">
+                    <MudPaper Class="es-panel" Elevation="0">
+                        <AuditTrailPanel />
+                    </MudPaper>
+                </MudItem>
+            </MudGrid>
+        }
+    </div>
+}
+
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+        Session.Changed += OnChanged;
+        Store.Changed += OnChanged;
+        await Hub.StartAsync();
+        if (!Session.IsLoaded)
+        {
+            await Session.LoadAsync();
+        }
+
+        await LoadDashboardAsync();
+    }
+
+    public void Dispose()
+    {
+        Session.Changed -= OnChanged;
+        Store.Changed -= OnChanged;
+    }
+
+    private async Task SignedInAsync(StaffSessionDto session)
+    {
+        await Session.ChangeAsync(session);
+        await LoadDashboardAsync();
+    }
+
+    private async Task TwoFactorEnabledAsync()
+    {
+        await Session.ChangeAsync((await StaffApi.GetSessionAsync()).Value);
+        await LoadDashboardAsync();
+    }
+
+    private Task SignOutAsync() => Session.SignOutAsync();
+
+    /// <summary>The hub keeps everything current; this fills the view at once instead of waiting for the next change.</summary>
+    private async Task LoadDashboardAsync()
+    {
+        if (!Session.IsVerified)
+        {
+            return;
+        }
+
+        try
+        {
+            if (Store.Status is null)
+            {
+                Store.ApplyStatus(await ElevatorApi.GetStatusAsync());
+            }
+        }
+        catch (HttpRequestException)
+        {
+            // Not known yet: the hub delivers it as soon as the engine reports.
+        }
+
+        if (Store.Occupancy is null && (await StaffApi.GetOccupancyAsync()).Value is { } occupancy)
+        {
+            Store.ApplyOccupancy(occupancy);
+        }
+    }
+
+    private void OnChanged(object? sender, EventArgs e) => _ = InvokeAsync(StateHasChanged);
+}

@@ -1,0 +1,74 @@
+@* How many people are where: the car's load, and waiting and present per floor, top floor first. Counts only (ADR-0017). *@
+@inject IStringLocalizer<SharedResource> L
+
+<section aria-labelledby="occupancy-heading">
+    <h2 id="occupancy-heading" class="es-panel__title">@L[Text.OccupancyHeading]</h2>
+
+    @if (Occupancy is not { } occupancy)
+    {
+        <p class="es-empty" data-testid="occupancy-unavailable">@L[Text.OccupancyUnavailable]</p>
+    }
+    else
+    {
+        <dl class="es-figures">
+            <div>
+                <dt>@L[Text.CarLoad]</dt>
+                <dd data-testid="car-load">@L[Text.CarLoadValue, occupancy.PassengersInCar, occupancy.CarCapacity]</dd>
+                <MudProgressLinear Value="@LoadPercent(occupancy)" Color="@(occupancy.PassengersInCar >= occupancy.CarCapacity ? Color.Warning : Color.Primary)"
+                                   aria-hidden="true" Class="mt-1" />
+            </div>
+            <div>
+                <dt>@L[Text.Delivered]</dt>
+                <dd data-testid="delivered">@occupancy.PassengersDelivered.ToString("N0", CultureInfo.CurrentCulture)</dd>
+            </div>
+            <div>
+                <dt>@L[Text.AverageWait]</dt>
+                <dd data-testid="average-wait">
+                    @if (occupancy.AverageWaitTime is { } wait)
+                    {
+                        @L[Text.SecondsValue, wait.TotalSeconds.ToString("0.0", CultureInfo.CurrentCulture)]
+                    }
+                    else
+                    {
+                        @L[Text.NoDataYet]
+                    }
+                </dd>
+            </div>
+        </dl>
+
+        <MudSimpleTable Dense="true" Hover="true" Class="es-table" data-testid="floors">
+            <thead>
+                <tr>
+                    <th scope="col">@L[Text.FloorColumn]</th>
+                    <th scope="col" class="es-number">@L[Text.WaitingColumn]</th>
+                    <th scope="col" class="es-number">@L[Text.PresentColumn]</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var floor in occupancy.Floors.OrderByDescending(floor => floor.Floor))
+                {
+                    <tr data-floor="@floor.Floor">
+                        <th scope="row">@floor.Floor</th>
+                        <td class="es-number">@floor.Waiting</td>
+                        <td class="es-number">@floor.Present</td>
+                    </tr>
+                }
+            </tbody>
+            <tfoot>
+                <tr data-testid="totals">
+                    <th scope="row">@L[Text.TotalRow]</th>
+                    <td class="es-number">@occupancy.Floors.Sum(floor => floor.Waiting)</td>
+                    <td class="es-number">@occupancy.Floors.Sum(floor => floor.Present)</td>
+                </tr>
+            </tfoot>
+        </MudSimpleTable>
+    }
+</section>
+
+@code {
+    [Parameter]
+    public BuildingOccupancyDto? Occupancy { get; set; }
+
+    private static double LoadPercent(BuildingOccupancyDto occupancy) =>
+        occupancy.CarCapacity <= 0 ? 0 : Math.Min(100, 100.0 * occupancy.PassengersInCar / occupancy.CarCapacity);
+}

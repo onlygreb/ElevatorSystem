@@ -228,4 +228,217 @@
   <data name="FloorsHint" xml:space="preserve">
     <value>Press ▲ or ▼ on your floor to call the elevator.</value>
   </data>
+  <data name="NavPassenger" xml:space="preserve">
+    <value>Passenger view</value>
+  </data>
+  <data name="NavAdmin" xml:space="preserve">
+    <value>Admin</value>
+  </data>
+  <data name="AdminPageTitle" xml:space="preserve">
+    <value>Elevator · Admin</value>
+  </data>
+  <data name="SignInHeading" xml:space="preserve">
+    <value>Staff sign-in</value>
+  </data>
+  <data name="SignInHint" xml:space="preserve">
+    <value>For building staff only. Every account signs in with a password and an authenticator app.</value>
+  </data>
+  <data name="EmailLabel" xml:space="preserve">
+    <value>E-mail</value>
+  </data>
+  <data name="PasswordLabel" xml:space="preserve">
+    <value>Password</value>
+  </data>
+  <data name="TwoFactorCodeLabel" xml:space="preserve">
+    <value>Authenticator code</value>
+  </data>
+  <data name="RecoveryCodeLabel" xml:space="preserve">
+    <value>Recovery code</value>
+  </data>
+  <data name="UseRecoveryCode" xml:space="preserve">
+    <value>Use a recovery code instead</value>
+  </data>
+  <data name="UseAuthenticatorCode" xml:space="preserve">
+    <value>Use the authenticator app instead</value>
+  </data>
+  <data name="SignInButton" xml:space="preserve">
+    <value>Sign in</value>
+  </data>
+  <data name="SignOutButton" xml:space="preserve">
+    <value>Sign out</value>
+  </data>
+  <data name="SignedInAs" xml:space="preserve">
+    <value>Signed in as {0}</value>
+  </data>
+  <data name="SignInFailedCredentials" xml:space="preserve">
+    <value>The e-mail or password is not correct, or the account is locked for a while after too many attempts.</value>
+  </data>
+  <data name="SignInTwoFactorRequired" xml:space="preserve">
+    <value>Enter the 6-digit code from your authenticator app.</value>
+  </data>
+  <data name="SignInInvalidCode" xml:space="preserve">
+    <value>That code is not valid. Codes change every 30 seconds; recovery codes work once.</value>
+  </data>
+  <data name="StaffTooManyRequests" xml:space="preserve">
+    <value>Too many attempts. Wait a moment and try again.</value>
+  </data>
+  <data name="StaffUnavailable" xml:space="preserve">
+    <value>The server cannot be reached right now. Try again shortly.</value>
+  </data>
+  <data name="StaffUnexpected" xml:space="preserve">
+    <value>Something went wrong. Try again.</value>
+  </data>
+  <data name="StaffSessionExpired" xml:space="preserve">
+    <value>Your session ended. Sign in again.</value>
+  </data>
+  <data name="StaffNotAllowed" xml:space="preserve">
+    <value>Your account is not allowed to do this.</value>
+  </data>
+  <data name="EnrolHeading" xml:space="preserve">
+    <value>Set up two-factor authentication</value>
+  </data>
+  <data name="EnrolHint" xml:space="preserve">
+    <value>Every staff feature needs a second factor. Scan the code with an authenticator app, or type the key, then enter the 6-digit code the app shows.</value>
+  </data>
+  <data name="EnrolQrAlt" xml:space="preserve">
+    <value>QR code with the authenticator key</value>
+  </data>
+  <data name="EnrolKeyLabel" xml:space="preserve">
+    <value>Key</value>
+  </data>
+  <data name="EnrolConfirm" xml:space="preserve">
+    <value>Enable</value>
+  </data>
+  <data name="RecoveryCodesHeading" xml:space="preserve">
+    <value>Save your recovery codes</value>
+  </data>
+  <data name="RecoveryCodesHint" xml:space="preserve">
+    <value>Each code signs you in once without the authenticator app. They are shown only now, so store them somewhere safe.</value>
+  </data>
+  <data name="RecoveryCodesSaved" xml:space="preserve">
+    <value>I saved them</value>
+  </data>
+  <data name="ElevatorHeading" xml:space="preserve">
+    <value>Elevator</value>
+  </data>
+  <data name="ServiceHeading" xml:space="preserve">
+    <value>Service</value>
+  </data>
+  <data name="ServiceHint" xml:space="preserve">
+    <value>Admins do not operate the car: they take it out of service and return it.</value>
+  </data>
+  <data name="ActionStartMaintenance" xml:space="preserve">
+    <value>Start maintenance</value>
+  </data>
+  <data name="ActionEmergencyStop" xml:space="preserve">
+    <value>Emergency stop</value>
+  </data>
+  <data name="ActionReturnToService" xml:space="preserve">
+    <value>Return to service</value>
+  </data>
+  <data name="ConfirmAction" xml:space="preserve">
+    <value>Confirm: {0}?</value>
+  </data>
+  <data name="ConfirmMaintenanceHint" xml:space="preserve">
+    <value>The car stops taking calls and pending calls are cancelled.</value>
+  </data>
+  <data name="ConfirmEmergencyStopHint" xml:space="preserve">
+    <value>The car stops at once and every pending call is cancelled.</value>
+  </data>
+  <data name="ConfirmReturnHint" xml:space="preserve">
+    <value>The car accepts calls again.</value>
+  </data>
+  <data name="Confirm" xml:space="preserve">
+    <value>Confirm</value>
+  </data>
+  <data name="Cancel" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="ActionRequested" xml:space="preserve">
+    <value>Request sent: {0}. The status changes when the elevator applies it.</value>
+  </data>
+  <data name="OccupancyHeading" xml:space="preserve">
+    <value>People</value>
+  </data>
+  <data name="OccupancyUnavailable" xml:space="preserve">
+    <value>The counts are not available yet.</value>
+  </data>
+  <data name="CarLoad" xml:space="preserve">
+    <value>In the car</value>
+  </data>
+  <data name="CarLoadValue" xml:space="preserve">
+    <value>{0} of {1}</value>
+  </data>
+  <data name="Delivered" xml:space="preserve">
+    <value>Trips completed</value>
+  </data>
+  <data name="AverageWait" xml:space="preserve">
+    <value>Average wait</value>
+  </data>
+  <data name="NoDataYet" xml:space="preserve">
+    <value>No data yet</value>
+  </data>
+  <data name="SecondsValue" xml:space="preserve">
+    <value>{0} s</value>
+  </data>
+  <data name="FloorColumn" xml:space="preserve">
+    <value>Floor</value>
+  </data>
+  <data name="WaitingColumn" xml:space="preserve">
+    <value>Waiting</value>
+  </data>
+  <data name="PresentColumn" xml:space="preserve">
+    <value>On the floor</value>
+  </data>
+  <data name="TotalRow" xml:space="preserve">
+    <value>Total</value>
+  </data>
+  <data name="AuditHeading" xml:space="preserve">
+    <value>Audit trail</value>
+  </data>
+  <data name="AuditHint" xml:space="preserve">
+    <value>Every sign-in and service action, hash-chained so that any change made outside the application can be detected.</value>
+  </data>
+  <data name="AuditVerify" xml:space="preserve">
+    <value>Verify chain</value>
+  </data>
+  <data name="AuditIntact" xml:space="preserve">
+    <value>Intact: {0} entries verified.</value>
+  </data>
+  <data name="AuditBroken" xml:space="preserve">
+    <value>Broken at entry {0} ({1}). The trail was changed outside the application.</value>
+  </data>
+  <data name="AuditHeadHash" xml:space="preserve">
+    <value>Newest hash</value>
+  </data>
+  <data name="AuditTimeColumn" xml:space="preserve">
+    <value>Time</value>
+  </data>
+  <data name="AuditActionColumn" xml:space="preserve">
+    <value>Action</value>
+  </data>
+  <data name="AuditTargetColumn" xml:space="preserve">
+    <value>Target</value>
+  </data>
+  <data name="AuditOutcomeColumn" xml:space="preserve">
+    <value>Outcome</value>
+  </data>
+  <data name="AuditActorColumn" xml:space="preserve">
+    <value>Staff</value>
+  </data>
+  <data name="AuditAnonymised" xml:space="preserve">
+    <value>anonymised</value>
+  </data>
+  <data name="AuditUnknownActor" xml:space="preserve">
+    <value>unknown</value>
+  </data>
+  <data name="AuditEmpty" xml:space="preserve">
+    <value>No entries yet.</value>
+  </data>
+  <data name="AuditLoadMore" xml:space="preserve">
+    <value>Load older entries</value>
+  </data>
+  <data name="AuditRefresh" xml:space="preserve">
+    <value>Refresh</value>
+  </data>
 </root>

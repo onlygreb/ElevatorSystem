@@ -228,4 +228,217 @@
   <data name="FloorsHint" xml:space="preserve">
     <value>Toque em ▲ ou ▼ no seu andar para chamar o elevador.</value>
   </data>
+  <data name="NavPassenger" xml:space="preserve">
+    <value>Visão do passageiro</value>
+  </data>
+  <data name="NavAdmin" xml:space="preserve">
+    <value>Administração</value>
+  </data>
+  <data name="AdminPageTitle" xml:space="preserve">
+    <value>Elevador · Administração</value>
+  </data>
+  <data name="SignInHeading" xml:space="preserve">
+    <value>Acesso da equipe</value>
+  </data>
+  <data name="SignInHint" xml:space="preserve">
+    <value>Somente para a equipe do prédio. Toda conta entra com senha e um aplicativo autenticador.</value>
+  </data>
+  <data name="EmailLabel" xml:space="preserve">
+    <value>E-mail</value>
+  </data>
+  <data name="PasswordLabel" xml:space="preserve">
+    <value>Senha</value>
+  </data>
+  <data name="TwoFactorCodeLabel" xml:space="preserve">
+    <value>Código do autenticador</value>
+  </data>
+  <data name="RecoveryCodeLabel" xml:space="preserve">
+    <value>Código de recuperação</value>
+  </data>
+  <data name="UseRecoveryCode" xml:space="preserve">
+    <value>Usar um código de recuperação</value>
+  </data>
+  <data name="UseAuthenticatorCode" xml:space="preserve">
+    <value>Usar o aplicativo autenticador</value>
+  </data>
+  <data name="SignInButton" xml:space="preserve">
+    <value>Entrar</value>
+  </data>
+  <data name="SignOutButton" xml:space="preserve">
+    <value>Sair</value>
+  </data>
+  <data name="SignedInAs" xml:space="preserve">
+    <value>Conectado como {0}</value>
+  </data>
+  <data name="SignInFailedCredentials" xml:space="preserve">
+    <value>O e-mail ou a senha não estão corretos, ou a conta está bloqueada por um tempo após muitas tentativas.</value>
+  </data>
+  <data name="SignInTwoFactorRequired" xml:space="preserve">
+    <value>Digite o código de 6 dígitos do seu aplicativo autenticador.</value>
+  </data>
+  <data name="SignInInvalidCode" xml:space="preserve">
+    <value>Esse código não é válido. Os códigos mudam a cada 30 segundos; códigos de recuperação funcionam uma vez.</value>
+  </data>
+  <data name="StaffTooManyRequests" xml:space="preserve">
+    <value>Muitas tentativas. Aguarde um momento e tente novamente.</value>
+  </data>
+  <data name="StaffUnavailable" xml:space="preserve">
+    <value>Não foi possível falar com o servidor agora. Tente novamente em instantes.</value>
+  </data>
+  <data name="StaffUnexpected" xml:space="preserve">
+    <value>Algo deu errado. Tente novamente.</value>
+  </data>
+  <data name="StaffSessionExpired" xml:space="preserve">
+    <value>Sua sessão terminou. Entre novamente.</value>
+  </data>
+  <data name="StaffNotAllowed" xml:space="preserve">
+    <value>Sua conta não tem permissão para isso.</value>
+  </data>
+  <data name="EnrolHeading" xml:space="preserve">
+    <value>Configure a autenticação em dois fatores</value>
+  </data>
+  <data name="EnrolHint" xml:space="preserve">
+    <value>Todos os recursos da equipe exigem um segundo fator. Leia o código com um aplicativo autenticador, ou digite a chave, e informe o código de 6 dígitos que o aplicativo mostrar.</value>
+  </data>
+  <data name="EnrolQrAlt" xml:space="preserve">
+    <value>QR code com a chave do autenticador</value>
+  </data>
+  <data name="EnrolKeyLabel" xml:space="preserve">
+    <value>Chave</value>
+  </data>
+  <data name="EnrolConfirm" xml:space="preserve">
+    <value>Ativar</value>
+  </data>
+  <data name="RecoveryCodesHeading" xml:space="preserve">
+    <value>Guarde seus códigos de recuperação</value>
+  </data>
+  <data name="RecoveryCodesHint" xml:space="preserve">
+    <value>Cada código permite entrar uma vez sem o aplicativo autenticador. Eles aparecem só agora, então guarde-os em local seguro.</value>
+  </data>
+  <data name="RecoveryCodesSaved" xml:space="preserve">
+    <value>Já guardei</value>
+  </data>
+  <data name="ElevatorHeading" xml:space="preserve">
+    <value>Elevador</value>
+  </data>
+  <data name="ServiceHeading" xml:space="preserve">
+    <value>Serviço</value>
+  </data>
+  <data name="ServiceHint" xml:space="preserve">
+    <value>A administração não opera o elevador: apenas o retira de serviço e o devolve.</value>
+  </data>
+  <data name="ActionStartMaintenance" xml:space="preserve">
+    <value>Iniciar manutenção</value>
+  </data>
+  <data name="ActionEmergencyStop" xml:space="preserve">
+    <value>Parada de emergência</value>
+  </data>
+  <data name="ActionReturnToService" xml:space="preserve">
+    <value>Voltar ao serviço</value>
+  </data>
+  <data name="ConfirmAction" xml:space="preserve">
+    <value>Confirmar: {0}?</value>
+  </data>
+  <data name="ConfirmMaintenanceHint" xml:space="preserve">
+    <value>O elevador deixa de aceitar chamadas e as chamadas pendentes são canceladas.</value>
+  </data>
+  <data name="ConfirmEmergencyStopHint" xml:space="preserve">
+    <value>O elevador para imediatamente e todas as chamadas pendentes são canceladas.</value>
+  </data>
+  <data name="ConfirmReturnHint" xml:space="preserve">
+    <value>O elevador volta a aceitar chamadas.</value>
+  </data>
+  <data name="Confirm" xml:space="preserve">
+    <value>Confirmar</value>
+  </data>
+  <data name="Cancel" xml:space="preserve">
+    <value>Cancelar</value>
+  </data>
+  <data name="ActionRequested" xml:space="preserve">
+    <value>Solicitação enviada: {0}. O status muda quando o elevador a aplicar.</value>
+  </data>
+  <data name="OccupancyHeading" xml:space="preserve">
+    <value>Pessoas</value>
+  </data>
+  <data name="OccupancyUnavailable" xml:space="preserve">
+    <value>As contagens ainda não estão disponíveis.</value>
+  </data>
+  <data name="CarLoad" xml:space="preserve">
+    <value>No elevador</value>
+  </data>
+  <data name="CarLoadValue" xml:space="preserve">
+    <value>{0} de {1}</value>
+  </data>
+  <data name="Delivered" xml:space="preserve">
+    <value>Viagens concluídas</value>
+  </data>
+  <data name="AverageWait" xml:space="preserve">
+    <value>Espera média</value>
+  </data>
+  <data name="NoDataYet" xml:space="preserve">
+    <value>Sem dados ainda</value>
+  </data>
+  <data name="SecondsValue" xml:space="preserve">
+    <value>{0} s</value>
+  </data>
+  <data name="FloorColumn" xml:space="preserve">
+    <value>Andar</value>
+  </data>
+  <data name="WaitingColumn" xml:space="preserve">
+    <value>Aguardando</value>
+  </data>
+  <data name="PresentColumn" xml:space="preserve">
+    <value>No andar</value>
+  </data>
+  <data name="TotalRow" xml:space="preserve">
+    <value>Total</value>
+  </data>
+  <data name="AuditHeading" xml:space="preserve">
+    <value>Trilha de auditoria</value>
+  </data>
+  <data name="AuditHint" xml:space="preserve">
+    <value>Cada acesso e ação de serviço, encadeados por hash para que qualquer alteração feita fora da aplicação seja detectada.</value>
+  </data>
+  <data name="AuditVerify" xml:space="preserve">
+    <value>Verificar cadeia</value>
+  </data>
+  <data name="AuditIntact" xml:space="preserve">
+    <value>Íntegra: {0} entradas verificadas.</value>
+  </data>
+  <data name="AuditBroken" xml:space="preserve">
+    <value>Quebrada na entrada {0} ({1}). A trilha foi alterada fora da aplicação.</value>
+  </data>
+  <data name="AuditHeadHash" xml:space="preserve">
+    <value>Hash mais recente</value>
+  </data>
+  <data name="AuditTimeColumn" xml:space="preserve">
+    <value>Horário</value>
+  </data>
+  <data name="AuditActionColumn" xml:space="preserve">
+    <value>Ação</value>
+  </data>
+  <data name="AuditTargetColumn" xml:space="preserve">
+    <value>Alvo</value>
+  </data>
+  <data name="AuditOutcomeColumn" xml:space="preserve">
+    <value>Resultado</value>
+  </data>
+  <data name="AuditActorColumn" xml:space="preserve">
+    <value>Equipe</value>
+  </data>
+  <data name="AuditAnonymised" xml:space="preserve">
+    <value>anonimizado</value>
+  </data>
+  <data name="AuditUnknownActor" xml:space="preserve">
+    <value>desconhecido</value>
+  </data>
+  <data name="AuditEmpty" xml:space="preserve">
+    <value>Nenhuma entrada ainda.</value>
+  </data>
+  <data name="AuditLoadMore" xml:space="preserve">
+    <value>Carregar entradas anteriores</value>
+  </data>
+  <data name="AuditRefresh" xml:space="preserve">
+    <value>Atualizar</value>
+  </data>
 </root>

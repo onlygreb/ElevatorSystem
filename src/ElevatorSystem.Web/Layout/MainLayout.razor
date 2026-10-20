@@ -14,6 +14,10 @@
             <span>@L[Text.AppTitle]</span>
         </span>
         <MudSpacer />
+        <nav aria-label="@L[Text.AppTitle]" class="es-nav">
+            <NavLink href="" Match="NavLinkMatch.All" class="es-nav__link">@L[Text.NavPassenger]</NavLink>
+            <NavLink href="admin" class="es-nav__link">@L[Text.NavAdmin]</NavLink>
+        </nav>
         <CulturePicker />
     </MudAppBar>
     <MudMainContent>

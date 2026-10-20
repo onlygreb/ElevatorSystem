@@ -18,6 +18,8 @@ public abstract class WebTestContext : BunitContext
         Services.AddSingleton<IElevatorApiClient>(Api);
         Services.AddSingleton<IElevatorHubClient>(Hub);
         Services.AddSingleton<CulturePreference>();
+        Services.AddSingleton<IStaffApiClient>(Staff);
+        Services.AddSingleton<StaffSession>();
     }
 
     internal ElevatorStateStore Store { get; } = new();
@@ -25,4 +27,6 @@ public abstract class WebTestContext : BunitContext
     internal FakeElevatorApiClient Api { get; } = new();
 
     internal FakeElevatorHubClient Hub { get; } = new();
+
+    internal FakeStaffApiClient Staff { get; } = new();
 }
