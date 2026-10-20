@@ -113,4 +113,45 @@ public sealed class ElevatorControllerDoorTests
         counting.DoorsCloseAt.ShouldBe(ControllerHarness.StartTime + HoldOpen.DoorOpenDuration);
         ElevatorContractMapper.ToStatus(closedSnapshot, ControllerHarness.StartTime).DoorsCloseAt.ShouldBeNull("a closed door has no countdown");
     }
+
+    [Fact]
+    public async Task WaitingOpen_ACallForThisFloor_StartsNoCountdown_EvenBriefly()
+    {
+        await using var harness = ControllerHarness.Create(startFloor: 1, options: HoldOpen).Start();
+        await harness.NextAsync<DoorsOpened>();
+
+        await harness.CallElevatorAsync(1, Direction.Up);
+        // Events are published once the next operation has started, so this sees the decision without moving time.
+        await harness.NextAsync<CallServed>();
+
+        harness.Controller.DoorsCloseAt.ShouldBeNull("a door with nowhere to go is held, not counted down and then held");
+    }
+
+    [Fact]
+    public async Task ArrivingWithNothingElsePending_ACallForThatFloor_StartsNoCountdown_EvenBriefly()
+    {
+        await using var harness = ControllerHarness.Create(startFloor: 1, options: HoldOpen).Start();
+        await harness.NextAsync<DoorsOpened>();
+        await harness.SelectFloorAsync(3);
+        await harness.AdvanceUntilAsync<DoorsOpened>(opened => opened.Floor == new Floor(3));
+
+        await harness.SelectFloorAsync(3);
+        await harness.NextAsync<CallServed>(served => served.Floor == new Floor(3) && served.Call.Call is CarCall);
+
+        harness.Controller.DoorsCloseAt.ShouldBeNull();
+    }
+
+    [Fact]
+    public async Task EmergencyStop_DuringACountdown_EndsTheCountdown()
+    {
+        await using var harness = ControllerHarness.Create(startFloor: 1, options: HoldOpen).Start();
+        await harness.NextAsync<DoorsOpened>();
+        await harness.CallElevatorAsync(5, Direction.Down);
+        harness.Controller.DoorsCloseAt.ShouldNotBeNull();
+
+        harness.Controller.EmergencyStop();
+        await harness.StepsAsync(1);
+
+        harness.Controller.DoorsCloseAt.ShouldBeNull("an out-of-service car announces no closing time");
+    }
 }

@@ -68,6 +68,15 @@ public sealed class ElevatorControllerRequestTests
     }
 
     [Fact]
+    public async Task RequestDestination_ToAFloorThatDoesNotExist_WhileOutOfService_IsRefusedForTheFloor()
+    {
+        await using var harness = ControllerHarness.Create().Start();
+        harness.Controller.StartMaintenance();
+
+        harness.Controller.RequestDestination(42).RejectionReason.ShouldBe(RequestRejectionReason.InvalidFloor, "the floor never exists; the outage passes");
+    }
+
+    [Fact]
     public void RequestElevator_IntakeFull_IsRefusedAsBusyInsteadOfBlocking()
     {
         var harness = ControllerHarness.Create(options: ControllerHarness.DefaultOptions with { IntakeCapacity = 2 });
