@@ -26,6 +26,8 @@ public sealed class ApiHost(TestEnvironment environment) : WebApplicationFactory
         builder.UseEnvironment(Environments.Development);
         builder.UseSetting("Hosting:Mode", "Distributed");
         builder.UseSetting("ConnectionStrings:messaging", environment.BrokerUri.ToString());
+        // Staff accounts and the audit trail live in the same PostgreSQL database as the engine's state.
+        builder.UseSetting("ConnectionStrings:elevatordb", environment.DatabaseConnectionString);
         builder.UseSetting("Messaging:RecoveryInterval", "00:00:01");
         builder.UseSetting("Messaging:ConnectTimeout", "00:00:02");
         // Generous: with every test project running at once, a starved broker can take seconds to confirm.

@@ -5,6 +5,7 @@ using ElevatorSystem.Api.Endpoints;
 using ElevatorSystem.Api.Hosting;
 using ElevatorSystem.Api.RealTime;
 using ElevatorSystem.Api.Security;
+using ElevatorSystem.Api.Staff;
 using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -15,6 +16,7 @@ builder.WebHost.ConfigureKestrel(options => options.AddServerHeader = false);
 builder.AddElevator();
 builder.AddElevatorRealTime();
 builder.AddApiRateLimiting();
+builder.AddStaff();
 
 builder.Services.ConfigureHttpJsonOptions(options =>
 {
@@ -50,12 +52,17 @@ else
 
 app.UseErrorHandling();
 app.UseHttpsRedirection();
+app.UseAuthentication();
+// After authentication, so staff requests are counted per account.
 app.UseRateLimiter();
+app.UseAuthorization();
 app.UseAntiforgery();
 
 app.MapStaticAssets();
 app.MapDefaultEndpoints();
 app.MapElevatorEndpoints();
+app.MapStaffAuthEndpoints();
+app.MapAdminEndpoints();
 app.MapElevatorHub();
 app.MapRazorComponents<App>()
     .AddInteractiveWebAssemblyRenderMode()

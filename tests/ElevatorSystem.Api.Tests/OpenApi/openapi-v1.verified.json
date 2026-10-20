@@ -248,7 +248,7 @@
           "Elevator"
         ],
         "summary": "Get how many people are waiting, riding and present",
-        "description": "Counts estimated from the calls people place (ADR-0017); nobody is identified. 503 with Retry-After until the engine has reported them.",
+        "description": "Staff only (ADR-0022). Counts estimated from the calls people place (ADR-0017); nobody is identified. 503 with Retry-After until the engine has reported them.",
         "operationId": "GetOccupancy",
         "responses": {
           "200": {
@@ -257,6 +257,26 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/BuildingOccupancyDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
                 }
               }
             }
@@ -283,10 +303,730 @@
           }
         }
       }
+    },
+    "/api/v1/auth/antiforgery": {
+      "get": {
+        "tags": [
+          "Staff"
+        ],
+        "summary": "Get an antiforgery token",
+        "description": "Send the token in the named header with every staff POST. Fetch a new one after signing in or out.",
+        "operationId": "GetAntiforgeryToken",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AntiforgeryTokenDto"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/sign-in": {
+      "post": {
+        "tags": [
+          "Staff"
+        ],
+        "summary": "Sign a staff member in",
+        "description": "Sets the session cookie. Accounts with two-factor authentication send a code too; without it the answer is 401 with reason TwoFactorRequired. Five failures lock the account for 15 minutes.",
+        "operationId": "SignIn",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SignInRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffSessionDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Payload Too Large",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/sign-out": {
+      "post": {
+        "tags": [
+          "Staff"
+        ],
+        "summary": "Sign out",
+        "operationId": "SignOut",
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/session": {
+      "get": {
+        "tags": [
+          "Staff"
+        ],
+        "summary": "Get the signed-in staff member",
+        "operationId": "GetSession",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffSessionDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/two-factor/setup": {
+      "post": {
+        "tags": [
+          "Staff"
+        ],
+        "summary": "Get a new authenticator key",
+        "description": "Only while two-factor authentication is not enabled; each call replaces the previous key.",
+        "operationId": "SetUpTwoFactor",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TwoFactorSetupDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/two-factor/enable": {
+      "post": {
+        "tags": [
+          "Staff"
+        ],
+        "summary": "Enable two-factor authentication",
+        "description": "Checks a code from the authenticator app, enables two-factor authentication, marks this session as signed in with two factors and returns one-time recovery codes.",
+        "operationId": "EnableTwoFactor",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EnableTwoFactorRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecoveryCodesDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/service-actions": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Start maintenance, stop the car in an emergency, or return it to service",
+        "description": "Admins signed in with two factors. The action is written to the audit trail before it is sent to the engine, ahead of queued calls; the result is reported on the hub as a status change. An Idempotency-Key header (a UUID) makes a retry return the first answer.",
+        "operationId": "RequestServiceAction",
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ServiceActionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "description": "Accepted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceActionAcceptedResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Payload Too Large",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/audit/entries": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Read the audit trail",
+        "description": "Newest first. Pass the page's nextBefore as before to read further back.",
+        "operationId": "GetAuditEntries",
+        "parameters": [
+          {
+            "name": "before",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuditPageDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/audit/verification": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Verify the audit trail's hash chain",
+        "description": "Recomputes every link (ADR-0014). Note the head hash elsewhere: a later verification that does not reach it means entries were removed from the end.",
+        "operationId": "VerifyAuditTrail",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuditVerificationDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
     "schemas": {
+      "AntiforgeryTokenDto": {
+        "required": [
+          "headerName",
+          "requestToken"
+        ],
+        "type": "object",
+        "properties": {
+          "headerName": {
+            "type": "string"
+          },
+          "requestToken": {
+            "type": "string"
+          }
+        },
+        "description": "The antiforgery token to send in the string AntiforgeryTokenDto.HeaderName header of every staff `POST`."
+      },
+      "AuditEntryDto": {
+        "required": [
+          "sequence",
+          "recordedAt",
+          "action",
+          "target",
+          "outcome",
+          "actor",
+          "clientPseudonym",
+          "anonymised"
+        ],
+        "type": "object",
+        "properties": {
+          "sequence": {
+            "type": "integer",
+            "description": "Position in the hash chain.",
+            "format": "int64"
+          },
+          "recordedAt": {
+            "type": "string",
+            "description": "When it was written.",
+            "format": "date-time"
+          },
+          "action": {
+            "type": "string",
+            "description": "What happened, for example `elevator.service-action`."
+          },
+          "target": {
+            "type": "string",
+            "description": "What it happened to."
+          },
+          "outcome": {
+            "type": "string",
+            "description": "How it ended, for example `succeeded` or `failed`."
+          },
+          "actor": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The staff member's e-mail, when known and not anonymised."
+          },
+          "clientPseudonym": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The keyed pseudonym of the client address, when known and not anonymised."
+          },
+          "anonymised": {
+            "type": "boolean",
+            "description": "The personal fields were erased (an LGPD request); the entry still verifies."
+          }
+        },
+        "description": "One entry of the audit trail."
+      },
+      "AuditPageDto": {
+        "required": [
+          "entries",
+          "nextBefore"
+        ],
+        "type": "object",
+        "properties": {
+          "entries": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AuditEntryDto"
+            }
+          },
+          "nextBefore": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int64"
+          }
+        },
+        "description": "A page of the audit trail, newest first; pass long? AuditPageDto.NextBefore as `before` for the next page."
+      },
+      "AuditVerificationDto": {
+        "required": [
+          "intact",
+          "entriesChecked",
+          "headSequence",
+          "headHash",
+          "firstBrokenSequence",
+          "fault",
+          "verifiedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "intact": {
+            "type": "boolean",
+            "description": "Every entry verified."
+          },
+          "entriesChecked": {
+            "type": "integer",
+            "description": "How many entries were checked.",
+            "format": "int64"
+          },
+          "headSequence": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "description": "The newest entry, if any.",
+            "format": "int64"
+          },
+          "headHash": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The newest entry's hash in hex; note it down elsewhere to detect a truncated tail later."
+          },
+          "firstBrokenSequence": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "description": "The first entry that failed, if any.",
+            "format": "int64"
+          },
+          "fault": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Why it failed: `SequenceGap`, `PersonalDigestMismatch` or `EntryHashMismatch`."
+          },
+          "verifiedAt": {
+            "type": "string",
+            "description": "When the check finished.",
+            "format": "date-time"
+          }
+        },
+        "description": "The result of checking every link of the audit chain."
+      },
       "BuildingOccupancyDto": {
         "required": [
           "passengersInCar",
@@ -502,6 +1242,18 @@
         },
         "description": "A consistent view of the elevator at one moment. Higher long ElevatorStatusDto.Version is newer."
       },
+      "EnableTwoFactorRequest": {
+        "required": [
+          "code"
+        ],
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          }
+        },
+        "description": "A code from the authenticator app, proving the key from TwoFactorSetupDto was registered."
+      },
       "FloorOccupancyDto": {
         "required": [
           "floor",
@@ -608,6 +1360,21 @@
           }
         }
       },
+      "RecoveryCodesDto": {
+        "required": [
+          "recoveryCodes"
+        ],
+        "type": "object",
+        "properties": {
+          "recoveryCodes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "description": "One-time recovery codes, shown once: each signs in without the authenticator app."
+      },
       "RequestAcceptedResponse": {
         "required": [
           "requestId"
@@ -620,12 +1387,136 @@
           }
         },
         "description": "The request was accepted; its progress is reported through the hub's activity feed."
+      },
+      "ServiceAction": {
+        "enum": [
+          "StartMaintenance",
+          "EmergencyStop",
+          "ReturnToService"
+        ]
+      },
+      "ServiceActionAcceptedResponse": {
+        "required": [
+          "commandId",
+          "action"
+        ],
+        "type": "object",
+        "properties": {
+          "commandId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "action": {
+            "$ref": "#/components/schemas/ServiceAction"
+          }
+        },
+        "description": "A service action passed to the engine; its effect is reported on the hub as a status change."
+      },
+      "ServiceActionRequest": {
+        "required": [
+          "action"
+        ],
+        "type": "object",
+        "properties": {
+          "action": {
+            "$ref": "#/components/schemas/ServiceAction"
+          }
+        },
+        "description": "An admin's service action: start maintenance, emergency stop or return to service (ADR-0017)."
+      },
+      "SignInRequest": {
+        "required": [
+          "email",
+          "password"
+        ],
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string"
+          },
+          "password": {
+            "type": "string"
+          },
+          "twoFactorCode": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "recoveryCode": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "description": "Signs a staff member in. Accounts with two-factor authentication also send string? SignInRequest.TwoFactorCode (from\ntheir authenticator app) or string? SignInRequest.RecoveryCode; without one the answer is `401` with reason\nSignInFailureReason.TwoFactorRequired."
+      },
+      "StaffRole": {
+        "enum": [
+          "Admin",
+          "Auditor"
+        ],
+        "description": "What a staff account may do (ADR-0022)."
+      },
+      "StaffSessionDto": {
+        "required": [
+          "email",
+          "roles",
+          "twoFactorEnabled",
+          "twoFactorVerified"
+        ],
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "description": "The account's e-mail, which is also its user name."
+          },
+          "roles": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StaffRole"
+            },
+            "description": "What the account may do."
+          },
+          "twoFactorEnabled": {
+            "type": "boolean",
+            "description": "The account has an authenticator app registered."
+          },
+          "twoFactorVerified": {
+            "type": "boolean",
+            "description": "This session was signed in with the second factor; every staff capability needs it."
+          }
+        },
+        "description": "The signed-in staff member, as the UI needs it."
+      },
+      "TwoFactorSetupDto": {
+        "required": [
+          "sharedKey",
+          "authenticatorUri"
+        ],
+        "type": "object",
+        "properties": {
+          "sharedKey": {
+            "type": "string"
+          },
+          "authenticatorUri": {
+            "type": "string"
+          }
+        },
+        "description": "A new authenticator key, to scan as string TwoFactorSetupDto.AuthenticatorUri (a QR code) or type as string TwoFactorSetupDto.SharedKey."
       }
     }
   },
   "tags": [
     {
       "name": "Elevator"
+    },
+    {
+      "name": "Staff"
+    },
+    {
+      "name": "Admin"
     }
   ]
 }

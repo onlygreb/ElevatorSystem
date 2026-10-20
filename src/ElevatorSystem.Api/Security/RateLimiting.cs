@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Net;
 using System.Net.Sockets;
+using System.Security.Claims;
 using System.Threading.RateLimiting;
 using ElevatorSystem.Api.Endpoints;
 using Microsoft.AspNetCore.RateLimiting;
@@ -9,8 +10,8 @@ using Microsoft.Extensions.Options;
 namespace ElevatorSystem.Api.Security;
 
 /// <summary>
-/// Abuse protection for the anonymous API (threat T-API-12, abuse case AC-1): a token bucket per client
-/// address for each kind of endpoint, plus a global cap on concurrent API requests. A refusal is a
+/// Abuse protection (threats T-API-01 and T-API-12, abuse case AC-1): a token bucket per client
+/// address (per account for signed-in staff) for each kind of endpoint, plus a global cap on concurrent API requests. A refusal is a
 /// <c>429</c> problem with <c>Retry-After</c>.
 /// </summary>
 /// <remarks>
@@ -25,6 +26,12 @@ internal static class RateLimiting
 
     /// <summary>Status and configuration reads.</summary>
     public const string ReadPolicy = "read";
+
+    /// <summary>Staff sign-in attempts, per client address, on top of the account lockout (threat T-API-01).</summary>
+    public const string SignInPolicy = "sign-in";
+
+    /// <summary>Staff requests, per signed-in account (per client address before signing in).</summary>
+    public const string StaffPolicy = "staff";
 
     /// <summary>The fallback when a limiter cannot say when to come back.</summary>
     public const int DefaultRetryAfterSeconds = 1;
@@ -82,20 +89,30 @@ internal static class RateLimiting
         limiter.GlobalLimiter = CreateGlobalLimiter(settings.ConcurrentApiRequests);
         limiter.AddPolicy(PassengerPolicy, context => PerClient(context, settings.Passenger));
         limiter.AddPolicy(ReadPolicy, context => PerClient(context, settings.Read));
+        limiter.AddPolicy(SignInPolicy, context => PerClient(context, settings.SignIn));
+        limiter.AddPolicy(StaffPolicy, context => PerAccount(context, settings.Staff));
         limiter.OnRejected = WriteRejectionAsync;
     }
 
     private static RateLimitPartition<IPAddress> PerClient(HttpContext context, TokenBucketSettings bucket) =>
+        RateLimitPartition.GetTokenBucketLimiter(PartitionKey(context.Connection.RemoteIpAddress), _ => Bucket(bucket));
+
+    /// <summary>One bucket per account ID once signed in, so staff behind one address do not share a budget.</summary>
+    private static RateLimitPartition<string> PerAccount(HttpContext context, TokenBucketSettings bucket) =>
         RateLimitPartition.GetTokenBucketLimiter(
-            PartitionKey(context.Connection.RemoteIpAddress),
-            _ => new TokenBucketRateLimiterOptions
-            {
-                TokenLimit = bucket.TokenLimit,
-                TokensPerPeriod = bucket.TokensPerPeriod,
-                ReplenishmentPeriod = bucket.ReplenishmentPeriod,
-                QueueLimit = 0,
-                AutoReplenishment = true,
-            });
+            context.User.FindFirstValue(ClaimTypes.NameIdentifier) is { } account
+                ? "account:" + account
+                : "address:" + PartitionKey(context.Connection.RemoteIpAddress),
+            _ => Bucket(bucket));
+
+    private static TokenBucketRateLimiterOptions Bucket(TokenBucketSettings bucket) => new()
+    {
+        TokenLimit = bucket.TokenLimit,
+        TokensPerPeriod = bucket.TokensPerPeriod,
+        ReplenishmentPeriod = bucket.ReplenishmentPeriod,
+        QueueLimit = 0,
+        AutoReplenishment = true,
+    };
 
     private static async ValueTask WriteRejectionAsync(OnRejectedContext rejected, CancellationToken cancellationToken)
     {
@@ -129,6 +146,12 @@ internal sealed class ApiRateLimitOptions
 
     /// <summary>Per client: a burst of 60 reads, then 30 per second. Live updates come over the hub, not by polling.</summary>
     public TokenBucketSettings Read { get; set; } = new() { TokenLimit = 60, TokensPerPeriod = 30 };
+
+    /// <summary>Per client: 10 attempts, then one every 6 seconds. A person mistyping fits; password guessing does not.</summary>
+    public TokenBucketSettings SignIn { get; set; } = new() { TokenLimit = 10, TokensPerPeriod = 1, ReplenishmentPeriod = TimeSpan.FromSeconds(6) };
+
+    /// <summary>Per account: a burst of 30 requests, then 5 per second. The admin view needs a few per minute.</summary>
+    public TokenBucketSettings Staff { get; set; } = new() { TokenLimit = 30, TokensPerPeriod = 5 };
 
     /// <summary>API requests in flight at once across all clients; beyond it, requests are refused rather than queued.</summary>
     [System.ComponentModel.DataAnnotations.Range(1, 100_000)]

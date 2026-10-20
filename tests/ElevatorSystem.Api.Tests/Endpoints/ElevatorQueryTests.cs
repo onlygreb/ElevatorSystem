@@ -1,4 +1,5 @@
 using System.Net;
+using ElevatorSystem.Api.Tests.Staff;
 using ElevatorSystem.Contracts;
 
 namespace ElevatorSystem.Api.Tests.Endpoints;
@@ -61,10 +62,11 @@ public sealed class ElevatorQueryTests
     }
 
     [Fact]
-    public async Task GetOccupancy_AfterStartUp_ReturnsTheCountsPerFloor()
+    public async Task GetOccupancy_AsStaff_ReturnsTheCountsPerFloor()
     {
         await using var factory = new ApiFactory();
-        using var client = factory.CreateClient();
+        using var staff = await StaffClient.SignedInWithTwoFactorsAsync(factory, StaffAccounts.Auditor);
+        var client = staff.Http;
         await factory.StatusAsync();
 
         using var response = await Eventually.ReturnsAsync(
@@ -82,7 +84,8 @@ public sealed class ElevatorQueryTests
     public async Task GetOccupancy_BeforeTheEngineReported_Returns503WithRetryAfter()
     {
         await using var factory = new ApiFactory().WithoutEngine();
-        using var client = factory.CreateClient();
+        using var staff = await StaffClient.SignedInWithTwoFactorsAsync(factory, StaffAccounts.Admin);
+        var client = staff.Http;
 
         using var response = await client.GetRouteAsync(ApiRoutes.Occupancy);
 

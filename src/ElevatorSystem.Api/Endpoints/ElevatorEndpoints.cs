@@ -1,6 +1,7 @@
 using System.Globalization;
 using ElevatorSystem.Api.RealTime;
 using ElevatorSystem.Api.Security;
+using ElevatorSystem.Api.Staff;
 using ElevatorSystem.Application;
 using ElevatorSystem.Application.Ports;
 using ElevatorSystem.Contracts;
@@ -11,16 +12,13 @@ using Microsoft.AspNetCore.Http.HttpResults;
 namespace ElevatorSystem.Api.Endpoints;
 
 /// <summary>
-/// The passenger API, version 1, at the routes in <see cref="ApiRoutes"/>. A valid call is published to the
+/// The elevator API, version 1, at the routes in <see cref="ApiRoutes"/>. A valid call is published to the
 /// engine as a command and answered with <c>202</c> once the broker has confirmed it; what happens next is
 /// reported on the hub. Reads come from the latest state the engine reported (ADR-0021).
 /// </summary>
 internal static class ElevatorEndpoints
 {
     public const string Tag = "Elevator";
-
-    /// <summary>A request body is a floor and a direction; anything near this size is not a passenger request.</summary>
-    public const long MaxRequestBodySize = 1024;
 
     /// <summary>The broker reconnects within seconds, so a refused call is worth retrying shortly.</summary>
     public const int UnavailableRetryAfterSeconds = 2;
@@ -30,11 +28,12 @@ internal static class ElevatorEndpoints
 
     public static IEndpointRouteBuilder MapElevatorEndpoints(this IEndpointRouteBuilder endpoints)
     {
+        // Each endpoint states who may call it: an AllowAnonymous on the group would override any policy below.
         var elevator = endpoints.MapGroup(string.Empty)
-            .WithTags(Tag)
-            .AllowAnonymous();
+            .WithTags(Tag);
 
         elevator.MapPost(ApiRoutes.HallCalls, RequestElevator)
+            .AllowAnonymous()
             .WithName(nameof(RequestElevator))
             .WithSummary("Call the elevator to a floor")
             .WithDescription("A passenger on a landing presses the up or down button. The call is queued in arrival order (FIFO); its progress is reported on the hub.")
@@ -43,6 +42,7 @@ internal static class ElevatorEndpoints
             .ProducesRefusals();
 
         elevator.MapPost(ApiRoutes.CarCalls, RequestDestination)
+            .AllowAnonymous()
             .WithName(nameof(RequestDestination))
             .WithSummary("Choose a destination floor")
             .WithDescription("A passenger inside the car presses a floor button. The call is queued in arrival order (FIFO); its progress is reported on the hub.")
@@ -51,6 +51,7 @@ internal static class ElevatorEndpoints
             .ProducesRefusals();
 
         elevator.MapGet(ApiRoutes.Elevator, GetStatus)
+            .AllowAnonymous()
             .WithName(nameof(GetStatus))
             .WithSummary("Get the elevator's current status")
             .WithDescription("The latest status the engine reported. 503 with Retry-After until the engine has reported one.")
@@ -59,16 +60,20 @@ internal static class ElevatorEndpoints
             .ProducesProblem(StatusCodes.Status503ServiceUnavailable);
 
         elevator.MapGet(ApiRoutes.Configuration, GetConfiguration)
+            .AllowAnonymous()
             .WithName(nameof(GetConfiguration))
             .WithSummary("Get the building and timing settings")
             .RequireRateLimiting(RateLimiting.ReadPolicy)
             .ProducesProblem(StatusCodes.Status429TooManyRequests);
 
         elevator.MapGet(ApiRoutes.Occupancy, GetOccupancy)
+            .RequireAuthorization(StaffPolicies.Staff)
             .WithName(nameof(GetOccupancy))
             .WithSummary("Get how many people are waiting, riding and present")
-            .WithDescription("Counts estimated from the calls people place (ADR-0017); nobody is identified. 503 with Retry-After until the engine has reported them.")
-            .RequireRateLimiting(RateLimiting.ReadPolicy)
+            .WithDescription("Staff only (ADR-0022). Counts estimated from the calls people place (ADR-0017); nobody is identified. 503 with Retry-After until the engine has reported them.")
+            .RequireRateLimiting(RateLimiting.StaffPolicy)
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
             .ProducesProblem(StatusCodes.Status429TooManyRequests)
             .ProducesProblem(StatusCodes.Status503ServiceUnavailable);
 
@@ -157,7 +162,7 @@ internal static class ElevatorEndpoints
         return TypedResults.Accepted((string?)null, new RequestAcceptedResponse(command.CommandId));
     }
 
-    private static ProblemHttpResult Refused(RejectionReason reason, HttpContext context)
+    internal static ProblemHttpResult Refused(RejectionReason reason, HttpContext context)
     {
         var (status, title, detail) = reason switch
         {
@@ -185,9 +190,6 @@ internal static class ElevatorEndpoints
         context.Response.Headers.RetryAfter = StatusUnknownRetryAfterSeconds.ToString(CultureInfo.InvariantCulture);
         return TypedResults.Problem(detail: detail, statusCode: StatusCodes.Status503ServiceUnavailable, title: title);
     }
-
-    private static RouteHandlerBuilder WithRequestSizeLimit(this RouteHandlerBuilder builder) =>
-        builder.WithMetadata(new Microsoft.AspNetCore.Mvc.RequestSizeLimitAttribute(MaxRequestBodySize));
 
     private static RouteHandlerBuilder ProducesRefusals(this RouteHandlerBuilder builder) => builder
         .ProducesProblem(StatusCodes.Status400BadRequest)

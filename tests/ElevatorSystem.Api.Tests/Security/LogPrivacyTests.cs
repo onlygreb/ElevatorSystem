@@ -1,5 +1,6 @@
 using System.Net;
 using System.Text;
+using ElevatorSystem.Api.Tests.Staff;
 using ElevatorSystem.Contracts;
 using Microsoft.Extensions.Logging.Testing;
 
@@ -42,6 +43,37 @@ public sealed class LogPrivacyTests
             text.ShouldNotContain(Ipv4, Case.Insensitive, "client addresses are personal data");
             text.ShouldNotContain(Ipv6, Case.Insensitive, "client addresses are personal data");
             text.ShouldNotContain(BodyMarker, Case.Insensitive, "request bodies are never logged");
+        }
+    }
+
+    [Fact]
+    public async Task Logs_NeverContainStaffEmailsPasswordsOrCodes()
+    {
+        await using var factory = new ApiFactory()
+            .WithSetting("Logging:LogLevel:Default", "Trace")
+            .WithSetting("Logging:LogLevel:Microsoft.AspNetCore", "Trace");
+        const string Guessed = "guessed-password-5f1c";
+        using var intruder = StaffClient.Anonymous(factory);
+        intruder.Http.DefaultRequestHeaders.Add(ApiFactory.ClientAddressHeader, Ipv4);
+        using (await intruder.SignInAsync("intruder@elevator.test", Guessed))
+        using (await intruder.SignInAsync(StaffAccounts.Admin.Email, Guessed))
+        {
+        }
+
+        using var admin = await StaffClient.SignedInWithTwoFactorsAsync(factory, StaffAccounts.Admin);
+        using (await admin.PostAsync(ApiRoutes.SignOut))
+        using (await admin.SignInAsync(StaffAccounts.Admin.Email, StaffAccounts.Admin.Password, Totp.Code(admin.AuthenticatorKey!)))
+        {
+        }
+
+        var secrets = new[] { "intruder@elevator.test", StaffAccounts.Admin.Email, Guessed, StaffAccounts.Admin.Password, Ipv4, admin.AuthenticatorKey!.Replace(" ", "", StringComparison.Ordinal) };
+        foreach (var record in factory.Services.GetFakeLogCollector().GetSnapshot())
+        {
+            var text = Describe(record).Replace(" ", "", StringComparison.Ordinal);
+            foreach (var secret in secrets)
+            {
+                text.ShouldNotContain(secret.Replace(" ", "", StringComparison.Ordinal), Case.Insensitive, "staff e-mails, passwords, keys and addresses never reach the logs");
+            }
         }
     }
 
