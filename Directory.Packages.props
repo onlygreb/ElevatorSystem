@@ -42,6 +42,11 @@
     <PackageVersion Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="10.0.13" />
   </ItemGroup>
 
+  <ItemGroup Label="Staff accounts and keys">
+    <PackageVersion Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="10.0.13" />
+    <PackageVersion Include="Microsoft.AspNetCore.DataProtection.EntityFrameworkCore" Version="10.0.13" />
+  </ItemGroup>
+
   <ItemGroup Label="Aspire hosting and client integrations">
     <PackageVersion Include="Aspire.Hosting.RabbitMQ" Version="13.6.1" />
     <PackageVersion Include="Aspire.Hosting.PostgreSQL" Version="13.6.1" />

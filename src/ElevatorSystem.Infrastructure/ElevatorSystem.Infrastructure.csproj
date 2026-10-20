@@ -1,6 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <!--
     Adapters for the Application ports: RabbitMQ (Messaging/), PostgreSQL with EF Core (Persistence/),
+    staff accounts and the audit chain (Staff/),
     leader election and retention jobs. Host-agnostic: connection settings come in through options.
   -->
   <ItemGroup>
@@ -13,6 +14,9 @@
     <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" />
     <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks" />
     <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" />
+    <!-- Staff/: Identity stores and the Data Protection key ring in the staff database (ADR-0022). -->
+    <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" />
+    <PackageReference Include="Microsoft.AspNetCore.DataProtection.EntityFrameworkCore" />
     <!-- Design-time only: lets `dotnet ef` create migrations; never shipped. -->
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" PrivateAssets="all" IncludeAssets="runtime; build; native; contentfiles; analyzers; buildtransitive" />
   </ItemGroup>
