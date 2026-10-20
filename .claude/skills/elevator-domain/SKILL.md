@@ -136,6 +136,10 @@ A passenger is a random id the browser keeps; nothing identifies a person (ADR-0
 hears every `PassengerEvent` and every change of the counts in order, under the lock: hand them to a
 buffer (the engine turns them into `ElevatorUpdateV1` and `OccupancyUpdateV1`). Event IDs 1840–1859.
 
+**Metrics** (`ElevatorMetrics`, ADR-0028): the last sink in the engine's composite and a passenger
+observer too. A new event type or passenger step needs a decision there. Tags stay closed sets: never an
+id. `ElevatorMetricsTests` read the instruments with `MetricCollector` over a `TestMeterFactory`.
+
 **Demo scenarios** (`DemoScenarioRunner`, `SimulationOptions`, off unless `Enabled`): morning rush,
 lunch break, busy day. Simulated passengers arrive on the lowest floor and use `PassengerService` like
 people, at a human pace, on a `TimeProvider` timer (`TickInterval`), seeded for reproducible runs.
