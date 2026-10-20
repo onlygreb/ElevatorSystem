@@ -6,7 +6,7 @@
 ## Context
 
 The system combines a safety-sensitive control loop, a message broker, a web API, a browser UI and
-privacy obligations under the LGPD. Many choices only make sense with their context (why a lock
+privacy obligations. Many choices only make sense with their context (why a lock
 here, why no Kafka, why passengers are anonymous). That context gets lost if it lives only in pull
 requests or in people's heads.
 

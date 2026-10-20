@@ -99,7 +99,7 @@ being travelled to, and the drive performs the trip.
 Decisions: ADR-0017 (passengers are counted from their calls) and ADR-0020 (the exact rules).
 Code: `Application/Occupancy` (`OccupancyTracker`, `OccupancyOptions`, `IOccupancyObserver`,
 `CompositeElevatorEventSink`) and `Application/Simulation` (`TrafficGenerator`, `ArrivalSchedule`).
-Passengers are anonymous counts; nothing identifies a person (ADR-0009).
+Passengers are anonymous counts; nothing identifies a person (ADR-0024).
 
 **Counting rules** (`OccupancyTracker`, an `IElevatorEventSink`):
 

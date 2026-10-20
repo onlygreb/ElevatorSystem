@@ -4,7 +4,7 @@ namespace ElevatorSystem.Infrastructure.Messaging;
 
 /// <summary>
 /// Source-generated log messages for the RabbitMQ adapter (event IDs 4000-4099). They name messages by ID and type
-/// and the broker by an endpoint without credentials; message bodies are never logged (ADR-0009).
+/// and the broker by an endpoint without credentials; message bodies are never logged (ADR-0024).
 /// </summary>
 internal static partial class MessagingLog
 {

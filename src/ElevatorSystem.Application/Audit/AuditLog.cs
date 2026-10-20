@@ -4,7 +4,7 @@ namespace ElevatorSystem.Application.Audit;
 
 /// <summary>
 /// Source-generated log messages of the audit trail (event IDs 1900-1919). They carry sequences, actions and
-/// outcomes, never the actor or the client pseudonym: those live only in the trail (ADR-0009).
+/// outcomes, never the actor or the client pseudonym: those live only in the trail (ADR-0024).
 /// </summary>
 internal static partial class AuditLog
 {

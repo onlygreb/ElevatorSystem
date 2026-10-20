@@ -14,7 +14,7 @@ supersedes the old one instead of editing it. New records start from [`template.
 | [0006](0006-blazor-webassembly-ui-hosted-by-the-api.md) | Blazor WebAssembly UI hosted by the API | Accepted |
 | [0007](0007-fail-safe-operation.md) | Fail-safe operation | Accepted |
 | [0008](0008-dependency-and-supply-chain-policy.md) | Dependency and supply-chain policy | Accepted |
-| [0009](0009-privacy-by-design-for-lgpd.md) | Privacy by design for LGPD | Accepted |
+| [0009](0009-privacy-by-design-for-lgpd.md) | Privacy by design for LGPD | Superseded by [0024](0024-drop-lgpd-compliance-scope.md) |
 | [0010](0010-testing-strategy.md) | Testing strategy | Accepted |
 | [0011](0011-orchestration-and-delivery.md) | Local orchestration and container delivery | Accepted |
 | [0012](0012-elevator-control-loop.md) | Elevator control loop and core semantics | Accepted |
@@ -29,3 +29,4 @@ supersedes the old one instead of editing it. New records start from [`template.
 | [0021](0021-engine-hosting-topology-and-single-process-mode.md) | Engine hosting topology and the single-process mode | Accepted |
 | [0022](0022-staff-authentication-and-authorization.md) | Authenticate staff with Identity cookies and a mandatory second factor | Accepted |
 | [0023](0023-audit-trail-writer-and-verification.md) | The API writes the audit trail, before acting, as one hash chain | Accepted |
+| [0024](0024-drop-lgpd-compliance-scope.md) | Keep privacy by design, without an LGPD compliance programme | Accepted |

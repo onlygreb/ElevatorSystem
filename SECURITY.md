@@ -22,9 +22,7 @@ Security fixes are applied to `main` and released in the next version. Older rel
 ## Personal data
 
 If a vulnerability may have exposed personal data, it is handled as a security incident under the
-LGPD (Lei nº 13.709/2018): affected data subjects and the ANPD are notified as required by ANPD
-Resolution nº 15/2024. The system is designed to hold as little personal data as possible; see
-[ADR-0009](docs/adr/0009-privacy-by-design-for-lgpd.md).
+affected staff are told what happened and what to do.
 
 ## How this repository protects itself
 

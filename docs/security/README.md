@@ -2,7 +2,7 @@
 
 This folder holds the security analysis of ElevatorSystem. The decisions it relies on are in the
 [architecture decision records](../adr/README.md). How to report a vulnerability is in
-[SECURITY.md](../../SECURITY.md), and privacy and LGPD documents go in `docs/lgpd/`.
+[SECURITY.md](../../SECURITY.md).
 
 | Document | What it covers |
 |---|---|
@@ -52,7 +52,6 @@ Each review is recorded with its date, the trigger and the phase in the change l
 | A planned mitigation reached by its phase | The phase's work includes the mechanism **and** a test that proves it (for example an authorization-matrix row, a chaos test, a privacy test; see ADR-0010). The row becomes `Implemented` in the pull request that lands both. |
 | A mitigation that turns out not to work | The row goes back to `Open`, and an issue is opened. If it can be exploited in a released version, it is handled as a vulnerability under [SECURITY.md](../../SECURITY.md). |
 | A residual risk the project accepts | Stays in "Residual risks" with the assumption it rests on. If that assumption stops being true, the risk becomes an open finding again. |
-| A finding that may involve personal data | Also follows the incident-response runbook in `docs/lgpd/` (ANPD notification within 3 business days, ADR-0009). |
 
 Row IDs are stable: a row that no longer applies is marked as removed with the reason, not
 renumbered, so issues and pull requests that cite it keep working.

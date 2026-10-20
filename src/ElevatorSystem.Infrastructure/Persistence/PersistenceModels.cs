@@ -3,7 +3,7 @@ namespace ElevatorSystem.Infrastructure.Persistence;
 // Persistence models: the shape of the tables, kept apart from the Domain types so the schema and
 // the domain can evolve independently. Enumerations are stored as fixed lowercase codes (see
 // SnapshotMapping), never as Domain enum names or numbers, so renaming a Domain member cannot
-// silently change the meaning of stored rows. None of these tables holds personal data (ADR-0009).
+// silently change the meaning of stored rows. None of these tables holds personal data (ADR-0024).
 
 /// <summary>The saved state of the elevator: one row per car.</summary>
 internal sealed class ElevatorStateRecord

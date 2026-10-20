@@ -4,7 +4,7 @@ namespace ElevatorSystem.Application.InMemory.Messaging;
 
 /// <summary>
 /// Source-generated log messages for the in-memory bus (event IDs 4100-4199). Message IDs and types only:
-/// message bodies are never logged (ADR-0009).
+/// message bodies are never logged (ADR-0024).
 /// </summary>
 internal static partial class InMemoryMessagingLog
 {

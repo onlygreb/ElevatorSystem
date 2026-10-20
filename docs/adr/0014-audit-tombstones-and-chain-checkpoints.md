@@ -7,8 +7,8 @@
 
 ADR-0009 makes the audit trail tamper-evident (append-only, hash-chained, with a verification
 endpoint) and also requires that personal data in it can be removed: a staff member's deletion
-request (LGPD Art. 18 VI) anonymises their entries with a tombstone, and the retention job purges
-entries after 1 year (Art. 15–16). ADR-0009 fixes the outcome, a chain that still verifies, but
+request anonymises their entries with a tombstone, and the retention job purges
+entries after 1 year. ADR-0009 fixes the outcome, a chain that still verifies, but
 not how.
 
 The two requirements pull against each other. If an entry's hash covers its personal fields
@@ -18,11 +18,11 @@ entries removes the start of the chain that verification walks from.
 
 Two constraints apply to any design:
 
-- A tombstoned entry must be anonymous in the Art. 12 sense: the remaining data must not let
+- A tombstoned entry must be anonymous: the remaining data must not let
   anyone link it back to the staff member by reasonable means. A plain hash of a staff ID fails
   this, because the set of staff IDs is small enough to try them all.
 - Cryptography only through the platform (`SHA256`, `RandomNumberGenerator`), per the
-  `security-lgpd` checklist.
+  `security` checklist.
 
 The threat model records the problem as T-AUD-02 and the open question as the first half of OQ-14
 ([`docs/security/threat-model.md`](../security/threat-model.md)).
@@ -59,8 +59,7 @@ Verification starts from the most recent checkpoint instead of the first entry e
 Canonical serialisation of the fields (field order, encoding, timestamp format) is fixed in code
 and covered by tests with known vectors, so a digest computed today verifies after any refactor.
 
-[`docs/lgpd/retention.md`, section 4](../lgpd/retention.md#4-audit-tombstones-and-the-hash-chain)
-describes the same mechanism from the data-protection side. Phase 4 implemented it as
+Phase 4 implemented it as
 written (`AuditChain`, `AuditTrail`; the known vectors are in `AuditChainTests`) and accepted it.
 
 Out of scope here, and still open in the threat model: anchoring the chain head outside the
@@ -73,7 +72,7 @@ audit table (OQ-7). This design works with any answer to them.
   makes rewriting the chain a normal operation, which is exactly what tamper evidence must
   prevent.
 - **Unsalted digest of the personal fields:** keeps the chain verifiable, but a tombstone can be
-  re-identified by hashing every known staff ID. Fails Art. 12.
+  re-identified by hashing every known staff ID. So it is not anonymous.
 - **HMAC of the personal fields under a secret key** (as OQ-14 suggests): also hides the fields,
   but adds a long-lived key whose leak would make every tombstone guessable again. A random
   per-entry salt that is destroyed on tombstoning gives the same protection with no key to keep.
@@ -97,4 +96,4 @@ audit table (OQ-7). This design works with any answer to them.
   the middle of the chain.
 - Tombstoning entries that are still inside their retention period can remove attribution an
   investigation needs. Whether that is deferred or needs a second approval is still the
-  controller's decision (RIPD risk R9, open item O1); this design supports either.
+  controller's decision; this design supports either.

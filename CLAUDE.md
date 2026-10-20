@@ -1,8 +1,8 @@
 # ElevatorSystem
 
 Elevator control system: one elevator serving floors 1–10, driven through a REST API and a live
-Blazor UI, with RabbitMQ between the API and the control engine. Security, LGPD compliance and
-test depth are core requirements, not extras. Read `README.md` for the product view and
+Blazor UI, with RabbitMQ between the API and the control engine. Security and test depth are core
+requirements, not extras. Read `README.md` for the product view and
 `docs/adr/` for every decision already made.
 
 ## Layout
@@ -48,7 +48,7 @@ dotnet run --project src/ElevatorSystem.ConsoleDemo   # core only
   friends are banned in `src/` by analyzer (`src/BannedSymbols.txt`).
 - **Warnings are errors.** Don't add `NoWarn` or `#pragma` without a comment that says why.
 - **Formatting**: LF line endings, UTF-8 without BOM; `dotnet format` must report no changes.
-- **Privacy**: passenger requests carry no personal data, and personal data never reaches logs (ADR-0009).
+- **Privacy**: passengers are anonymous, and staff credentials, keys and client addresses never reach logs.
 
 ## Working agreements
 
@@ -61,7 +61,7 @@ dotnet run --project src/ElevatorSystem.ConsoleDemo   # core only
 - Public API names in the domain mirror the system requirements (`MoveUp`, `OpenDoor`,
   `AddRequest`, `RequestElevator`, `ProcessRequests`…). Keep them.
 - A behaviour change without a test is not done. A security- or privacy-relevant change also
-  updates `docs/security` or `docs/lgpd`.
+  updates `docs/security`.
 
 ## Skills
 
@@ -71,7 +71,7 @@ Load the matching skill before working in an area:
 - `api-backend`: endpoint checklist, validation, errors, authorization, rate limiting
 - `messaging`: RabbitMQ topology, delivery guarantees, idempotency, leader election
 - `blazor-ui`: UI structure, components, accessibility, localisation (en-US, pt-BR)
-- `security-lgpd`: security checklist, data classification, LGPD obligations
+- `security`: security checklist, data classification, audit trail and staff authentication rules
 - `testing`: which test type to write, conventions, tools and commands
 
 ## Delivery phases
@@ -81,4 +81,4 @@ Load the matching skill before working in an area:
 2. REST API, SignalR, Blazor passenger view (in-memory bus) ✅
 3. RabbitMQ, PostgreSQL, persistence and recovery, failover, occupancy counting and a test traffic generator (ADR-0017) ✅
 4. Authentication, admin view (people in the car, waiting and present per floor; maintenance, emergency stop, return to service), tamper-evident audit log ✅
-5. LGPD features and documents, observability, load, end-to-end and mutation testing
+5. Passenger journeys, admin demo scenarios, redesigned UI, observability, load, end-to-end and mutation testing

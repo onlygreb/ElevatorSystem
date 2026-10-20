@@ -40,7 +40,7 @@ public sealed record ServiceActionAcceptedResponse(Guid CommandId, ServiceAction
 /// <param name="Outcome">How it ended, for example <c>succeeded</c> or <c>failed</c>.</param>
 /// <param name="Actor">The staff member's e-mail, when known and not anonymised.</param>
 /// <param name="ClientPseudonym">The keyed pseudonym of the client address, when known and not anonymised.</param>
-/// <param name="Anonymised">The personal fields were erased (an LGPD request); the entry still verifies.</param>
+/// <param name="Anonymised">The personal fields were erased (a deletion request); the entry still verifies.</param>
 public sealed record AuditEntryDto(
     long Sequence,
     DateTimeOffset RecordedAt,

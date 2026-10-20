@@ -2,7 +2,7 @@ namespace ElevatorSystem.Api;
 
 /// <summary>
 /// Source-generated log messages of the API host (event IDs 3000-3999). They never carry request
-/// bodies, headers, cookies or client addresses (ADR-0009).
+/// bodies, headers, cookies or client addresses (ADR-0024).
 /// </summary>
 internal static partial class ApiLog
 {

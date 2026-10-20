@@ -5,7 +5,7 @@ namespace ElevatorSystem.Application.Occupancy;
 
 /// <summary>
 /// Source-generated log messages for occupancy counting (event IDs 1800-1819). They carry floors,
-/// calls and counts only: passengers are anonymous and nothing identifies an individual (ADR-0009).
+/// calls and counts only: passengers are anonymous and nothing identifies an individual (ADR-0024).
 /// </summary>
 internal static partial class OccupancyLog
 {

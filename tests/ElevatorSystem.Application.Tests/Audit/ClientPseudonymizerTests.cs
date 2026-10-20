@@ -4,7 +4,7 @@ using Microsoft.Extensions.Options;
 
 namespace ElevatorSystem.Application.Tests.Audit;
 
-/// <summary>Keyed pseudonyms for client addresses in the audit trail (security-lgpd skill).</summary>
+/// <summary>Keyed pseudonyms for client addresses in the audit trail (security skill).</summary>
 public sealed class ClientPseudonymizerTests
 {
     private static readonly string KeyA = Convert.ToBase64String([.. Enumerable.Repeat((byte)0xA5, 32)]);

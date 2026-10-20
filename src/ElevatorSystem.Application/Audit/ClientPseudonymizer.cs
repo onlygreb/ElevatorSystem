@@ -9,7 +9,7 @@ namespace ElevatorSystem.Application.Audit;
 /// Turns a client address into a keyed pseudonym for the audit trail: <c>keyId:</c> followed by the first
 /// 16 bytes of <c>HMAC-SHA256(key, address)</c> in hex. The same address gives the same pseudonym under one
 /// key, so repeated attempts from one place can be linked, but without the key the address cannot be
-/// recovered or guessed (security-lgpd skill). Rotating the key breaks the links, by design.
+/// recovered or guessed (security skill). Rotating the key breaks the links, by design.
 /// </summary>
 public sealed class ClientPseudonymizer
 {

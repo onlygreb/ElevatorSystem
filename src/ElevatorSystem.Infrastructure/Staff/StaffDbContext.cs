@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace ElevatorSystem.Infrastructure.Staff;
 
-/// <summary>A staff account (ADR-0022): the e-mail is the user name. Personal data (ADR-0009, ROPA).</summary>
+/// <summary>A staff account (ADR-0022): the e-mail is the user name. Sensitive data (security skill).</summary>
 public sealed class StaffUser : IdentityUser<Guid>
 {
 }

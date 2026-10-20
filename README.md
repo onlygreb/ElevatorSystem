@@ -3,7 +3,6 @@
 [![CI](https://github.com/onlygreb/ElevatorSystem/actions/workflows/ci.yml/badge.svg)](https://github.com/onlygreb/ElevatorSystem/actions/workflows/ci.yml)
 [![CodeQL](https://github.com/onlygreb/ElevatorSystem/actions/workflows/codeql.yml/badge.svg)](https://github.com/onlygreb/ElevatorSystem/actions/workflows/codeql.yml)
 ![.NET 10](https://img.shields.io/badge/.NET-10-512BD4)
-![LGPD](https://img.shields.io/badge/privacy-LGPD%20by%20design-2E7D32)
 
 An elevator control system built on .NET 10. It has:
 - a thread-safe control core that handles concurrent passenger requests
@@ -11,7 +10,7 @@ An elevator control system built on .NET 10. It has:
 - a REST and real-time API
 - a Blazor web interface for passengers and operators
 
-Security and LGPD compliance are part of the design from the first commit.
+Security is part of the design from the first commit.
 
 > **Project status:** the elevator core works end to end and runs from the console demo:
 > - a thread-safe state machine
@@ -51,7 +50,7 @@ ElevatorSystem controls an elevator serving floors 1 to 10 and gives passengers 
 | **Concurrency** | 100+ simultaneous requests handled safely; target time from request to assignment under 100 ms. |
 | **Fail-safe operation** | Stuck-car detection, out-of-service mode, emergency stop, recovery after restart, and a guarantee that only one controller drives the car. |
 | **Admin view** | People in the elevator, waiting and present on each floor, live status and activity; maintenance, emergency stop and return to service. Admins manage the service, they never operate the car. |
-| **Privacy** | Passengers are anonymous by design; staff data follows LGPD purpose, retention and data-subject-rights rules. |
+| **Privacy** | Passengers are anonymous by design: nothing identifies who rides the elevator. |
 | **Languages** | English and Brazilian Portuguese. |
 
 ## Requirements and where they are met
@@ -189,12 +188,11 @@ The car never moves with its doors open, never leaves the 1–10 range, and chan
 - A build that fails on any known-vulnerable dependency.
 - See [SECURITY.md](SECURITY.md) and [ADR-0008](docs/adr/0008-dependency-and-supply-chain-policy.md).
 
-**Private by design (LGPD).**
-- Passenger requests carry no personal data at all.
-- Staff data has a documented purpose, legal basis and retention period.
-- Logs are redacted automatically.
-- Staff can export or delete their own data.
-- See [ADR-0009](docs/adr/0009-privacy-by-design-for-lgpd.md).
+**Private by design.**
+- Passengers are anonymous: a passenger is a random ID kept by the browser.
+- Staff credentials, keys and client addresses never reach the logs, and tests enforce it.
+- Client addresses in the audit trail are keyed pseudonyms, and a staff member's entries can be
+  anonymised without breaking the hash chain.
 
 ## Technology
 
@@ -341,7 +339,7 @@ gh attestation verify oci://ghcr.io/onlygreb/elevatorsystem-api:<version> --owne
 - [x] **API and live UI:** REST API, SignalR, Blazor passenger view, English and Portuguese
 - [x] **Messaging and resilience:** RabbitMQ, PostgreSQL, state recovery, failover, occupancy counting, test traffic generator
 - [x] **Administration and security:** staff sign-in with a mandatory second factor, admin view with live occupancy and service control, tamper-evident audit trail
-- [ ] **Privacy and observability:** LGPD features and documents, dashboards, load, end-to-end and mutation testing
+- [ ] **Passenger journeys and quality:** passengers who board and leave, admin demo scenarios, redesigned UI, observability, load, end-to-end and mutation testing
 
 ## Documentation
 

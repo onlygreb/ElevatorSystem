@@ -4,7 +4,7 @@ namespace ElevatorSystem.Application.Simulation;
 
 /// <summary>
 /// Source-generated log messages for the traffic generator (event IDs 1820-1839). Simulated people
-/// are anonymous counts; nothing here describes a real person (ADR-0009).
+/// are anonymous counts; nothing here describes a real person (ADR-0024).
 /// </summary>
 internal static partial class TrafficGeneratorLog
 {
