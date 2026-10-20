@@ -1,5 +1,6 @@
 @* Demo scenarios (ADR-0027): press one and watch simulated passengers arrive on floor 1 and ride around. Admins only. *@
 @inject IStaffApiClient Api
+@inject StaffSession Session
 @inject IStringLocalizer<SharedResource> L
 
 <section aria-labelledby="demo-heading">
@@ -70,6 +71,11 @@
 
     private void Report(StaffResult<ScenarioAcceptedResponse> result, string success)
     {
+        if (result.Succeeded)
+        {
+            Session.ReportActionAudited();
+        }
+
         _messageIsError = !result.Succeeded;
         _message = result.Succeeded
             ? success

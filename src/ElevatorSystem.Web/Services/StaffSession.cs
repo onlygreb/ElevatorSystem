@@ -11,6 +11,9 @@ public sealed class StaffSession(IStaffApiClient api, IElevatorHubClient hub, El
 {
     public event EventHandler? Changed;
 
+    /// <summary>Raised after this browser's staff action was accepted, so views of the audit trail can show its entry.</summary>
+    public event EventHandler? ActionAudited;
+
     /// <summary>The session, or <see langword="null"/> when nobody is signed in.</summary>
     public StaffSessionDto? Current { get; private set; }
 
@@ -24,6 +27,9 @@ public sealed class StaffSession(IStaffApiClient api, IElevatorHubClient hub, El
     public bool IsTestAccount => Current is { TestAccount: true };
 
     public bool IsAdmin => IsVerified && Current!.Roles.Contains(StaffRole.Admin);
+
+    /// <summary>A staff action (a service action, a demo scenario) was accepted and audited by the server.</summary>
+    public void ReportActionAudited() => ActionAudited?.Invoke(this, EventArgs.Empty);
 
     public async Task LoadAsync(CancellationToken cancellationToken = default)
     {

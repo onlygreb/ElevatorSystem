@@ -1,5 +1,7 @@
 @* The audit trail, newest first, and a check of its hash chain (ADR-0023). *@
+@implements IDisposable
 @inject IStaffApiClient Api
+@inject StaffSession Session
 @inject IStringLocalizer<SharedResource> L
 
 <section aria-labelledby="audit-heading">
@@ -93,7 +95,21 @@
     private StaffFailure? _failure;
     private bool _busy;
 
-    protected override Task OnInitializedAsync() => RefreshAsync();
+    protected override Task OnInitializedAsync()
+    {
+        Session.ActionAudited += OnActionAudited;
+        return RefreshAsync();
+    }
+
+    public void Dispose() => Session.ActionAudited -= OnActionAudited;
+
+    /// <summary>An action on this page was audited: show its entry, and drop a verification that no longer covers it.</summary>
+    private void OnActionAudited(object? sender, EventArgs e) => _ = InvokeAsync(async () =>
+    {
+        _verification = null;
+        await RefreshAsync();
+        StateHasChanged();
+    });
 
     private async Task RefreshAsync()
     {

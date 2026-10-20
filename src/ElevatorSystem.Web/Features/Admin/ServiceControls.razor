@@ -1,5 +1,6 @@
 @* Take the car out of service or return it, each after an explicit confirmation. Admins never place calls (ADR-0017). *@
 @inject IStaffApiClient Api
+@inject StaffSession Session
 @inject IStringLocalizer<SharedResource> L
 
 <section aria-labelledby="service-heading">
@@ -79,6 +80,7 @@
             if (result.Succeeded)
             {
                 _pending = null;
+                Session.ReportActionAudited();
             }
         }
         finally
