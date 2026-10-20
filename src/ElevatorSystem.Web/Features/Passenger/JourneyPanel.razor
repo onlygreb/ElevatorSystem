@@ -33,7 +33,7 @@
             break;
 
         case JourneyStage.OnFloor:
-            <p class="journey__hint">@L[Text.CallHint]</p>
+            <p class="journey__hint">@L[CallHintKey]</p>
             <div class="journey__calls">
                 @if (MyFloor < Configuration.HighestFloor)
                 {
@@ -76,11 +76,7 @@
             break;
 
         case JourneyStage.InCar:
-            <p class="journey__hint">
-                @(Journey.Me!.Destination is { } destination
-                    ? L[Text.GoingTo, destination]
-                    : L[Text.ChooseFloorHint])
-            </p>
+            <p class="journey__hint">@InCarHint</p>
             <CarPanel Configuration="Configuration" Status="Store.Status" OnSelectFloor="Journey.ChooseFloorAsync" LabelledBy="journey-heading" />
             <div class="journey__leave">
                 <button type="button" class="es-cta es-cta--leave" disabled="@(Journey.Busy || !DoorsOpen)" @onclick="Journey.LeaveAsync" data-testid="leave">
@@ -110,6 +106,20 @@
     private int MyFloor => Journey.Floor(Store.Status) ?? Configuration.LowestFloor;
 
     private bool DoorsOpen => Store.Status?.Status == ElevatorStatus.DoorOpen;
+
+    /// <summary>The hint names only the directions there are: the lobby goes up, the top floor goes down.</summary>
+    private string CallHintKey =>
+        MyFloor <= Configuration.LowestFloor ? Text.CallHintUp
+        : MyFloor >= Configuration.HighestFloor ? Text.CallHintDown
+        : Text.CallHint;
+
+    /// <summary>Inside the car: choose a floor, on the way to it, or there with the doors open.</summary>
+    private string InCarHint => Journey.Me!.Destination switch
+    {
+        null => L[Text.ChooseFloorHint],
+        { } destination when destination == MyFloor && DoorsOpen => L[Text.ArrivedHint, destination],
+        { } destination => L[Text.GoingTo, destination],
+    };
 
     private int CurrentStep => Stage switch
     {

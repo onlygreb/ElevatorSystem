@@ -489,6 +489,15 @@
   <data name="CallHint" xml:space="preserve">
     <value>Call the elevator to go up or down.</value>
   </data>
+  <data name="CallHintUp" xml:space="preserve">
+    <value>Call the elevator to go up.</value>
+  </data>
+  <data name="CallHintDown" xml:space="preserve">
+    <value>Call the elevator to go down.</value>
+  </data>
+  <data name="ArrivedHint" xml:space="preserve">
+    <value>You are at floor {0}. Leave now, or choose another floor.</value>
+  </data>
   <data name="CallUpButton" xml:space="preserve">
     <value>Call to go up</value>
   </data>
