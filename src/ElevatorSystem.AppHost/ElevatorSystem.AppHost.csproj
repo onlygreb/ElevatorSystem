@@ -10,4 +10,9 @@
     <ProjectReference Include="..\ElevatorSystem.Api\ElevatorSystem.Api.csproj" />
     <ProjectReference Include="..\ElevatorSystem.Engine\ElevatorSystem.Engine.csproj" />
   </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Aspire.Hosting.RabbitMQ" />
+    <PackageReference Include="Aspire.Hosting.PostgreSQL" />
+  </ItemGroup>
 </Project>
