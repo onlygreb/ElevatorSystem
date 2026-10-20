@@ -14,6 +14,7 @@ internal sealed class ElevatorUpdateSubscriptionService(
 {
     private readonly CancellationTokenSource _stopping = new();
     private Task? _subscription;
+    private bool _disposed;
 
     /// <summary>
     /// Subscribes before returning. Since .NET 10 a <see cref="BackgroundService"/> runs all of
@@ -30,13 +31,24 @@ internal sealed class ElevatorUpdateSubscriptionService(
 
     public override async Task StopAsync(CancellationToken cancellationToken)
     {
-        await _stopping.CancelAsync();
+        // A host may stop a service it has already disposed; the subscription ended with it then.
+        if (!_disposed)
+        {
+            await _stopping.CancelAsync();
+        }
+
         await base.StopAsync(cancellationToken);
     }
 
     public override void Dispose()
     {
-        _stopping.Dispose();
+        if (!_disposed)
+        {
+            _stopping.Cancel();
+            _stopping.Dispose();
+            _disposed = true;
+        }
+
         base.Dispose();
     }
 
