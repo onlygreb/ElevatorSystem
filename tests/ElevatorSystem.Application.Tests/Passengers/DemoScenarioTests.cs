@@ -111,6 +111,33 @@ public sealed class DemoScenarioTests
     }
 
     [Theory]
+    [InlineData(DemoScenario.BusyDay, 6)]
+    [InlineData(DemoScenario.HugeLoad, 9)]
+    public async Task Riders_GetOffAtTheirFloor_AndBoardThereAgainOnlyAfterTheCarHasLeft(DemoScenario scenario, int seed)
+    {
+        await using var world = World.Create(seed, hugeLoad: 30);
+
+        world.Runner.Start(scenario);
+        await world.RunUntilAsync(() => world.Runner.Active == 0);
+
+        var steps = world.Journal.Events;
+        var moves = world.Harness.Probe.Events.OfType<Domain.Events.ElevatorMoved>().Select(moved => moved.OccurredAt).ToList();
+        foreach (var left in steps.OfType<PassengerLeft>())
+        {
+            var boardedAgain = steps.OfType<PassengerBoarded>()
+                .FirstOrDefault(boarded => boarded.PassengerId == left.PassengerId && boarded.OccurredAt >= left.OccurredAt);
+            if (boardedAgain is not null && boardedAgain.Floor == left.Floor)
+            {
+                moves.ShouldContain(
+                    moved => moved > left.OccurredAt && moved < boardedAgain.OccurredAt,
+                    $"a passenger who walked out on floor {left.Floor.Number} boarded there again before the car left");
+            }
+        }
+
+        steps.OfType<PassengerRefused>().ShouldNotContain(refused => refused.Reason == PassengerRefusalReason.CarFull, "nobody tries a full car");
+    }
+
+    [Theory]
     [InlineData(0, 8)]
     [InlineData(120, 0.5)]
     [InlineData(120, ElevatorController.MaxSpeed + 1)]
@@ -143,12 +170,15 @@ public sealed class DemoScenarioTests
     /// <summary>A controller in simulated time with passengers and a scenario runner on top of it.</summary>
     private sealed class World : IAsyncDisposable
     {
-        private World(ControllerHarness harness, PassengerRegistry registry, DemoScenarioRunner runner)
+        private World(ControllerHarness harness, PassengerRegistry registry, DemoScenarioRunner runner, PassengerJournal journal)
         {
             Harness = harness;
             Registry = registry;
             Runner = runner;
+            Journal = journal;
         }
+
+        public PassengerJournal Journal { get; }
 
         public ControllerHarness Harness { get; }
 
@@ -159,15 +189,16 @@ public sealed class DemoScenarioTests
         public static World Create(int seed, int capacity = 8, bool enabled = true, int hugeLoad = 200)
         {
             var harness = ControllerHarness.Create(startFloor: 1, options: HoldOpen).Start();
+            var journal = new PassengerJournal();
             var registry = new PassengerRegistry(
-                harness.Elevator, new PassengerOptions { CarCapacity = capacity }, harness.Time, NullLogger<PassengerRegistry>.Instance);
+                harness.Elevator, new PassengerOptions { CarCapacity = capacity }, harness.Time, NullLogger<PassengerRegistry>.Instance, journal);
             var runner = new DemoScenarioRunner(
                 new PassengerService(registry, harness.Controller, harness.Time),
                 harness.Elevator,
                 new SimulationOptions { Enabled = enabled, Seed = seed, TickInterval = Tick, HugeLoadPassengers = hugeLoad, HugeLoadSpeed = 4 },
                 harness.Time,
                 NullLogger<DemoScenarioRunner>.Instance);
-            return new World(harness, registry, runner);
+            return new World(harness, registry, runner, journal);
         }
 
         public async Task RunUntilAsync(Func<bool> done, int maxTicks = 4000)
@@ -199,6 +230,36 @@ public sealed class DemoScenarioTests
             // The runner's timer fires inside Advance; the control loop reacts on the thread pool.
             Harness.Time.Advance(Tick);
             await Task.Delay(1, TestContext.Current.CancellationToken);
+        }
+    }
+
+    /// <summary>Every passenger step, in order.</summary>
+    private sealed class PassengerJournal : IPassengerObserver
+    {
+        private readonly Lock _gate = new();
+        private readonly List<PassengerEvent> _events = [];
+
+        public IReadOnlyList<PassengerEvent> Events
+        {
+            get
+            {
+                lock (_gate)
+                {
+                    return [.. _events];
+                }
+            }
+        }
+
+        public void PassengerChanged(PassengerEvent passengerEvent)
+        {
+            lock (_gate)
+            {
+                _events.Add(passengerEvent);
+            }
+        }
+
+        public void OccupancyChanged(BuildingOccupancyDto occupancy)
+        {
         }
     }
 }

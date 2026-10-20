@@ -38,8 +38,8 @@ public sealed record SimulationOptions
 /// <summary>
 /// Runs the demo scenarios admins start from the admin view (ADR-0027): simulated passengers who arrive on the lowest
 /// floor and act like people, through the same <see cref="PassengerService"/> as everyone else. They call the car,
-/// walk in when its door is open at their floor, press their floor, and walk out there; anyone left behind by a full
-/// car calls again.
+/// walk in when its door is open at their floor, press their floor, and walk out there. Someone who just walked out, or
+/// found the car full, waits for it to leave that floor before trying again, and calls again then.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -164,12 +164,12 @@ public sealed class DemoScenarioRunner : IDisposable
         lock (_gate)
         {
             var now = ReadClock();
-            var snapshot = _elevator.Snapshot();
+            var look = new LookAround(_elevator.Snapshot(), _service.Registry.Current.PassengersInCar, _service.Registry.Options.CarCapacity);
             foreach (var passenger in _passengers.ToList())
             {
                 try
                 {
-                    if (passenger.Act(this, now, snapshot))
+                    if (passenger.Act(this, now, look))
                     {
                         _passengers.Remove(passenger);
                     }
@@ -309,6 +309,16 @@ public sealed class DemoScenarioRunner : IDisposable
     /// <summary>Where a simulated passenger goes next, and how long they stay there.</summary>
     private sealed record Leg(Floor Target, TimeSpan Stay);
 
+    /// <summary>What every simulated passenger sees in one look around: the car, and how full it is as they walk in and out.</summary>
+    private sealed class LookAround(ElevatorSnapshot snapshot, int riders, int capacity)
+    {
+        public ElevatorSnapshot Snapshot { get; } = snapshot;
+
+        public int Riders { get; set; } = riders;
+
+        public bool CarFull => Riders >= capacity;
+    }
+
     /// <summary>
     /// One simulated passenger: a plan of legs, followed at a human pace. An impatient one presses the call button again
     /// every second or so while waiting; one that fast-forwards keeps the whole simulation fast while it acts.
@@ -320,6 +330,7 @@ public sealed class DemoScenarioRunner : IDisposable
 
         private readonly Queue<Leg> _legs = new(legs);
         private bool _joined;
+        private bool _waitForTheCarToLeave;
         private DateTimeOffset _readyAt = arrivesAt;
         private DateTimeOffset _nextActionAt = arrivesAt;
 
@@ -328,8 +339,9 @@ public sealed class DemoScenarioRunner : IDisposable
         public bool FastForward => fastForward;
 
         /// <returns><see langword="true"/> when this passenger is done acting.</returns>
-        public bool Act(DemoScenarioRunner runner, DateTimeOffset now, ElevatorSnapshot snapshot)
+        public bool Act(DemoScenarioRunner runner, DateTimeOffset now, LookAround look)
         {
+            var snapshot = look.Snapshot;
             if (now < _nextActionAt)
             {
                 return false;
@@ -376,21 +388,43 @@ public sealed class DemoScenarioRunner : IDisposable
                     return false;
                 }
 
-                if (doorOpenHere && service.Board(Id).Succeeded)
+                if (_waitForTheCarToLeave)
                 {
+                    // Just walked out here, or the car was full: try again once it has left this floor. A car waiting
+                    // here with nothing at all to do will not leave, so then they go ahead.
+                    var carStillHere = snapshot.CurrentFloor.Number == me.Floor
+                        && snapshot.State is ElevatorState.DoorOpen or ElevatorState.Idle
+                        && !snapshot.PendingCalls.IsEmpty;
+                    if (carStillHere)
+                    {
+                        return false;
+                    }
+
+                    _waitForTheCarToLeave = false;
+                }
+
+                if (doorOpenHere)
+                {
+                    if (look.CarFull || !service.Board(Id).Succeeded)
+                    {
+                        _waitForTheCarToLeave = true;
+                        return false;
+                    }
+
+                    look.Riders++;
                     _nextActionAt = now + ButtonPress;
                     return false;
                 }
 
                 var direction = leg.Target.Number > me.Floor ? Direction.Up : Direction.Down;
                 var callPending = snapshot.PendingCalls.Any(pending => pending.Call == new HallCall(new Floor(me.Floor), direction));
-                if (!doorOpenHere && !callPending)
+                if (!callPending)
                 {
-                    // First call, or the car left without them (it was full): press the button (again).
+                    // First call, or the car left without them: press the button (again).
                     service.CallElevator(Id, direction);
                     _nextActionAt = now + ButtonPress;
                 }
-                else if (impatient && !doorOpenHere)
+                else if (impatient)
                 {
                     // Pressing again does not bring the car sooner: the controller merges every press into the call.
                     service.PressCallButton(new Floor(me.Floor), direction);
@@ -403,6 +437,8 @@ public sealed class DemoScenarioRunner : IDisposable
             if (doorOpenHere && me.Floor == leg.Target.Number)
             {
                 service.Leave(Id);
+                look.Riders--;
+                _waitForTheCarToLeave = true;
                 _legs.Dequeue();
                 _readyAt = now + leg.Stay;
                 _nextActionAt = now + ButtonPress;
