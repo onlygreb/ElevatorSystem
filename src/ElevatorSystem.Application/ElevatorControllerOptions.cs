@@ -7,7 +7,7 @@ public sealed record ElevatorControllerOptions
     public TimeSpan TravelTimePerFloor { get; init; } = TimeSpan.FromSeconds(1.5);
 
     /// <summary>How long the door stays open at a stop when the car has somewhere to go next.</summary>
-    public TimeSpan DoorOpenDuration { get; init; } = TimeSpan.FromSeconds(4);
+    public TimeSpan DoorOpenDuration { get; init; } = TimeSpan.FromSeconds(5);
 
     /// <summary>
     /// With nothing to do, the car waits with its door open (<see langword="true"/>, the default) so passengers can

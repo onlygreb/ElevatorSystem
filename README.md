@@ -47,7 +47,7 @@ ElevatorSystem controls an elevator serving floors 1 to 10 and gives passengers 
 
 | Capability | Description |
 |---|---|
-| **Passenger journeys** | Every passenger enters the building on floor 1, calls the car, walks in while its doors are open on their floor (a bar shows the 4 seconds left), chooses a floor and walks out when the doors open, or rides on. With nowhere to go, the car waits with its doors open. Invalid requests are refused with a reason. |
+| **Passenger journeys** | Every passenger enters the building on floor 1, calls the car, walks in while its doors are open on their floor (a bar counts down the last seconds, ending one second early so a late press still makes it), chooses a floor and walks out when the doors open, or rides on. With nowhere to go, the car waits with its doors open. Invalid requests are refused with a reason. |
 | **Scheduling** | First-in, first-out by default, with duplicate presses merged. A LOOK strategy can be switched on to compare average wait times. |
 | **Real-time simulation** | Car movement and doors run in real time; every change streams live to connected browsers. |
 | **Concurrency** | 100+ simultaneous requests handled safely; target time from request to assignment under 100 ms. |

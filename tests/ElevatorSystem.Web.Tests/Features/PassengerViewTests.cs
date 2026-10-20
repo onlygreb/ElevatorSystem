@@ -128,7 +128,7 @@ public sealed class PassengerViewTests : WebTestContext
     {
         var view = Arrived();
 
-        Store.ApplyStatus(TestData.Status(floor: 1, status: ElevatorStatus.DoorOpen, version: 10) with { DoorsCloseAt = TestData.Noon.AddSeconds(2) });
+        Store.ApplyStatus(TestData.Status(floor: 1, status: ElevatorStatus.DoorOpen, version: 10) with { DoorsCloseAt = TestData.Noon.AddSeconds(3) });
 
         view.WaitForAssertion(() => view.Find("[data-testid=enter]").TextContent.ShouldContain("Enter the elevator"));
         view.Find(".journey [data-testid=door-countdown]").TextContent.ShouldContain("Doors close in 2 s");

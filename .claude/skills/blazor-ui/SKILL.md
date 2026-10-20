@@ -90,6 +90,9 @@ wwwroot/css/         tokens.css (design tokens), app.css (all custom styles)
 - `DoorCountdown` shows how long the doors stay open: a bar that empties towards `DoorsCloseAt`
   (redrawn every 200 ms through `TimeProvider`), or a calm "waiting for a call" note while the car
   holds its doors open with nowhere to go (ADR-0025).
+  - It compares `DoorsCloseAt` with `ElevatorStateStore.ServerNow`, never the browser's clock: the store
+    learns the server's clock offset from each status's `TakenAt` (largest sample, reset on reconnection).
+  - It ends `LagAllowance` (1 s) before the doors close, so a last-moment press still arrives in time.
 - Out of service: the car is hatched and the status line shows a warning icon and the cause.
 - Car buttons are lit (`aria-pressed="true"`, lamp colour, glow) while the status lists a pending car
   call for that floor.
