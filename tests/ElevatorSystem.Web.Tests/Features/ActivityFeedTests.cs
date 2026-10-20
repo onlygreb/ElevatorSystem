@@ -23,6 +23,7 @@ public sealed class ActivityFeedTests : WebTestContext
         ["ReturnedToService"] = (new(At, ElevatorActivityKind.ReturnedToService, 6), "Back in service at floor 6."),
         ["SpeedFaster"] = (new(At, ElevatorActivityKind.SpeedChanged, 1, Speed: 8), "Fast-forward: the car and the simulation now run 8× faster."),
         ["SpeedNormal"] = (new(At, ElevatorActivityKind.SpeedChanged, 1, Speed: 1), "Back to normal speed."),
+        ["RequestsCleared"] = (new(At, ElevatorActivityKind.RequestsCleared, 4, CancelledCalls: 7), "Queue cleared: 7 calls cancelled."),
     };
 
     public static TheoryData<string> EveryKind => [.. Cases.Keys];

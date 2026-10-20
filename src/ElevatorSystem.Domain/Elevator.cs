@@ -273,6 +273,29 @@ public sealed class Elevator
         }
     }
 
+    /// <summary>
+    /// Cancels every pending call except those in <paramref name="keep"/>, which keep their place in line: what an admin's
+    /// "stop and clear" does to the calls a demo crowd left behind (ADR-0032). Allowed in every state; the car itself is
+    /// untouched. With nothing to cancel, nothing changes.
+    /// </summary>
+    public TransitionResult ClearRequests(IReadOnlyCollection<ElevatorCall> keep)
+    {
+        ArgumentNullException.ThrowIfNull(keep);
+
+        lock (_gate)
+        {
+            var cancelled = _pendingCalls.Where(pending => !keep.Contains(pending.Call)).ToImmutableArray();
+            if (cancelled.IsEmpty)
+            {
+                return TransitionResult.Unchanged;
+            }
+
+            _pendingCalls.RemoveAll(pending => !keep.Contains(pending.Call));
+            _version++;
+            return TransitionResult.Success(new RequestsCleared(_timeProvider.GetUtcNow(), _currentFloor, cancelled));
+        }
+    }
+
     /// <summary>Returns an out-of-service car to service, idle with the door closed.</summary>
     public TransitionResult ReturnToService()
     {

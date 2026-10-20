@@ -66,6 +66,7 @@ public static class ElevatorContractMapper
             DoorsClosed => new(at, ElevatorActivityKind.DoorsClosed, floor),
             ElevatorTakenOutOfService outOfService => new(at, ElevatorActivityKind.OutOfService, floor,
                 OutOfServiceCause: ToContract(outOfService.Reason), CancelledCalls: outOfService.CancelledCalls.Length),
+            RequestsCleared cleared => new(at, ElevatorActivityKind.RequestsCleared, floor, CancelledCalls: cleared.CancelledCalls.Length),
             ElevatorReturnedToService => new(at, ElevatorActivityKind.ReturnedToService, floor),
             _ => throw new ArgumentOutOfRangeException(nameof(elevatorEvent), elevatorEvent.GetType().Name, "Unmapped elevator event."),
         };

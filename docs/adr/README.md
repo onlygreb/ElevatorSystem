@@ -37,3 +37,4 @@ supersedes the old one instead of editing it. New records start from [`template.
 | [0029](0029-docker-compose-and-dockerfile.md) | Run the whole system with Docker Compose, built by a Dockerfile | Accepted |
 | [0030](0030-test-account-without-second-factor.md) | A configured test account may sign in without a second factor | Accepted |
 | [0031](0031-huge-load-scenario-and-fast-forward.md) | A huge load scenario that fast-forwards the building | Accepted |
+| [0032](0032-stop-and-clear-empties-the-queue.md) | Stop and clear empties the queue and sends the car to the lobby | Accepted |

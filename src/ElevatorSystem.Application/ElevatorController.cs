@@ -35,7 +35,7 @@ public sealed class ElevatorController
     /// <summary>The fastest a simulated building may run, relative to normal.</summary>
     public const double MaxSpeed = 10;
 
-    private readonly Channel<PassengerRequest> _intake;
+    private readonly Channel<Intake> _intake;
     private readonly ISchedulingStrategy _strategy;
     private readonly IElevatorDrive _drive;
     private readonly IElevatorEventSink _eventSink;
@@ -75,7 +75,7 @@ public sealed class ElevatorController
         _options = options;
         _timeProvider = timeProvider;
         _logger = logger;
-        _intake = Channel.CreateBounded<PassengerRequest>(new BoundedChannelOptions(options.IntakeCapacity)
+        _intake = Channel.CreateBounded<Intake>(new BoundedChannelOptions(options.IntakeCapacity)
         {
             SingleReader = true,
             SingleWriter = false,
@@ -139,7 +139,7 @@ public sealed class ElevatorController
             return RequestResult.Rejected(invalid);
         }
 
-        if (!_intake.Writer.TryWrite(request))
+        if (!_intake.Writer.TryWrite(new SubmittedRequest(request)))
         {
             Log.RequestRejected(_logger, call, RequestRejectionReason.Busy);
             return RequestResult.Rejected(RequestRejectionReason.Busy);
@@ -179,6 +179,23 @@ public sealed class ElevatorController
         }
 
         return true;
+    }
+
+    /// <summary>
+    /// Clears the queue (ADR-0032): every pending call except <paramref name="keep"/> is cancelled, then the car is sent to
+    /// <paramref name="thenGoTo"/>. The order joins the requests already submitted, so those are cleared too, and anything
+    /// submitted afterwards stays. Safe to call from any thread; never blocks.
+    /// </summary>
+    /// <returns><see langword="false"/> when the intake is full; nothing is cleared then.</returns>
+    public bool ClearRequests(IReadOnlyCollection<ElevatorCall> keep, Floor? thenGoTo = null)
+    {
+        ArgumentNullException.ThrowIfNull(keep);
+        if (thenGoTo is { } floor && !Elevator.Building.Contains(floor))
+        {
+            throw new ArgumentOutOfRangeException(nameof(thenGoTo), floor, "The floor is not in the building.");
+        }
+
+        return _intake.Writer.TryWrite(new ClearOrder(keep, thenGoTo));
     }
 
     /// <summary>Stops the car at once and takes it out of service, cancelling every pending call.</summary>
@@ -290,16 +307,31 @@ public sealed class ElevatorController
 
     private void ApplyPendingRequests(List<ElevatorEvent> events)
     {
-        while (_intake.Reader.TryRead(out var request))
+        while (_intake.Reader.TryRead(out var item))
         {
-            try
+            switch (item)
             {
-                events.AddRange(Elevator.AddRequest(request).Events);
-            }
-            // One bad request must never stop the elevator; it is logged and dropped.
-            catch (Exception exception)
-            {
-                Log.RequestFailed(_logger, exception, request.Id);
+                case SubmittedRequest submitted:
+                    try
+                    {
+                        events.AddRange(Elevator.AddRequest(submitted.Request).Events);
+                    }
+                    // One bad request must never stop the elevator; it is logged and dropped.
+                    catch (Exception exception)
+                    {
+                        Log.RequestFailed(_logger, exception, submitted.Request.Id);
+                    }
+
+                    break;
+                case ClearOrder clear:
+                    events.AddRange(Elevator.ClearRequests(clear.Keep).Events);
+                    if (clear.ThenGoTo is { } floor && Elevator.State != ElevatorState.OutOfService)
+                    {
+                        var request = new PassengerRequest(RequestId.New(_timeProvider), new CarCall(floor), _timeProvider.GetUtcNow());
+                        events.AddRange(Elevator.AddRequest(request).Events);
+                    }
+
+                    break;
             }
         }
     }
@@ -570,11 +602,21 @@ public sealed class ElevatorController
             case ElevatorTakenOutOfService outOfService:
                 Log.TakenOutOfService(_logger, outOfService.Floor, outOfService.Reason, outOfService.CancelledCalls.Length);
                 break;
+            case RequestsCleared cleared:
+                Log.RequestsCleared(_logger, cleared.CancelledCalls.Length);
+                break;
             case ElevatorReturnedToService returned:
                 Log.ReturnedToService(_logger, returned.Floor);
                 break;
         }
     }
+
+    /// <summary>What the control loop takes in, in order: requests, and orders to clear the queue.</summary>
+    private abstract record Intake;
+
+    private sealed record SubmittedRequest(PassengerRequest Request) : Intake;
+
+    private sealed record ClearOrder(IReadOnlyCollection<ElevatorCall> Keep, Floor? ThenGoTo) : Intake;
 
     private enum OperationKind
     {

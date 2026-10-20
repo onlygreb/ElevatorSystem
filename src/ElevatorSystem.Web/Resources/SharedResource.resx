@@ -619,7 +619,7 @@
     <value>{0} started. Watch the building.</value>
   </data>
   <data name="DemoStopped" xml:space="preserve">
-    <value>The demo passengers are leaving.</value>
+    <value>The demo passengers are leaving. The queue is cleared and the car returns to floor 1.</value>
   </data>
   <data name="DemoDisabled" xml:space="preserve">
     <value>Demo scenarios are disabled here.</value>
@@ -644,5 +644,8 @@
   </data>
   <data name="SchedulingNote" xml:space="preserve">
     <value>with {0} scheduling</value>
+  </data>
+  <data name="ActivityRequestsCleared" xml:space="preserve">
+    <value>Queue cleared: {0} calls cancelled.</value>
   </data>
 </root>

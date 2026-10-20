@@ -35,8 +35,9 @@ public sealed class AdminTests(BrowserFixture fixture)
         await Expect(page.GetByTestId("status-speed")).ToContainTextAsync("Fast-forward 8×");
 
         await page.GetByTestId("demo-stop").ClickAsync();
-        // The car first serves, still fast-forwarded, the calls the crowd left behind.
-        await Expect(page.GetByTestId("status-speed")).ToHaveCountAsync(0, new() { Timeout = 60_000 });
+        // The queue is cleared and the car returns to the lobby, at normal speed.
+        await Expect(page.GetByTestId("status-speed")).ToHaveCountAsync(0);
+        await Expect(page.GetByTestId("car")).ToHaveAttributeAsync("data-floor", "1", new() { Timeout = 30_000 });
     }
 
     /// <summary>

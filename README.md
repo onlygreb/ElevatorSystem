@@ -53,7 +53,7 @@ ElevatorSystem controls an elevator serving floors 1 to 10 and gives passengers 
 | **Concurrency** | 100+ simultaneous requests handled safely; target time from request to assignment under 100 ms. |
 | **Fail-safe operation** | Stuck-car detection, out-of-service mode, emergency stop, recovery after restart, and a guarantee that only one controller drives the car. |
 | **Admin view** | People in the elevator, waiting and present on each floor, live status and activity; maintenance, emergency stop and return to service. Admins manage the service, they never operate the car. |
-| **Demo scenarios** | Admins start a morning rush, a lunch break or a busy day and watch simulated passengers fill the floors and ride the car, in a living picture of the building. A **huge load** stress-tests the whole system: 120 people, half of them pressing the call button again and again, with the car and the simulation fast-forwarded 8× ([ADR-0031](docs/adr/0031-huge-load-scenario-and-fast-forward.md)). |
+| **Demo scenarios** | Admins start a morning rush, a lunch break or a busy day and watch simulated passengers fill the floors and ride the car, in a living picture of the building. **Stop and clear** sends the simulated people home, empties the queue and brings the car back to floor 1. A **huge load** stress-tests the whole system: 120 people, half of them pressing the call button again and again, with the car and the simulation fast-forwarded 8× ([ADR-0031](docs/adr/0031-huge-load-scenario-and-fast-forward.md)). |
 | **Privacy** | Passengers are anonymous by design: nothing identifies who rides the elevator. |
 | **Languages** | English and Brazilian Portuguese. |
 

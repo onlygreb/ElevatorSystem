@@ -619,7 +619,7 @@
     <value>{0} iniciado. Acompanhe o prédio.</value>
   </data>
   <data name="DemoStopped" xml:space="preserve">
-    <value>Os passageiros de demonstração estão saindo.</value>
+    <value>Os passageiros de demonstração estão saindo. A fila foi limpa e o elevador volta ao 1º andar.</value>
   </data>
   <data name="DemoDisabled" xml:space="preserve">
     <value>Os cenários de demonstração estão desativados aqui.</value>
@@ -644,5 +644,8 @@
   </data>
   <data name="SchedulingNote" xml:space="preserve">
     <value>com escalonamento {0}</value>
+  </data>
+  <data name="ActivityRequestsCleared" xml:space="preserve">
+    <value>Fila limpa: {0} chamadas canceladas.</value>
   </data>
 </root>

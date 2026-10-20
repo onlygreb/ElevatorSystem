@@ -212,6 +212,7 @@ internal static class Text
     public const string SpeedBadgeLabel = nameof(SpeedBadgeLabel);
     public const string ActivitySpeedFast = nameof(ActivitySpeedFast);
     public const string ActivitySpeedNormal = nameof(ActivitySpeedNormal);
+    public const string ActivityRequestsCleared = nameof(ActivityRequestsCleared);
     public const string SchedulingNote = nameof(SchedulingNote);
     public const string DemoStop = nameof(DemoStop);
     public const string DemoStarted = nameof(DemoStarted);
