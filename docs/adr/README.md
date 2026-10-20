@@ -33,3 +33,4 @@ supersedes the old one instead of editing it. New records start from [`template.
 | [0025](0025-doors-wait-open-when-idle.md) | The car waits with its door open, and a call starts the door countdown | Accepted |
 | [0026](0026-passengers-walk-in-and-out.md) | Passengers walk in and out of the car themselves, and are counted as they move | Accepted |
 | [0027](0027-admin-demo-scenarios.md) | Admins can start demo scenarios with simulated passengers | Accepted |
+| [0028](0028-elevator-metrics.md) | Measure the elevator with OpenTelemetry metrics from its own events | Accepted |

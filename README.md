@@ -206,7 +206,7 @@ The car never moves with its doors open, never leaves the 1–10 range, and chan
 | Messaging | RabbitMQ (quorum queues) via RabbitMQ.Client |
 | Persistence | PostgreSQL via Entity Framework Core |
 | Orchestration | Aspire (local), SDK-built chiseled container images (delivery) |
-| Observability | OpenTelemetry logs, traces and metrics |
+| Observability | OpenTelemetry logs, traces and metrics, including the elevator's own: wait times, refusals, travel, interruptions and occupancy ([ADR-0028](docs/adr/0028-elevator-metrics.md)) |
 | Testing | xUnit v3, Shouldly, CsCheck, bUnit, Playwright, Testcontainers, Verify, Stryker.NET, k6 |
 
 ## Getting started
