@@ -42,6 +42,15 @@ public sealed class AuthorizationMatrixTests : IAsyncLifetime
         { "POST", ApiRoutes.ServiceActions, Caller.AuditorWithTwoFactors, HttpStatusCode.Forbidden },
         { "POST", ApiRoutes.ServiceActions, Caller.AdminWithTwoFactors, HttpStatusCode.Accepted },
 
+        { "POST", ApiRoutes.Scenarios, Caller.Anonymous, HttpStatusCode.Unauthorized },
+        { "POST", ApiRoutes.Scenarios, Caller.AdminWithPasswordOnly, HttpStatusCode.Forbidden },
+        { "POST", ApiRoutes.Scenarios, Caller.AuditorWithTwoFactors, HttpStatusCode.Forbidden },
+        { "POST", ApiRoutes.Scenarios, Caller.AdminWithTwoFactors, HttpStatusCode.Accepted },
+        { "POST", ApiRoutes.ScenariosStop, Caller.Anonymous, HttpStatusCode.Unauthorized },
+        { "POST", ApiRoutes.ScenariosStop, Caller.AuditorWithTwoFactors, HttpStatusCode.Forbidden },
+        { "POST", ApiRoutes.ScenariosStop, Caller.AdminWithTwoFactors, HttpStatusCode.Accepted },
+        { "POST", ApiRoutes.Passengers, Caller.Anonymous, HttpStatusCode.Accepted },
+
         { "GET", ApiRoutes.AuditEntries, Caller.Anonymous, HttpStatusCode.Unauthorized },
         { "GET", ApiRoutes.AuditEntries, Caller.AdminWithPasswordOnly, HttpStatusCode.Forbidden },
         { "GET", ApiRoutes.AuditEntries, Caller.AuditorWithTwoFactors, Allowed },
@@ -89,7 +98,12 @@ public sealed class AuthorizationMatrixTests : IAsyncLifetime
 
         using var response = method == "GET"
             ? await client.GetAsync(route)
-            : await client.PostAsync(route, route == ApiRoutes.ServiceActions ? new ServiceActionRequest(ServiceAction.StartMaintenance) : null);
+            : await client.PostAsync(route, route switch
+            {
+                ApiRoutes.ServiceActions => new ServiceActionRequest(ServiceAction.StartMaintenance),
+                ApiRoutes.Scenarios => new StartScenarioRequest(DemoScenario.MorningRush),
+                _ => null,
+            });
 
         if (expected == Allowed)
         {

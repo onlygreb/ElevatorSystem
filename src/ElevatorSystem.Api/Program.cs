@@ -63,6 +63,7 @@ app.MapDefaultEndpoints();
 app.MapElevatorEndpoints();
 app.MapStaffAuthEndpoints();
 app.MapAdminEndpoints();
+app.MapPassengerEndpoints();
 app.MapElevatorHub();
 app.MapRazorComponents<App>()
     .AddInteractiveWebAssemblyRenderMode()

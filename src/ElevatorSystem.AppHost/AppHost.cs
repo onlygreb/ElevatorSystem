@@ -32,6 +32,8 @@ var database = builder.AddPostgres("postgres", databaseUser)
 // Two engines: one leads and drives the car, the other stands by to take over (ADR-0019).
 builder.AddProject<Projects.ElevatorSystem_Engine>("engine")
     .WithReplicas(2)
+    // Admins can start demo scenarios with simulated passengers (ADR-0027); off unless a deployment turns it on.
+    .WithEnvironment("Simulation__Enabled", "true")
     .WithReference(messaging)
     .WithReference(database)
     .WaitFor(messaging)
@@ -41,6 +43,7 @@ builder.AddProject<Projects.ElevatorSystem_Engine>("engine")
 // Staff accounts, the audit trail and the Data Protection keys live in the staff schema of the same database.
 builder.AddProject<Projects.ElevatorSystem_Api>("api")
     .WithEnvironment("Hosting__Mode", "Distributed")
+    .WithEnvironment("Simulation__Enabled", "true")
     .WithEnvironment("Staff__Accounts__0__Email", adminEmail)
     .WithEnvironment("Staff__Accounts__0__Password", adminPassword)
     .WithEnvironment("Staff__Accounts__0__Role", "Admin")

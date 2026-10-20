@@ -21,6 +21,9 @@ internal static class AdminEndpoints
     public const int DefaultAuditPageSize = 50;
     public const int MaxAuditPageSize = 100;
 
+    /// <summary>The configuration switch for demo scenarios, shared with the engine (<c>SimulationOptions.Enabled</c>).</summary>
+    public const string ScenariosEnabledSetting = "Simulation:Enabled";
+
     public static IEndpointRouteBuilder MapAdminEndpoints(this IEndpointRouteBuilder endpoints)
     {
         var admin = endpoints.MapGroup(string.Empty).WithTags(Tag);
@@ -39,6 +42,25 @@ internal static class AdminEndpoints
             .ProducesProblem(StatusCodes.Status422UnprocessableEntity)
             .ProducesProblem(StatusCodes.Status429TooManyRequests)
             .ProducesProblem(StatusCodes.Status503ServiceUnavailable);
+
+        admin.MapPost(ApiRoutes.Scenarios, StartScenarioAsync)
+            .RequireAuthorization(StaffPolicies.ServiceControl)
+            .WithName("StartScenario")
+            .WithSummary("Start a demo scenario")
+            .WithDescription("Admins signed in with two factors. Simulated passengers arrive on floor 1 and ride around (ADR-0027); they appear on the hub like everyone else. 409 when demo scenarios are disabled.")
+            .RequireRateLimiting(RateLimiting.StaffPolicy)
+            .WithRequestSizeLimit()
+            .RequireAntiforgeryToken()
+            .ProducesScenarioRefusals();
+
+        admin.MapPost(ApiRoutes.ScenariosStop, StopScenariosAsync)
+            .RequireAuthorization(StaffPolicies.ServiceControl)
+            .WithName("StopScenarios")
+            .WithSummary("Stop every demo scenario and remove its passengers")
+            .RequireRateLimiting(RateLimiting.StaffPolicy)
+            .WithRequestSizeLimit()
+            .RequireAntiforgeryToken()
+            .ProducesScenarioRefusals();
 
         admin.MapGet(ApiRoutes.AuditEntries, GetAuditEntriesAsync)
             .RequireAuthorization(StaffPolicies.Staff)
@@ -128,6 +150,70 @@ internal static class AdminEndpoints
         }
     }
 
+    internal static Task<Results<Accepted<ScenarioAcceptedResponse>, ProblemHttpResult>> StartScenarioAsync(
+        StartScenarioRequest request,
+        IElevatorCommandPublisher publisher,
+        AuditTrail audit,
+        UserManager<StaffUser> users,
+        IConfiguration configuration,
+        TimeProvider timeProvider,
+        HttpContext context,
+        CancellationToken cancellationToken) =>
+        Enum.IsDefined(request.Scenario)
+            ? SendScenarioAsync(request.Scenario, publisher, audit, users, configuration, timeProvider, context, cancellationToken)
+            : Task.FromResult<Results<Accepted<ScenarioAcceptedResponse>, ProblemHttpResult>>(
+                Invalid("Unknown scenario", "The scenario must be MorningRush, LunchBreak or BusyDay."));
+
+    internal static Task<Results<Accepted<ScenarioAcceptedResponse>, ProblemHttpResult>> StopScenariosAsync(
+        IElevatorCommandPublisher publisher,
+        AuditTrail audit,
+        UserManager<StaffUser> users,
+        IConfiguration configuration,
+        TimeProvider timeProvider,
+        HttpContext context,
+        CancellationToken cancellationToken) =>
+        SendScenarioAsync(null, publisher, audit, users, configuration, timeProvider, context, cancellationToken);
+
+    private static async Task<Results<Accepted<ScenarioAcceptedResponse>, ProblemHttpResult>> SendScenarioAsync(
+        DemoScenario? scenario,
+        IElevatorCommandPublisher publisher,
+        AuditTrail audit,
+        UserManager<StaffUser> users,
+        IConfiguration configuration,
+        TimeProvider timeProvider,
+        HttpContext context,
+        CancellationToken cancellationToken)
+    {
+        if (!configuration.GetValue<bool>(ScenariosEnabledSetting))
+        {
+            return TypedResults.Problem(
+                detail: "Demo scenarios are disabled in this deployment (Simulation:Enabled).",
+                statusCode: StatusCodes.Status409Conflict,
+                title: "Demo scenarios disabled");
+        }
+
+        var accountId = StaffAuthEndpoints.AccountId(users, context.User)
+            ?? throw new InvalidOperationException("An authorised staff request has no account ID.");
+        var now = timeProvider.GetUtcNow();
+        var command = new ScenarioCommandV1(Guid.CreateVersion7(now), now, scenario);
+        var target = string.Create(CultureInfo.InvariantCulture, $"{scenario?.ToString() ?? "Stop"} command {command.CommandId}");
+        var address = context.Connection.RemoteIpAddress;
+
+        // Like a service action: audited before it is sent, and a refusal is audited too (ADR-0023).
+        await audit.RecordAsync(new AuditRecord(AuditActions.DemoScenario, target, AuditOutcomes.Requested, accountId, address), cancellationToken);
+        try
+        {
+            await publisher.PublishAsync(command, cancellationToken);
+        }
+        catch (MessagingUnavailableException)
+        {
+            await audit.RecordAsync(new AuditRecord(AuditActions.DemoScenario, target, AuditOutcomes.Refused, accountId, address), cancellationToken);
+            return Unavailable(context);
+        }
+
+        return TypedResults.Accepted((string?)null, new ScenarioAcceptedResponse(command.CommandId));
+    }
+
     internal static async Task<Results<Ok<AuditPageDto>, ProblemHttpResult>> GetAuditEntriesAsync(
         long? before,
         int? limit,
@@ -179,4 +265,12 @@ internal static class AdminEndpoints
         TypedResults.Problem(detail: detail, statusCode: StatusCodes.Status400BadRequest, title: title);
 
     private static ProblemHttpResult Unavailable(HttpContext context) => ElevatorEndpoints.Refused(RejectionReason.Busy, context);
+
+    private static RouteHandlerBuilder ProducesScenarioRefusals(this RouteHandlerBuilder builder) => builder
+        .ProducesProblem(StatusCodes.Status401Unauthorized)
+        .ProducesProblem(StatusCodes.Status403Forbidden)
+        .ProducesProblem(StatusCodes.Status409Conflict)
+        .ProducesProblem(StatusCodes.Status413PayloadTooLarge)
+        .ProducesProblem(StatusCodes.Status429TooManyRequests)
+        .ProducesProblem(StatusCodes.Status503ServiceUnavailable);
 }

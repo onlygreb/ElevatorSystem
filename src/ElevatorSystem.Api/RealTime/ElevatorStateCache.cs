@@ -23,6 +23,10 @@ internal sealed class ElevatorStateCache(TimeProvider timeProvider)
     private ElevatorStatusDto? _status;
     private BuildingOccupancyDto? _occupancy;
     private DateTimeOffset? _lastUpdateAt;
+    private readonly Dictionary<Guid, PassengerDto> _passengers = [];
+
+    /// <summary>The most passengers remembered; the engine caps the building lower, so this only bounds memory.</summary>
+    public const int MaxPassengers = 5000;
 
     /// <summary>The newest status, or <see langword="null"/> before the engine reported one.</summary>
     public ElevatorStatusDto? Status
@@ -74,6 +78,7 @@ internal sealed class ElevatorStateCache(TimeProvider timeProvider)
             }
 
             _status = update.Status;
+            Follow(update.Activity);
             return true;
         }
     }
@@ -93,6 +98,47 @@ internal sealed class ElevatorStateCache(TimeProvider timeProvider)
 
             _occupancy = update.Occupancy;
             return true;
+        }
+    }
+
+    /// <summary>Where a passenger is, as the engine last reported; <see langword="null"/> when unknown or gone.</summary>
+    public PassengerDto? Passenger(Guid passengerId)
+    {
+        lock (_gate)
+        {
+            return _passengers.GetValueOrDefault(passengerId);
+        }
+    }
+
+    /// <summary>Follows one passenger through the activity feed (ADR-0026).</summary>
+    private void Follow(ElevatorActivityDto activity)
+    {
+        if (activity.PassengerId is not { } id)
+        {
+            return;
+        }
+
+        var simulated = activity.Simulated ?? false;
+        var known = _passengers.GetValueOrDefault(id);
+        PassengerDto? next = activity.Kind switch
+        {
+            ElevatorActivityKind.PassengerJoined => new PassengerDto(id, activity.Floor, false, null, null, simulated),
+            ElevatorActivityKind.PassengerCalled when known is not null => known with { Waiting = activity.Direction },
+            ElevatorActivityKind.PassengerBoarded when known is not null => known with { Floor = activity.Floor, InCar = true, Waiting = null },
+            ElevatorActivityKind.PassengerChoseFloor when known is not null => known with { Destination = activity.Floor },
+            ElevatorActivityKind.PassengerLeft when known is not null => known with { Floor = activity.Floor, InCar = false, Destination = null },
+            ElevatorActivityKind.PassengerRemoved => null,
+            ElevatorActivityKind.PassengerRefused when activity.PassengerRefusal == PassengerRefusalReason.UnknownPassenger => null,
+            _ => known,
+        };
+
+        if (next is null)
+        {
+            _passengers.Remove(id);
+        }
+        else if (_passengers.Count < MaxPassengers || _passengers.ContainsKey(id))
+        {
+            _passengers[id] = next;
         }
     }
 
