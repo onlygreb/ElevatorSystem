@@ -381,7 +381,9 @@
         "dependencies": {
           "ElevatorSystem.Contracts": "[1.0.0, )",
           "ElevatorSystem.Domain": "[1.0.0, )",
-          "Microsoft.Extensions.Logging.Abstractions": "[10.0.13, )"
+          "Microsoft.Extensions.Hosting.Abstractions": "[10.0.13, )",
+          "Microsoft.Extensions.Logging.Abstractions": "[10.0.13, )",
+          "Microsoft.Extensions.Options.ConfigurationExtensions": "[10.0.13, )"
         }
       },
       "elevatorsystem.contracts": {
