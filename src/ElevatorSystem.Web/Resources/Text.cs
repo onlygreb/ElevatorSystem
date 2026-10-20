@@ -165,6 +165,9 @@ internal static class Text
     public const string JourneyHintOutside = nameof(JourneyHintOutside);
     public const string ArriveButton = nameof(ArriveButton);
     public const string CallHint = nameof(CallHint);
+    public const string CallHintUp = nameof(CallHintUp);
+    public const string CallHintDown = nameof(CallHintDown);
+    public const string ArrivedHint = nameof(ArrivedHint);
     public const string CallUpButton = nameof(CallUpButton);
     public const string CallDownButton = nameof(CallDownButton);
     public const string WaitingUp = nameof(WaitingUp);

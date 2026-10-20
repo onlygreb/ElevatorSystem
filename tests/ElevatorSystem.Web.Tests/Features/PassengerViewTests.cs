@@ -400,4 +400,33 @@ public sealed class PassengerViewTests : WebTestContext
     private void Mine(ElevatorActivityKind kind, int floor, CallDirection? direction = null, PassengerRefusalReason? refusal = null) =>
         Store.AddActivity(new ElevatorActivityDto(TestData.Noon, kind, floor, Direction: direction, PassengerId: Passengers.PassengerId,
             Simulated: false, PassengerRefusal: refusal));
+
+    [Fact]
+    public void OnTheLobby_TheHintOffersOnlyGoingUp()
+    {
+        var view = Arrived();
+
+        view.Find(".journey__hint").TextContent.ShouldBe("Call the elevator to go up.");
+    }
+
+    [Fact]
+    public void OnAMiddleFloor_TheHintOffersBothWays()
+    {
+        Api.Status = TestData.Status(floor: 1);
+        var view = Arrived();
+        Mine(ElevatorActivityKind.PassengerLeft, 5);
+
+        view.WaitForAssertion(() => view.Find(".journey__hint").TextContent.ShouldBe("Call the elevator to go up or down."));
+    }
+
+    [Fact]
+    public void AtTheChosenFloor_WithTheDoorsOpen_SaysYouHaveArrived()
+    {
+        var view = InTheCar();
+        Mine(ElevatorActivityKind.PassengerChoseFloor, 6);
+
+        Store.ApplyStatus(TestData.Status(floor: 6, status: ElevatorStatus.DoorOpen, version: 30));
+
+        view.WaitForAssertion(() => view.Find(".journey__hint").TextContent.ShouldBe("You are at floor 6. Leave now, or choose another floor."));
+    }
 }
