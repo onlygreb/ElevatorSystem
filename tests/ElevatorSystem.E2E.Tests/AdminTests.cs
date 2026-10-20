@@ -29,7 +29,7 @@ public sealed class AdminTests(BrowserFixture fixture)
     /// </summary>
     internal static async Task RegisterAsync(IPage page, BrowserFixture fixture, float timeout)
     {
-        await page.GotoAsync("/admin", new() { Timeout = timeout });
+        await fixture.OpenAsync(page, "/admin", timeout);
         await page.GetByTestId("email").FillAsync(ApiServer.AdminEmail, new() { Timeout = timeout });
         await page.GetByTestId("password").FillAsync(ApiServer.AdminPassword);
         await page.GetByTestId("sign-in").ClickAsync();
@@ -47,7 +47,7 @@ public sealed class AdminTests(BrowserFixture fixture)
     internal static async Task SignInAsync(IPage page, BrowserFixture fixture)
     {
         var key = fixture.AdminSharedKey ?? throw new InvalidOperationException("The fixture registers the admin before any test.");
-        await page.GotoAsync("/admin");
+        await fixture.OpenAsync(page, "/admin");
         await Explained(page, fixture, () => page.GetByTestId("email").FillAsync(ApiServer.AdminEmail));
         await page.GetByTestId("password").FillAsync(ApiServer.AdminPassword);
         await page.GetByTestId("sign-in").ClickAsync();
@@ -74,12 +74,7 @@ public sealed class AdminTests(BrowserFixture fixture)
         }
         catch (Exception exception) when (exception is TimeoutException or PlaywrightException)
         {
-            var shown = await page.Locator("main").InnerTextAsync(new() { Timeout = 5_000 });
-            throw new InvalidOperationException(
-                $"{exception.Message}{Environment.NewLine}The page showed:{Environment.NewLine}{shown}{Environment.NewLine}"
-                + $"The browser reported:{Environment.NewLine}{fixture.BrowserLog(page)}{Environment.NewLine}"
-                + $"The API wrote:{Environment.NewLine}{fixture.ServerOutput}",
-                exception);
+            throw await fixture.FailureAsync(page, "A sign-in step did not finish.", exception);
         }
     }
 

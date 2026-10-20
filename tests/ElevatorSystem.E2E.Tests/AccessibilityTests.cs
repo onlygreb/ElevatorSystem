@@ -23,7 +23,7 @@ public sealed class AccessibilityTests(BrowserFixture fixture)
     public async Task PassengerView_OutsideTheBuilding_HasNoViolations(string locale)
     {
         var page = await fixture.NewPageAsync(locale);
-        await page.GotoAsync("/");
+        await fixture.OpenAsync(page, "/");
         await Expect(page.GetByTestId("arrive")).ToBeVisibleAsync();
 
         await AssertNoViolationsAsync(page);
@@ -33,7 +33,7 @@ public sealed class AccessibilityTests(BrowserFixture fixture)
     public async Task PassengerView_InsideTheCar_HasNoViolations()
     {
         var page = await fixture.NewPageAsync();
-        await page.GotoAsync("/");
+        await fixture.OpenAsync(page, "/");
         await page.GetByTestId("arrive").ClickAsync();
         await PassengerJourneyTests.BoardAsync(page);
 
@@ -44,7 +44,7 @@ public sealed class AccessibilityTests(BrowserFixture fixture)
     public async Task AdminSignIn_HasNoViolations()
     {
         var page = await fixture.NewPageAsync();
-        await page.GotoAsync("/admin");
+        await fixture.OpenAsync(page, "/admin");
         await Expect(page.GetByTestId("sign-in")).ToBeVisibleAsync();
 
         await AssertNoViolationsAsync(page);
