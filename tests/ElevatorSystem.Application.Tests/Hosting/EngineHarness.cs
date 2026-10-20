@@ -73,6 +73,9 @@ internal sealed class EngineHarness : IAsyncDisposable
     /// <summary>Demo scenarios: off unless a test turns them on.</summary>
     public ElevatorSystem.Application.Simulation.SimulationOptions Simulation { get; set; } = new();
 
+    /// <summary>The engines' metrics, when a test measures them.</summary>
+    public ElevatorSystem.Application.Diagnostics.ElevatorMetrics? Metrics { get; set; }
+
     public MessageRecorder<ElevatorUpdateV1> Updates { get; } = new();
 
     public MessageRecorder<OccupancyUpdateV1> OccupancyUpdates { get; } = new();
@@ -94,7 +97,8 @@ internal sealed class EngineHarness : IAsyncDisposable
             new ElevatorSystem.Application.Passengers.PassengerOptions(),
             Simulation,
             TimeProvider.System,
-            Logs);
+            Logs,
+            Metrics);
         var running = new RunningEngine(engine);
         _engines.Add(running);
         return running;

@@ -1,3 +1,4 @@
+using ElevatorSystem.Application.Diagnostics;
 using ElevatorSystem.Application.Hosting;
 using ElevatorSystem.Infrastructure.Messaging;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
@@ -38,7 +39,8 @@ internal static class EngineHostingExtensions
         services.AddHealthChecks().AddCheck<EngineHealthCheck>(HealthCheckName, tags: ["ready"]);
         services.AddOpenTelemetry().WithTracing(tracing => tracing
             .AddSource(RabbitMqTelemetry.ActivitySourceName)
-            .AddSource("Npgsql"));
+            .AddSource("Npgsql"))
+            .WithMetrics(metrics => metrics.AddMeter(ElevatorMetrics.MeterName));
 
         return builder;
     }

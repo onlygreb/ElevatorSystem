@@ -1,7 +1,10 @@
+using ElevatorSystem.Application.Diagnostics;
 using ElevatorSystem.Application.Hosting;
 using ElevatorSystem.Application.Simulation;
+using ElevatorSystem.Application.Tests.Diagnostics;
 using ElevatorSystem.Contracts;
 using ElevatorSystem.Domain;
+using Microsoft.Extensions.Diagnostics.Metrics.Testing;
 
 namespace ElevatorSystem.Application.Tests.Hosting;
 
@@ -236,6 +239,33 @@ public sealed class ElevatorEngineTests
         delivered.Occupancy.PassengersInCar.ShouldBe(0);
         harness.OccupancyUpdates.Messages.Select(update => update.UpdateId).ShouldBeUnique();
         harness.Updates.Messages.Select(update => update.Activity.Kind).ShouldContain(ElevatorActivityKind.PassengerLeft);
+    }
+
+    [Fact]
+    public async Task Metrics_FollowTheCarAndThePassengers_WhileTheEngineLeads()
+    {
+        using var meters = new TestMeterFactory();
+        using var trips = new MetricCollector<long>(meters, ElevatorMetrics.MeterName, "elevator.floors_travelled");
+        using var steps = new MetricCollector<long>(meters, ElevatorMetrics.MeterName, "elevator.passenger.steps");
+        using var floor = new MetricCollector<int>(meters, ElevatorMetrics.MeterName, "elevator.floor");
+        await using var harness = new EngineHarness { Metrics = new ElevatorMetrics(meters) };
+        var engine = await harness.StartLeaderAsync();
+        var passenger = Guid.NewGuid();
+
+        await harness.SendAsync(EngineHarness.Passenger(passenger, PassengerAction.Join));
+        await harness.SendAsync(EngineHarness.CarCall(4));
+        await harness.Updates.WaitForAsync(update => update.Activity is { Kind: ElevatorActivityKind.CallServed, Floor: 4 });
+        await harness.Updates.WaitForAsync(update => update.Activity.PassengerId == passenger);
+
+        trips.GetMeasurementSnapshot().Count.ShouldBe(3, "floor 1 to 4");
+        steps.GetMeasurementSnapshot().ShouldContain(m => (string?)m.Tags["elevator.passenger.step"] == "join");
+        floor.RecordObservableInstruments();
+        floor.LastMeasurement.ShouldNotBeNull().Value.ShouldBe(4);
+
+        await engine.StopAsync();
+        floor.Clear();
+        floor.RecordObservableInstruments();
+        floor.GetMeasurementSnapshot().ShouldBeEmpty("an engine that no longer leads reports no floor");
     }
 
     [Fact]

@@ -1,4 +1,5 @@
 using ElevatorSystem.Api.RealTime;
+using ElevatorSystem.Application.Diagnostics;
 using ElevatorSystem.Application.Hosting;
 using ElevatorSystem.Application.InMemory.Messaging;
 using ElevatorSystem.Application.InMemory.Persistence;
@@ -59,6 +60,7 @@ internal static class ElevatorHostingExtensions
         if (hosting.Mode == HostingMode.SingleProcess)
         {
             AddSingleProcessEngine(services);
+            services.AddOpenTelemetry().WithMetrics(metrics => metrics.AddMeter(ElevatorMetrics.MeterName));
         }
         else
         {
