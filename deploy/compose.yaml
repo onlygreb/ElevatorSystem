@@ -1,0 +1,119 @@
+# The whole system with Docker only (ADR-0029): RabbitMQ, PostgreSQL, two engines (one leads, one stands by), the
+# API with the web UI, and the Aspire dashboard for logs, traces and metrics. See deploy/README.md.
+#
+#   cp deploy/.env.example deploy/.env    # then set the passwords and the keys in it
+#   docker compose -f deploy/compose.yaml up --build
+#
+# Secrets come from deploy/.env (git-ignored); compose refuses to start while one is missing.
+
+name: elevatorsystem
+
+x-dotnet: &dotnet
+  ASPNETCORE_ENVIRONMENT: Production
+  ConnectionStrings__messaging: amqp://${MESSAGING_USER:-elevator}:${MESSAGING_PASSWORD:?set MESSAGING_PASSWORD in deploy/.env}@rabbitmq:5672/
+  # The chiseled images have no Kerberos library, so Npgsql must not probe for GSS encryption.
+  ConnectionStrings__elevatordb: Host=postgres;Port=5432;Database=elevatordb;Username=${DATABASE_USER:-elevator};Password=${DATABASE_PASSWORD:?set DATABASE_PASSWORD in deploy/.env};GSS Encryption Mode=Disable
+  # Admins can start demo scenarios with simulated passengers (ADR-0027).
+  Simulation__Enabled: "true"
+  OTEL_EXPORTER_OTLP_ENDPOINT: http://dashboard:18889
+  OTEL_EXPORTER_OTLP_PROTOCOL: grpc
+
+services:
+  rabbitmq:
+    # Same broker as the Aspire host and the messaging tests, with the management UI.
+    image: rabbitmq:4.1-management
+    environment:
+      RABBITMQ_DEFAULT_USER: ${MESSAGING_USER:-elevator}
+      RABBITMQ_DEFAULT_PASS: ${MESSAGING_PASSWORD:?set MESSAGING_PASSWORD in deploy/.env}
+    ports:
+      - "127.0.0.1:15672:15672"
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    healthcheck:
+      # Ready only once AMQP accepts connections; "ping" answers earlier than that.
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "check_port_connectivity"]
+      interval: 5s
+      timeout: 10s
+      retries: 30
+
+  postgres:
+    # Same server as the Aspire host and the persistence tests; the volume keeps the elevator's state and the staff.
+    image: postgres:17.6-alpine
+    environment:
+      POSTGRES_USER: ${DATABASE_USER:-elevator}
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD:?set DATABASE_PASSWORD in deploy/.env}
+      POSTGRES_DB: elevatordb
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d elevatordb"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+
+  dashboard:
+    # Logs, traces and metrics from the API and the engines, including the elevator's own metrics (ADR-0028).
+    # Open without a sign-in: bound to this machine only.
+    image: mcr.microsoft.com/dotnet/aspire-dashboard:13.6.1
+    environment:
+      Dashboard__Frontend__AuthMode: Unsecured
+      Dashboard__Otlp__AuthMode: Unsecured
+    ports:
+      - "127.0.0.1:18888:18888"
+
+  engine:
+    # Two replicas compete for the leader lease (ADR-0019): stop the leader and the other takes over.
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+      target: engine
+    image: elevatorsystem-engine:compose
+    deploy:
+      replicas: 2
+    environment:
+      <<: *dotnet
+      OTEL_SERVICE_NAME: engine
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  api:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+      target: api
+    image: elevatorsystem-api:compose
+    environment:
+      <<: *dotnet
+      OTEL_SERVICE_NAME: api
+      Hosting__Mode: Distributed
+      # HTTPS, because the staff cookies are __Host- and Secure (ADR-0022); plain HTTP redirects to it.
+      ASPNETCORE_HTTP_PORTS: "8080"
+      ASPNETCORE_HTTPS_PORTS: "8443"
+      ASPNETCORE_Kestrel__Certificates__Default__Path: /https/elevator.pfx
+      ASPNETCORE_Kestrel__Certificates__Default__Password: ${CERTIFICATE_PASSWORD:?set CERTIFICATE_PASSWORD in deploy/.env}
+      # The first admin, created once (ADR-0022); after signing in, register an authenticator app.
+      Staff__Accounts__0__Email: ${ADMIN_EMAIL:-admin@elevator.local}
+      Staff__Accounts__0__Password: ${ADMIN_PASSWORD:?set ADMIN_PASSWORD in deploy/.env}
+      Staff__Accounts__0__Role: Admin
+      Audit__ClientPseudonymKey: ${AUDIT_PSEUDONYM_KEY:?set AUDIT_PSEUDONYM_KEY in deploy/.env}
+    ports:
+      - "8080:8080"
+      - "8443:8443"
+    volumes:
+      - ./certs:/https:ro
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      engine:
+        condition: service_started
+    restart: unless-stopped
+
+volumes:
+  rabbitmq-data:
+  postgres-data:

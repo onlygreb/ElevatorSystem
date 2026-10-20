@@ -34,3 +34,4 @@ supersedes the old one instead of editing it. New records start from [`template.
 | [0026](0026-passengers-walk-in-and-out.md) | Passengers walk in and out of the car themselves, and are counted as they move | Accepted |
 | [0027](0027-admin-demo-scenarios.md) | Admins can start demo scenarios with simulated passengers | Accepted |
 | [0028](0028-elevator-metrics.md) | Measure the elevator with OpenTelemetry metrics from its own events | Accepted |
+| [0029](0029-docker-compose-and-dockerfile.md) | Run the whole system with Docker Compose, built by a Dockerfile | Accepted |
