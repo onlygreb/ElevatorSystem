@@ -85,6 +85,7 @@ internal static class Text
     public const string SignInButton = nameof(SignInButton);
     public const string SignOutButton = nameof(SignOutButton);
     public const string SignedInAs = nameof(SignedInAs);
+    public const string TestAccountNotice = nameof(TestAccountNotice);
     public const string SignInFailedCredentials = nameof(SignInFailedCredentials);
     public const string SignInTwoFactorRequired = nameof(SignInTwoFactorRequired);
     public const string SignInInvalidCode = nameof(SignInInvalidCode);

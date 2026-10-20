@@ -249,6 +249,9 @@
   <data name="SignedInAs" xml:space="preserve">
     <value>Conectado como {0}</value>
   </data>
+  <data name="TestAccountNotice" xml:space="preserve">
+    <value>Conta de teste: conectada sem segundo fator. Contas reais da equipe sempre usam um aplicativo autenticador.</value>
+  </data>
   <data name="SignInFailedCredentials" xml:space="preserve">
     <value>O e-mail ou a senha não estão corretos, ou a conta está bloqueada por um tempo após muitas tentativas.</value>
   </data>

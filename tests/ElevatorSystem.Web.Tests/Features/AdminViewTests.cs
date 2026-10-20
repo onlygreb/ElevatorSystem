@@ -125,6 +125,17 @@ public sealed class AdminViewTests : WebTestContext
     }
 
     [Fact]
+    public void TestAccount_GoesStraightToTheDashboard_AndSaysItIsATestAccount()
+    {
+        Staff.Session = new StaffSessionDto("test.admin@elevator.test", [StaffRole.Admin], TwoFactorEnabled: false, TwoFactorVerified: false, TestAccount: true);
+        var view = Render<AdminView>();
+
+        view.WaitForAssertion(() => view.Find("#service-heading"));
+        view.Find("[data-testid=test-account]").TextContent.ShouldContain("Test account: signed in without a second factor.");
+        view.FindAll("[data-testid=shared-key]").ShouldBeEmpty("a test account is not asked to register an authenticator");
+    }
+
+    [Fact]
     public void Auditor_SeesNoServiceControls()
     {
         Staff.Session = FakeStaffApiClient.Auditor;
