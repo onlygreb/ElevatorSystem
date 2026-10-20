@@ -62,37 +62,65 @@ public sealed class BrowserFixture : IAsyncLifetime
     private async Task WarmUpAsync()
     {
         var page = await NewPageAsync();
-        var console = new List<string>();
-        page.Console += (_, message) => console.Add($"{message.Type}: {message.Text}");
-        page.PageError += (_, error) => console.Add($"page error: {error}");
-        page.RequestFailed += (_, request) => console.Add($"request failed: {request.Url} {request.Failure}");
+        await OpenAsync(page, "/", timeout: 60_000);
+        await page.GetByTestId("arrive").WaitForAsync(new() { Timeout = 60_000 });
+        await AdminTests.RegisterAsync(page, this, timeout: 120_000);
+        await page.Context.CloseAsync();
+    }
 
-        // A first load that stalls is reloaded rather than waited on forever; three tries before giving up.
+    /// <summary>
+    /// Opens <paramref name="path"/> and waits until the app has rendered its layout. On a busy CI runner a fresh browser
+    /// context sometimes never finishes starting the WebAssembly app; such a start is reloaded, up to three tries, and
+    /// each stall is written to the page's log so a later failure shows it.
+    /// </summary>
+    public async Task OpenAsync(IPage page, string path, float timeout = 30_000)
+    {
         for (var attempt = 1; ; attempt++)
         {
             try
             {
-                await page.GotoAsync("/", new() { Timeout = 60_000 });
-                await page.GetByTestId("arrive").WaitForAsync(new() { Timeout = 60_000 });
-                break;
+                await page.GotoAsync(path, new() { Timeout = timeout });
+                await page.Locator("main").WaitForAsync(new() { Timeout = timeout });
+                return;
             }
             catch (TimeoutException) when (attempt < 3)
             {
-                console.Add($"-- attempt {attempt} timed out, reloading");
+                Note(page, $"-- {path}: the app had not started after {timeout} ms (try {attempt}), reloading");
             }
             catch (TimeoutException exception)
             {
-                var shown = await page.Locator("body").InnerTextAsync(new() { Timeout = 5_000 });
-                throw new InvalidOperationException(
-                    $"The app never loaded.{Environment.NewLine}The page showed:{Environment.NewLine}{shown}{Environment.NewLine}"
-                    + $"The browser reported:{Environment.NewLine}{string.Join(Environment.NewLine, console)}{Environment.NewLine}"
-                    + $"The API wrote:{Environment.NewLine}{ServerOutput}",
-                    exception);
+                throw await FailureAsync(page, $"The app never started at {path}.", exception);
             }
         }
+    }
 
-        await AdminTests.RegisterAsync(page, this, timeout: 120_000);
-        await page.Context.CloseAsync();
+    /// <summary>A failure that says what the page showed, what the browser reported and what the API wrote.</summary>
+    public async Task<Exception> FailureAsync(IPage page, string what, Exception inner)
+    {
+        string shown;
+        try
+        {
+            shown = await page.Locator("body").InnerTextAsync(new() { Timeout = 2_000 });
+        }
+        catch (Exception exception) when (exception is TimeoutException or PlaywrightException)
+        {
+            shown = "(the page could not be read)";
+        }
+
+        return new InvalidOperationException(
+            $"{what}{Environment.NewLine}{inner.Message}{Environment.NewLine}"
+            + $"The page showed:{Environment.NewLine}{shown}{Environment.NewLine}"
+            + $"The browser reported:{Environment.NewLine}{BrowserLog(page)}{Environment.NewLine}"
+            + $"The API wrote:{Environment.NewLine}{ServerOutput}",
+            inner);
+    }
+
+    private void Note(IPage page, string line)
+    {
+        if (_browserLogs.TryGetValue(page, out var log))
+        {
+            log.Enqueue(line);
+        }
     }
 
     /// <summary>A fresh browser (its own cookies and storage), on the given culture.</summary>

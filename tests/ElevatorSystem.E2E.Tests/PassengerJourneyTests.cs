@@ -11,7 +11,7 @@ public sealed class PassengerJourneyTests(BrowserFixture fixture)
     public async Task Passenger_EntersTheBuilding_RidesToAFloor_AndWalksOut()
     {
         var page = await fixture.NewPageAsync();
-        await page.GotoAsync("/");
+        await fixture.OpenAsync(page, "/");
 
         await Expect(Where(page)).ToHaveTextAsync("You are outside the building");
         await page.GetByTestId("arrive").ClickAsync();
@@ -36,7 +36,7 @@ public sealed class PassengerJourneyTests(BrowserFixture fixture)
     public async Task Reload_PicksUpTheJourney()
     {
         var page = await fixture.NewPageAsync();
-        await page.GotoAsync("/");
+        await fixture.OpenAsync(page, "/");
         await page.GetByTestId("arrive").ClickAsync();
         await Expect(Where(page)).ToHaveTextAsync("You are on floor 1");
 
@@ -50,7 +50,7 @@ public sealed class PassengerJourneyTests(BrowserFixture fixture)
     public async Task DoorCountdown_ShowsWhileTheDoorsCanClose()
     {
         var page = await fixture.NewPageAsync();
-        await page.GotoAsync("/");
+        await fixture.OpenAsync(page, "/");
         await page.GetByTestId("arrive").ClickAsync();
 
         await BoardAsync(page);
@@ -66,7 +66,7 @@ public sealed class PassengerJourneyTests(BrowserFixture fixture)
     public async Task Portuguese_IsOfferedAndRemembered()
     {
         var page = await fixture.NewPageAsync();
-        await page.GotoAsync("/");
+        await fixture.OpenAsync(page, "/");
 
         await page.Locator(".culture-picker__option[data-culture='pt-BR']").ClickAsync();
 
