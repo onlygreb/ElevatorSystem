@@ -10,7 +10,9 @@ namespace ElevatorSystem.Application;
 /// </summary>
 public static class ElevatorContractMapper
 {
-    public static ElevatorStatusDto ToStatus(ElevatorSnapshot snapshot)
+    /// <param name="snapshot">The elevator's state.</param>
+    /// <param name="doorsCloseAt">The controller's door countdown (<see cref="ElevatorController.DoorsCloseAt"/>); ignored unless the door is open.</param>
+    public static ElevatorStatusDto ToStatus(ElevatorSnapshot snapshot, DateTimeOffset? doorsCloseAt = null)
     {
         ArgumentNullException.ThrowIfNull(snapshot);
 
@@ -22,7 +24,8 @@ public static class ElevatorContractMapper
             [.. snapshot.PendingCalls.Select(ToContract)],
             [.. snapshot.TargetFloors.Select(floor => floor.Number)],
             snapshot.Version,
-            snapshot.TakenAt);
+            snapshot.TakenAt,
+            snapshot.State == ElevatorState.DoorOpen ? doorsCloseAt : null);
     }
 
     public static ElevatorConfigurationDto ToConfiguration(ElevatorController controller)

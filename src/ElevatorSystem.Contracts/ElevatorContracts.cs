@@ -29,6 +29,10 @@ public sealed record ElevatorConfigurationDto(
 /// <param name="TargetFloors">Floors still to visit, in the order they were first requested.</param>
 /// <param name="Version">Increases with every change; ignore a status older than the one shown.</param>
 /// <param name="TakenAt">When the status was taken.</param>
+/// <param name="DoorsCloseAt">
+/// While the door is open: when it will close, or <see langword="null"/> when it stays open because the car has
+/// nowhere to go. Always <see langword="null"/> while the door is closed.
+/// </param>
 public sealed record ElevatorStatusDto(
     int CurrentFloor,
     ElevatorStatus Status,
@@ -37,7 +41,8 @@ public sealed record ElevatorStatusDto(
     IReadOnlyList<PendingCallDto> PendingCalls,
     IReadOnlyList<int> TargetFloors,
     long Version,
-    DateTimeOffset TakenAt);
+    DateTimeOffset TakenAt,
+    DateTimeOffset? DoorsCloseAt = null);
 
 /// <summary>A call: a hall call has a <see cref="Direction"/>, a car call does not.</summary>
 public sealed record CallDto(CallKind Kind, int Floor, CallDirection? Direction);

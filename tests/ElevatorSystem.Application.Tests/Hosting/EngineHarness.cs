@@ -64,6 +64,8 @@ internal sealed class EngineHarness : IAsyncDisposable
     {
         TravelTimePerFloor = TravelTime,
         DoorOpenDuration = DoorTime,
+        // These suites follow the classic cycle (the door closes after every stop); the default is covered elsewhere.
+        HoldDoorOpenWhenIdle = false,
         // Generous, so a test host starved of CPU is never mistaken for a stuck car.
         StuckTolerance = 100,
     };

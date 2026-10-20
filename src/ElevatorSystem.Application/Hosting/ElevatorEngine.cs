@@ -195,6 +195,7 @@ public sealed class ElevatorEngine
         IElevatorEventSink controllerSink = new CompositeElevatorEventSink([occupancy, sink], _loggerFactory.CreateLogger<CompositeElevatorEventSink>());
         var controller = new ElevatorController(
             elevator, _strategy, _createDrive(), controllerSink, ControllerOptions, _timeProvider, _loggerFactory.CreateLogger<ElevatorController>());
+        sink.Controller = controller;
 
         // Not linked to the term: the order in which these stop matters, so each is cancelled explicitly.
         using var consuming = new CancellationTokenSource();

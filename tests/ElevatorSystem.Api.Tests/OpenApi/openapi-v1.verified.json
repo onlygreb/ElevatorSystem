@@ -1238,6 +1238,14 @@
             "type": "string",
             "description": "When the status was taken.",
             "format": "date-time"
+          },
+          "doorsCloseAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "While the door is open: when it will close, or `null` when it stays open because the car has\nnowhere to go. Always `null` while the door is closed.",
+            "format": "date-time"
           }
         },
         "description": "A consistent view of the elevator at one moment. Higher long ElevatorStatusDto.Version is newer."

@@ -30,3 +30,4 @@ supersedes the old one instead of editing it. New records start from [`template.
 | [0022](0022-staff-authentication-and-authorization.md) | Authenticate staff with Identity cookies and a mandatory second factor | Accepted |
 | [0023](0023-audit-trail-writer-and-verification.md) | The API writes the audit trail, before acting, as one hash chain | Accepted |
 | [0024](0024-drop-lgpd-compliance-scope.md) | Keep privacy by design, without an LGPD compliance programme | Accepted |
+| [0025](0025-doors-wait-open-when-idle.md) | The car waits with its door open, and a call starts the door countdown | Accepted |

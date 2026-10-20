@@ -22,6 +22,8 @@ internal sealed class ControllerHarness : IAsyncDisposable
     {
         TravelTimePerFloor = Step,
         DoorOpenDuration = Step,
+        // Most suites pin the classic cycle (the door closes after every stop); ElevatorControllerDoorTests cover the default.
+        HoldDoorOpenWhenIdle = false,
         StuckTolerance = 3,
         IntakeCapacity = 64,
     };
@@ -133,6 +135,17 @@ internal sealed class ControllerHarness : IAsyncDisposable
         }
 
         throw new TimeoutException($"The car was not idle after {maxSteps} steps. Events:{Environment.NewLine}{Probe.Describe()}");
+    }
+
+    /// <summary>Lets simulated time pass when nothing is expected to happen, such as a car waiting with its door open.</summary>
+    public async Task StepsAsync(int steps)
+    {
+        for (var step = 0; step < steps; step++)
+        {
+            Time.Advance(Step);
+            // Real time for the loop to react, if it wrongly would.
+            await Task.Delay(TimeSpan.FromMilliseconds(5), TestContext.Current.CancellationToken);
+        }
     }
 
     public async ValueTask DisposeAsync()
