@@ -738,6 +738,199 @@
         }
       }
     },
+    "/api/v1/admin/scenarios": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Start a demo scenario",
+        "description": "Admins signed in with two factors. Simulated passengers arrive on floor 1 and ride around (ADR-0027); they appear on the hub like everyone else. 409 when demo scenarios are disabled.",
+        "operationId": "StartScenario",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StartScenarioRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "description": "Accepted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScenarioAcceptedResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Payload Too Large",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/scenarios/stop": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Stop every demo scenario and remove its passengers",
+        "operationId": "StopScenarios",
+        "responses": {
+          "202": {
+            "description": "Accepted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScenarioAcceptedResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Payload Too Large",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/admin/audit/entries": {
       "get": {
         "tags": [
@@ -859,6 +1052,431 @@
           },
           "429": {
             "description": "Too Many Requests",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/passengers": {
+      "post": {
+        "tags": [
+          "Passengers"
+        ],
+        "summary": "Arrive as a new passenger on the lowest floor",
+        "description": "Everyone starts on floor 1. The id is random and identifies nobody; keep it to take the next steps.",
+        "operationId": "JoinAsPassenger",
+        "responses": {
+          "202": {
+            "description": "Accepted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PassengerAcceptedResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Payload Too Large",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/passengers/{passengerId}": {
+      "get": {
+        "tags": [
+          "Passengers"
+        ],
+        "summary": "Where a passenger is",
+        "description": "As the engine last reported it. While the passenger rides, the car's floor is in the elevator status.",
+        "operationId": "GetPassenger",
+        "parameters": [
+          {
+            "name": "passengerId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PassengerDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/passengers/{passengerId}/hall-call": {
+      "post": {
+        "tags": [
+          "Passengers"
+        ],
+        "summary": "Press the up or down button on the passenger's floor",
+        "operationId": "PassengerCallsTheElevator",
+        "parameters": [
+          {
+            "name": "passengerId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PassengerHallCallRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "description": "Accepted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PassengerAcceptedResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Payload Too Large",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/passengers/{passengerId}/board": {
+      "post": {
+        "tags": [
+          "Passengers"
+        ],
+        "summary": "Walk into the car",
+        "description": "Only while its door is open on the passenger's floor and it has room; otherwise the hub reports PassengerRefused.",
+        "operationId": "PassengerBoards",
+        "parameters": [
+          {
+            "name": "passengerId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "Accepted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PassengerAcceptedResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Payload Too Large",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/passengers/{passengerId}/car-call": {
+      "post": {
+        "tags": [
+          "Passengers"
+        ],
+        "summary": "Choose a floor inside the car",
+        "operationId": "PassengerChoosesAFloor",
+        "parameters": [
+          {
+            "name": "passengerId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PassengerCarCallRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "description": "Accepted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PassengerAcceptedResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Payload Too Large",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/passengers/{passengerId}/leave": {
+      "post": {
+        "tags": [
+          "Passengers"
+        ],
+        "summary": "Walk out of the car",
+        "description": "Only while its door is open; the passenger stays on that floor.",
+        "operationId": "PassengerLeaves",
+        "parameters": [
+          {
+            "name": "passengerId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "Accepted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PassengerAcceptedResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Payload Too Large",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -1057,7 +1675,7 @@
           },
           "passengersDelivered": {
             "type": "integer",
-            "description": "Trips completed since the engine started.",
+            "description": "Rides completed (a passenger left the car on another floor) since the engine started.",
             "format": "int32"
           },
           "averageWaitTime": {
@@ -1066,7 +1684,7 @@
               "null",
               "string"
             ],
-            "description": "Mean time from calling the elevator to boarding, over completed boardings; null before the first."
+            "description": "Mean time from calling the elevator to boarding, over boardings after a call; null before the first."
           },
           "takenAt": {
             "type": "string",
@@ -1074,7 +1692,7 @@
             "format": "date-time"
           }
         },
-        "description": "How many passengers are where, counted from the calls they place (ADR-0017). Counts only:\npassengers are anonymous by design and nothing identifies an individual (ADR-0024)."
+        "description": "How many passengers are where (ADR-0026). Counts only:\npassengers are anonymous by design and nothing identifies an individual (ADR-0024)."
       },
       "CallDirection": {
         "enum": [
@@ -1128,6 +1746,14 @@
           }
         },
         "description": "Body of `POST /api/v1/car-calls`: a passenger inside the car chose int CarCallRequest.Floor."
+      },
+      "DemoScenario": {
+        "enum": [
+          "MorningRush",
+          "LunchBreak",
+          "BusyDay"
+        ],
+        "description": "The demo scenarios an admin can start (ADR-0027). Every simulated passenger starts on the lowest floor."
       },
       "ElevatorConfigurationDto": {
         "required": [
@@ -1310,6 +1936,102 @@
           null
         ]
       },
+      "PassengerAcceptedResponse": {
+        "required": [
+          "passengerId",
+          "requestId"
+        ],
+        "type": "object",
+        "properties": {
+          "passengerId": {
+            "type": "string",
+            "description": "The anonymous passenger, a random id the browser keeps.",
+            "format": "uuid"
+          },
+          "requestId": {
+            "type": "string",
+            "description": "Every activity this step causes carries it as Guid? ElevatorActivityDto.RequestId.",
+            "format": "uuid"
+          }
+        },
+        "description": "Answers a passenger's step: the passenger it applies to and the id that reports its progress on the hub."
+      },
+      "PassengerCarCallRequest": {
+        "required": [
+          "floor"
+        ],
+        "type": "object",
+        "properties": {
+          "floor": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "description": "A passenger inside the car chooses a floor."
+      },
+      "PassengerDto": {
+        "required": [
+          "passengerId",
+          "floor",
+          "inCar",
+          "waiting",
+          "destination",
+          "simulated"
+        ],
+        "type": "object",
+        "properties": {
+          "passengerId": {
+            "type": "string",
+            "description": "The passenger.",
+            "format": "uuid"
+          },
+          "floor": {
+            "type": "integer",
+            "description": "The floor they are on, or the car's floor while they ride.",
+            "format": "int32"
+          },
+          "inCar": {
+            "type": "boolean",
+            "description": "Riding the car."
+          },
+          "waiting": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "description": "The direction they called, while they wait on their floor for the car.",
+                "$ref": "#/components/schemas/CallDirection"
+              }
+            ]
+          },
+          "destination": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "description": "The floor they chose inside the car, until they leave.",
+            "format": "int32"
+          },
+          "simulated": {
+            "type": "boolean",
+            "description": "A passenger of a demo scenario rather than a person."
+          }
+        },
+        "description": "Where an anonymous passenger is, as the engine last reported it (ADR-0026)."
+      },
+      "PassengerHallCallRequest": {
+        "required": [
+          "direction"
+        ],
+        "type": "object",
+        "properties": {
+          "direction": {
+            "$ref": "#/components/schemas/CallDirection"
+          }
+        },
+        "description": "A passenger on a landing presses the up or down button of their floor."
+      },
       "PendingCallDto": {
         "required": [
           "call",
@@ -1395,6 +2117,19 @@
           }
         },
         "description": "The request was accepted; its progress is reported through the hub's activity feed."
+      },
+      "ScenarioAcceptedResponse": {
+        "required": [
+          "commandId"
+        ],
+        "type": "object",
+        "properties": {
+          "commandId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "description": "A scenario command passed to the engine; simulated passengers appear on the hub as they act."
       },
       "ServiceAction": {
         "enum": [
@@ -1498,6 +2233,18 @@
         },
         "description": "The signed-in staff member, as the UI needs it."
       },
+      "StartScenarioRequest": {
+        "required": [
+          "scenario"
+        ],
+        "type": "object",
+        "properties": {
+          "scenario": {
+            "$ref": "#/components/schemas/DemoScenario"
+          }
+        },
+        "description": "An admin starts a demo scenario."
+      },
       "TwoFactorSetupDto": {
         "required": [
           "sharedKey",
@@ -1525,6 +2272,9 @@
     },
     {
       "name": "Admin"
+    },
+    {
+      "name": "Passengers"
     }
   ]
 }

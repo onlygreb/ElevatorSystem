@@ -70,17 +70,17 @@ public sealed class ElevatorHubTests
     }
 
     [Fact]
-    public async Task HallCall_ChangesTheCounts_AndTheyArePushedToStaff()
+    public async Task APassengerArriving_ChangesTheCounts_AndTheyArePushedToStaff()
     {
         await using var factory = new ApiFactory();
         using var staff = await StaffClient.SignedInWithTwoFactorsAsync(factory, StaffAccounts.Admin);
         await using var client = await HubClient.ConnectAsync(factory, cookieHeader: staff.CookieHeader);
         using var http = factory.CreateClient();
 
-        using var response = await http.PostJsonAsync(ApiRoutes.HallCalls, """{"floor":6,"direction":"Down"}""");
+        using var response = await http.PostJsonAsync(ApiRoutes.Passengers, "{}");
 
         response.StatusCode.ShouldBe(HttpStatusCode.Accepted);
-        await client.NextOccupancyAsync(occupancy => occupancy.Floors[5].Waiting == 1 || occupancy.PassengersInCar == 1);
+        await client.NextOccupancyAsync(occupancy => occupancy.Floors[0].Present == 1);
     }
 
     [Fact]
@@ -92,10 +92,10 @@ public sealed class ElevatorHubTests
         await using var staffHub = await HubClient.ConnectAsync(factory, cookieHeader: staff.CookieHeader);
         using var http = factory.CreateClient();
 
-        using var response = await http.PostJsonAsync(ApiRoutes.HallCalls, """{"floor":4,"direction":"Up"}""");
+        using var response = await http.PostJsonAsync(ApiRoutes.Passengers, "{}");
 
-        await staffHub.NextOccupancyAsync(occupancy => occupancy.Floors[3].Waiting == 1 || occupancy.PassengersInCar == 1);
-        await anonymous.NextActivityAsync(activity => activity.Kind == ElevatorActivityKind.CallServed);
+        await staffHub.NextOccupancyAsync(occupancy => occupancy.Floors[0].Present == 1);
+        await anonymous.NextActivityAsync(activity => activity.Kind == ElevatorActivityKind.PassengerJoined);
         await Should.ThrowAsync<TimeoutException>(() => anonymous.NextOccupancyAsync(), "counts are for staff only (ADR-0022)");
     }
 
