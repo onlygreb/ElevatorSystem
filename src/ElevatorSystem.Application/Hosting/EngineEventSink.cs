@@ -52,6 +52,15 @@ internal sealed class EngineEventSink(Elevator elevator, SnapshotPersister persi
     public ElevatorStatusDto CurrentStatus() =>
         ElevatorContractMapper.ToStatus(elevator.Snapshot(), Controller?.DoorsCloseAt, Controller?.Speed ?? 1, Controller?.Scheduling);
 
+    /// <summary>Announces a car restored out of service when this engine takes over, with its status and why it is out of service.</summary>
+    public void PublishRestoredOutOfService()
+    {
+        var status = CurrentStatus();
+        var activity = new ElevatorActivityDto(
+            timeProvider.GetUtcNow(), ElevatorActivityKind.OutOfService, status.CurrentFloor, OutOfServiceCause: status.OutOfServiceCause, CancelledCalls: 0);
+        forwarder.Enqueue(new ElevatorUpdateV1(Guid.CreateVersion7(timeProvider.GetUtcNow()), activity, status));
+    }
+
     /// <summary>Tells subscribers the scheduling strategy changed (ADR-0033), with the status as it is.</summary>
     public void PublishSchedulingChanged(SchedulingPolicy policy)
     {
