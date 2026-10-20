@@ -128,7 +128,8 @@ public sealed class ElevatorEngineTests
         var first = await harness.StartLeaderAsync();
         await harness.SendAsync(EngineHarness.CarCall(5));
         await harness.SendAsync(EngineHarness.HallCall(8, CallDirection.Down));
-        var beforeStop = await harness.Updates.WaitForAsync(update => update.Status.PendingCalls.Count == 2);
+        // Travelling: with both calls in, the car may still be at floor 1 with its doors open a moment before it leaves.
+        var beforeStop = await harness.Updates.WaitForAsync(update => update.Status is { PendingCalls.Count: 2, Status: ElevatorStatus.MovingUp });
 
         await first.StopAsync();
         var stored = await harness.StateStore.LoadAsync(TestContext.Current.CancellationToken);
