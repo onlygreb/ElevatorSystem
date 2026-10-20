@@ -1,6 +1,6 @@
 # 0017. Manual passengers, occupancy counts and admin service control
 
-- **Status:** Accepted
+- **Status:** Accepted; §2 and §4 amended by [0026](0026-passengers-walk-in-and-out.md), §3 and §4 by [0027](0027-admin-demo-scenarios.md)
 - **Date:** 2026-10-19
 
 ## Context

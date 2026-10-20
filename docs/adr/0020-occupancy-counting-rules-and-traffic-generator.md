@@ -1,6 +1,6 @@
 # 0020. Count passengers by explicit rules and mirror them in the traffic generator
 
-- **Status:** Accepted
+- **Status:** Superseded by [0026](0026-passengers-walk-in-and-out.md)
 - **Date:** 2026-10-19
 
 ## Context
