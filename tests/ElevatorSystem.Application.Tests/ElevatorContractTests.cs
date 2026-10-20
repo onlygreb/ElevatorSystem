@@ -77,9 +77,9 @@ public sealed class ElevatorContractTests
         var activities = harness.Probe.Events.Select(ElevatorContractMapper.ToActivity).ToList();
 
         activities.Select(a => a.Kind).Distinct().ToList().ShouldBe(
-            [.. Enum.GetValues<ElevatorActivityKind>().Except([ElevatorActivityKind.RequestRejected])],
+            [.. Enum.GetValues<ElevatorActivityKind>().Where(kind => !kind.ToString().StartsWith("Passenger", StringComparison.Ordinal)).Except([ElevatorActivityKind.RequestRejected])],
             ignoreOrder: true,
-            "every kind except RequestRejected is produced by this journey");
+            "every elevator kind except RequestRejected is produced by this journey; passenger kinds come from the registry");
         var moved = activities.First(a => a.Kind == ElevatorActivityKind.Moved);
         moved.ShouldBe(new ElevatorActivityDto(moved.OccurredAt, ElevatorActivityKind.Moved, 2, FromFloor: 1, Direction: CallDirection.Up));
         var served = activities.Single(a => a.Kind == ElevatorActivityKind.CallServed);

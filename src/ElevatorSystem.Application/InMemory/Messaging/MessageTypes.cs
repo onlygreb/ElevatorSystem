@@ -13,6 +13,8 @@ internal static class MessageTypes
         HallCallCommandV1 => "hall-call.v1",
         CarCallCommandV1 => "car-call.v1",
         ServiceCommandV1 => "service.v1",
+        PassengerCommandV1 => "passenger.v1",
+        ScenarioCommandV1 => "scenario.v1",
         _ => command.GetType().Name,
     };
 }

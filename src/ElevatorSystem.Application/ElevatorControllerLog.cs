@@ -59,4 +59,7 @@ internal static partial class ElevatorControllerLog
 
     [LoggerMessage(1516, LogLevel.Warning, "{Transition} refused at floor {Floor}: {Error}")]
     public static partial void TransitionRefused(ILogger logger, string transition, Floor floor, TransitionError error);
+
+    [LoggerMessage(1517, LogLevel.Error, "Event sink {Sink} failed to accept {EventType}; the other sinks still receive it")]
+    public static partial void SinkFailed(ILogger logger, Exception exception, string sink, string eventType);
 }

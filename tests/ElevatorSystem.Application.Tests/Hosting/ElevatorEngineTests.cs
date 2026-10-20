@@ -1,4 +1,5 @@
 using ElevatorSystem.Application.Hosting;
+using ElevatorSystem.Application.Simulation;
 using ElevatorSystem.Contracts;
 using ElevatorSystem.Domain;
 
@@ -207,25 +208,73 @@ public sealed class ElevatorEngineTests
     }
 
     [Fact]
-    public async Task Occupancy_IsPublishedOnTakeOver_AndOnEveryChange()
+    public async Task Occupancy_IsPublishedOnTakeOver_AndOnEveryPassengerStep()
+    {
+        await using var harness = new EngineHarness
+        {
+            // The default door policy: the car waits open at floor 1, so the passenger can walk in.
+            ControllerOptions = new ElevatorControllerOptions { TravelTimePerFloor = EngineHarness.TravelTime, DoorOpenDuration = TimeSpan.FromSeconds(1), StuckTolerance = 100 },
+        };
+        await harness.StartLeaderAsync();
+        var initial = await harness.OccupancyUpdates.WaitForAsync(_ => true);
+        var passenger = Guid.NewGuid();
+
+        await harness.SendAsync(EngineHarness.Passenger(passenger, PassengerAction.Join));
+        var present = await harness.OccupancyUpdates.WaitForAsync(update => update.Occupancy.Floors[0].Present == 1);
+        await harness.SendAsync(EngineHarness.Passenger(passenger, PassengerAction.Board));
+        var riding = await harness.OccupancyUpdates.WaitForAsync(update => update.Occupancy.PassengersInCar == 1);
+        await harness.SendAsync(EngineHarness.Passenger(passenger, PassengerAction.ChooseFloor, floor: 3));
+        await harness.Updates.WaitForAsync(update => update.Activity is { Kind: ElevatorActivityKind.DoorsOpened, Floor: 3 });
+        await harness.SendAsync(EngineHarness.Passenger(passenger, PassengerAction.Leave));
+        var delivered = await harness.OccupancyUpdates.WaitForAsync(update => update.Occupancy.PassengersDelivered == 1);
+
+        initial.Occupancy.PassengersInCar.ShouldBe(0, "a new term starts with nobody in the building");
+        initial.Occupancy.Floors.Count.ShouldBe(10);
+        present.Occupancy.PassengersInCar.ShouldBe(0);
+        riding.Occupancy.Floors[0].Present.ShouldBe(0, "they walked from the lobby into the car");
+        delivered.Occupancy.Floors[2].Present.ShouldBe(1);
+        delivered.Occupancy.PassengersInCar.ShouldBe(0);
+        harness.OccupancyUpdates.Messages.Select(update => update.UpdateId).ShouldBeUnique();
+        harness.Updates.Messages.Select(update => update.Activity.Kind).ShouldContain(ElevatorActivityKind.PassengerLeft);
+    }
+
+    [Fact]
+    public async Task PassengerSteps_ThatTheCarCannotAllow_AreReportedAsRefused()
     {
         await using var harness = new EngineHarness();
         await harness.StartLeaderAsync();
-        var initial = await harness.OccupancyUpdates.WaitForAsync(_ => true);
+        var stranger = Guid.NewGuid();
+        var passenger = Guid.NewGuid();
 
-        await harness.SendAsync(EngineHarness.HallCall(6, CallDirection.Down));
-        var waiting = await harness.OccupancyUpdates.WaitForAsync(update => update.Occupancy.Floors[5].Waiting == 1);
-        var riding = await harness.OccupancyUpdates.WaitForAsync(update => update.Occupancy.PassengersInCar == 1);
-        await harness.SendAsync(EngineHarness.CarCall(2));
-        var delivered = await harness.OccupancyUpdates.WaitForAsync(update => update.Occupancy.PassengersDelivered == 1);
+        await harness.SendAsync(EngineHarness.Passenger(stranger, PassengerAction.Board));
+        await harness.SendAsync(EngineHarness.Passenger(passenger, PassengerAction.Join));
+        await harness.SendAsync(EngineHarness.Passenger(passenger, PassengerAction.Leave));
 
-        initial.Occupancy.PassengersInCar.ShouldBe(0, "a new term counts from nothing; restored calls are counted when served");
-        initial.Occupancy.Floors.Count.ShouldBe(10);
-        riding.Occupancy.Floors[5].Waiting.ShouldBe(0, "the person boarded when the door opened at 6");
-        delivered.Occupancy.Floors[1].Present.ShouldBe(1);
-        delivered.Occupancy.PassengersInCar.ShouldBe(0);
-        harness.OccupancyUpdates.Messages.Select(update => update.UpdateId).ShouldBeUnique();
-        waiting.Occupancy.TakenAt.ShouldBeLessThanOrEqualTo(delivered.Occupancy.TakenAt);
+        var unknown = await harness.Updates.WaitForAsync(update => update.Activity.PassengerId == stranger);
+        var notInCar = await harness.Updates.WaitForAsync(update => update.Activity is { Kind: ElevatorActivityKind.PassengerRefused } && update.Activity.PassengerId == passenger);
+        unknown.Activity.PassengerRefusal.ShouldBe(PassengerRefusalReason.UnknownPassenger);
+        notInCar.Activity.PassengerRefusal.ShouldBe(PassengerRefusalReason.NotInCar);
+        notInCar.Activity.PassengerAction.ShouldBe(PassengerAction.Leave);
+    }
+
+    [Fact]
+    public async Task ScenarioCommands_StartSimulatedPassengers_AndStopRemovesThem()
+    {
+        await using var harness = new EngineHarness { Simulation = new SimulationOptions { Enabled = true, Seed = 7 } };
+        var leader = await harness.StartLeaderAsync();
+
+        await harness.SendAsync(new ScenarioCommandV1(Guid.CreateVersion7(), DateTimeOffset.UnixEpoch, DemoScenario.MorningRush));
+        await harness.Updates.WaitForAsync(update => update.Activity is { Kind: ElevatorActivityKind.PassengerJoined, Simulated: true });
+        await harness.SendAsync(new ScenarioCommandV1(Guid.CreateVersion7(), DateTimeOffset.UnixEpoch, null));
+        await harness.Updates.WaitForAsync(update => update.Activity is { Kind: ElevatorActivityKind.PassengerRemoved, Simulated: true });
+
+        for (var attempt = 0; attempt < 100 && leader.Engine.Passengers?.Passengers.Count > 0; attempt++)
+        {
+            await Task.Delay(50, TestContext.Current.CancellationToken);
+        }
+
+        leader.Engine.Passengers!.Passengers.ShouldBeEmpty("every simulated passenger left");
+        leader.Engine.Scenarios!.Active.ShouldBe(0);
     }
 
     [Fact]

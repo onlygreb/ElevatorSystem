@@ -1,11 +1,11 @@
-using ElevatorSystem.Application.Occupancy;
+
 using ElevatorSystem.Application.Ports;
 using ElevatorSystem.Domain;
 using ElevatorSystem.Domain.Events;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 
-namespace ElevatorSystem.Application.Tests.Occupancy;
+namespace ElevatorSystem.Application.Tests;
 
 public sealed class CompositeElevatorEventSinkTests
 {
@@ -37,7 +37,7 @@ public sealed class CompositeElevatorEventSinkTests
 
         before.Count.ShouldBe(2);
         after.Count.ShouldBe(2, "a failing sink must not starve the sinks after it");
-        var entries = log.WithId(1806);
+        var entries = log.WithId(1517);
         entries.Count.ShouldBe(2);
         entries[0].Level.ShouldBe(LogLevel.Error);
         entries[0].Message.ShouldContain(nameof(ThrowingSink));

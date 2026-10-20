@@ -31,6 +31,8 @@ internal static class RabbitMqEnvelope
         HallCallCommandV1 => "hall-call.v1",
         CarCallCommandV1 => "car-call.v1",
         ServiceCommandV1 => "service.v1",
+        PassengerCommandV1 => "passenger.v1",
+        ScenarioCommandV1 => "scenario.v1",
         _ => throw new ArgumentException($"Unknown command type {command.GetType().Name}.", nameof(command)),
     };
 
@@ -101,6 +103,9 @@ internal static class RabbitMqEnvelope
             HallCallCommandV1 hall => Enum.IsDefined(hall.Direction),
             CarCallCommandV1 => true,
             ServiceCommandV1 service => Enum.IsDefined(service.Action),
+            PassengerCommandV1 passenger => passenger.PassengerId != Guid.Empty && Enum.IsDefined(passenger.Action)
+                && (passenger.Direction is null || Enum.IsDefined(passenger.Direction.Value)),
+            ScenarioCommandV1 scenario => scenario.Scenario is null || Enum.IsDefined(scenario.Scenario.Value),
             _ => false,
         };
 

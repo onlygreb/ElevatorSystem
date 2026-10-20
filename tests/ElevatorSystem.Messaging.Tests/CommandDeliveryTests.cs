@@ -124,6 +124,9 @@ public sealed class CommandDeliveryTests(RabbitMqFixture broker) : IAsyncLifetim
     [InlineData("""{"type":"open-sesame.v1","commandId":"0199f4a3-0000-7000-8000-000000000001","issuedAt":"2026-01-05T08:00:00Z"}""")]
     [InlineData("""{"type":"service.v1","commandId":"0199f4a3-0000-7000-8000-000000000002","issuedAt":"2026-01-05T08:00:00Z","action":99}""")]
     [InlineData("""{"type":"car-call.v1","commandId":"00000000-0000-0000-0000-000000000000","issuedAt":"2026-01-05T08:00:00Z","floor":3}""")]
+    [InlineData("""{"type":"passenger.v1","commandId":"0199f4a3-0000-7000-8000-000000000003","issuedAt":"2026-01-05T08:00:00Z","passengerId":"00000000-0000-0000-0000-000000000000","action":"Join"}""")]
+    [InlineData("""{"type":"passenger.v1","commandId":"0199f4a3-0000-7000-8000-000000000004","issuedAt":"2026-01-05T08:00:00Z","passengerId":"8d6f2c1e-5b3a-4c7d-9e8f-0a1b2c3d4e5f","action":42}""")]
+    [InlineData("""{"type":"scenario.v1","commandId":"0199f4a3-0000-7000-8000-000000000005","issuedAt":"2026-01-05T08:00:00Z","scenario":17}""")]
     public async Task ConsumeAsync_MalformedMessage_GoesStraightToTheDeadLetterQueue(string body)
     {
         var handled = new Inbox<ElevatorCommandV1>();
@@ -142,6 +145,23 @@ public sealed class CommandDeliveryTests(RabbitMqFixture broker) : IAsyncLifetim
 
         RabbitMqFixture.Header(deadLetter.BasicProperties, "x-first-death-reason").ShouldBe("rejected", "rejected at once, not retried up to the delivery limit");
         handled.Messages.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task PassengerAndScenarioCommands_RoundTripThroughTheBroker()
+    {
+        var publisher = new RabbitMqElevatorCommandPublisher(broker.CreateConnection());
+        var received = new Inbox<ElevatorCommandV1>();
+        StartConsumer(broker.CreateConnection(), received.Handle);
+        var passenger = new PassengerCommandV1(Guid.CreateVersion7(), DateTimeOffset.UnixEpoch, Guid.NewGuid(), PassengerAction.ChooseFloor, Floor: 7);
+        var scenario = new ScenarioCommandV1(Guid.CreateVersion7(), DateTimeOffset.UnixEpoch, DemoScenario.LunchBreak);
+        var stop = new ScenarioCommandV1(Guid.CreateVersion7(), DateTimeOffset.UnixEpoch, null);
+
+        await publisher.PublishAsync(passenger, TestContext.Current.CancellationToken);
+        await publisher.PublishAsync(scenario, TestContext.Current.CancellationToken);
+        await publisher.PublishAsync(stop, TestContext.Current.CancellationToken);
+
+        (await received.WaitForCountAsync(3)).ShouldBe([passenger, scenario, stop]);
     }
 
     [Fact]
