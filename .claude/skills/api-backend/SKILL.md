@@ -6,7 +6,7 @@ description: Conventions for ElevatorSystem.Api - Minimal API endpoint checklist
 # API backend
 
 Decisions behind this skill: ADR-0002 (layers), ADR-0006 (UI hosting and auth), ADR-0007 (fail-safe),
-ADR-0012 (control loop) and ADR-0015 (real-time fan-out).
+ADR-0012 (control loop), ADR-0015 (real-time fan-out), ADR-0022 (staff authentication) and ADR-0023 (audit trail).
 
 ## Shape
 
@@ -17,6 +17,7 @@ ADR-0012 (control loop) and ADR-0015 (real-time fan-out).
 | `RealTime/` | `ElevatorEventBuffer` (the controller's sink), `ElevatorBroadcastService`, `ElevatorStatusHub` |
 | `Endpoints/` | `<Feature>Endpoints.cs` with one `Map<Feature>Endpoints(this IEndpointRouteBuilder)`; `ApiErrorHandling` |
 | `Security/` | `SecurityHeaders`, `RateLimiting` |
+| `Staff/` | Identity, cookies, policies (`StaffPolicies`), antiforgery, Data Protection, the staff start-up (migrate and seed), service-action idempotency (ADR-0022) |
 | `ContractsJson.cs`, `ApiLog.cs` | The wire format applied to every serializer; `LoggerMessage` methods (event IDs 3000–3999) |
 
 - Routes come from `ElevatorSystem.Contracts.ApiRoutes`, never string literals. The contracts are
@@ -33,17 +34,29 @@ ADR-0012 (control loop) and ADR-0015 (real-time fan-out).
 | `POST /api/v1/hall-calls` (`HallCallRequest`) | anonymous, `passenger` limit, 1 KB body | `202` `RequestAcceptedResponse` | `400` `InvalidFloor` / `InvalidDirection`, `409` `OutOfService`, `503` `Busy` + `Retry-After: 2` (broker unavailable), `429` |
 | `POST /api/v1/car-calls` (`CarCallRequest`) | anonymous, `passenger` limit, 1 KB body | `202` `RequestAcceptedResponse` | `400` `InvalidFloor`, `409` `OutOfService`, `503` `Busy` + `Retry-After: 2` (broker unavailable), `429` |
 | `GET /api/v1/elevator` | anonymous, `read` limit | `200` `ElevatorStatusDto` | `429`, `503` + `Retry-After: 2` until the engine reported |
-| `GET /api/v1/building/occupancy` | anonymous, `read` limit | `200` `BuildingOccupancyDto` | `429`, `503` + `Retry-After: 2` until the engine reported |
+| `GET /api/v1/building/occupancy` | `staff` policy, `staff` limit | `200` `BuildingOccupancyDto` | `401`, `403`, `429`, `503` + `Retry-After: 2` until the engine reported |
 | `GET /api/v1/elevator/configuration` | anonymous, `read` limit | `200` `ElevatorConfigurationDto` | `429` |
-| `/hubs/elevator` (SignalR) | anonymous, receive-only | `StatusChanged` and `OccupancyChanged` on connect (once known) and after changes, `ActivityOccurred` per update | — |
+| `/hubs/elevator` (SignalR) | anonymous, receive-only | `StatusChanged` on connect (once known) and after changes, `ActivityOccurred` per update; `OccupancyChanged` only to the `staff` group | — |
+| `GET /api/v1/auth/antiforgery` | anonymous, `read` limit | `200` `AntiforgeryTokenDto` (`Cache-Control: no-store`) | `429` |
+| `POST /api/v1/auth/sign-in` (`SignInRequest`) | anonymous, `sign-in` limit, antiforgery | `200` `StaffSessionDto` + session cookie | `400` `Antiforgery`, `401` `InvalidCredentials` / `TwoFactorRequired` / `InvalidTwoFactorCode`, `429` |
+| `POST /api/v1/auth/sign-out` | signed in, antiforgery | `204` | `401` |
+| `GET /api/v1/auth/session` | signed in | `200` `StaffSessionDto` | `401` |
+| `POST /api/v1/auth/two-factor/setup` | signed in, antiforgery | `200` `TwoFactorSetupDto` | `401`, `409` already enabled |
+| `POST /api/v1/auth/two-factor/enable` (`EnableTwoFactorRequest`) | signed in, antiforgery | `200` `RecoveryCodesDto`; the session now counts as two-factor | `400` `InvalidTwoFactorCode`, `401`, `409` |
+| `POST /api/v1/admin/service-actions` (`ServiceActionRequest`, optional `Idempotency-Key`) | `service-control` policy, antiforgery | `202` `ServiceActionAcceptedResponse` | `400`, `401`, `403`, `422` key reused, `503` `Busy` |
+| `GET /api/v1/admin/audit/entries?before=&limit=` | `staff` policy | `200` `AuditPageDto`, newest first | `400`, `401`, `403` |
+| `GET /api/v1/admin/audit/verification` | `staff` policy | `200` `AuditVerificationDto` | `401`, `403` |
 
-Planned: `/api/v1/admin/*` (operators and admins, phase 4) and `/api/v1/me` (the caller's own data
-for LGPD rights, phase 5).
+Policies (`Staff/StaffPolicies.cs`): `staff` is `Admin` or `Auditor` signed in with the second factor (`amr: mfa`);
+`service-control` is `Admin` with the second factor. A password-only session reaches only `session` and the two-factor
+endpoints. Planned: `/api/v1/me` (the caller's own data for LGPD rights, phase 5) and account management.
 
 ## Checklist for every endpoint
 
 1. Typed results (`Results<Accepted<T>, ProblemHttpResult>`) so OpenAPI is accurate.
-2. Explicit `.AllowAnonymous()` (until phase 4 adds policies) together with a rate-limit policy.
+2. Explicit `.AllowAnonymous()` or `.RequireAuthorization(policy)` on the endpoint itself (never on a group: an
+   `AllowAnonymous` group overrides every policy inside it), together with a rate-limit policy.
+   `EveryApiEndpoint_StatesWhoMayCallIt` fails otherwise.
 3. Input validated at the boundary: the JSON options refuse malformed bodies, missing fields,
    numbers sent as strings and unknown enum names (`400`, never `500`); the domain refuses
    business-rule violations (`Building.Validate` → `RejectionReason`).
@@ -54,8 +67,9 @@ for LGPD rights, phase 5).
 6. OpenAPI metadata (`WithName`, `WithSummary`, `WithTags`, `ProducesProblem` for every refusal
    status); update `tests/ElevatorSystem.Api.Tests/OpenApi/openapi-v1.verified.json` in the same change.
 7. A `CancellationToken` parameter, passed all the way down.
-8. Phase 4: every POST that creates staff work honours an `Idempotency-Key` header, and a row is added
-   to the authorization-matrix test (endpoint × anonymous/Operator/Admin/Auditor).
+8. Staff `POST`s use `.RequireAntiforgeryToken()`; an action an admin may retry honours `Idempotency-Key`; and a row is
+   added to `AuthorizationMatrixTests` (endpoint × anonymous / password-only / auditor / admin).
+9. Anything a staff member does is recorded with `AuditTrail.RecordAsync` *before* it takes effect (ADR-0023).
 
 ## Status codes
 
@@ -64,7 +78,7 @@ for LGPD rights, phase 5).
 | Request accepted and queued | `202 Accepted` + request ID (progress is reported on the hub) |
 | Malformed JSON, missing field, unknown enum name | `400` problem, no `reason` |
 | Floor outside 1–10, no travel possible in that direction | `400` problem, `reason` `InvalidFloor` / `InvalidDirection` |
-| Not authenticated / not allowed (phase 4) | `401` / `403` |
+| Not signed in / not allowed (or no second factor) | `401` / `403` (no redirects) |
 | Elevator out of service | `409` problem, `reason` `OutOfService` |
 | Body over 1 KB | `413` (Kestrel enforces it; the test server does not, so tests check the metadata) |
 | Rate or concurrency limit hit | `429` problem + `Retry-After` |
@@ -102,7 +116,8 @@ for LGPD rights, phase 5).
   `DropOldest`, never blocks; drops counted and logged at most every 10 s). `ElevatorBroadcastService` sends
   each elevator update as `ActivityOccurred` and, per batch of up to 64, one `StatusChanged` only when the
   version changed and one `OccupancyChanged` with the newest counts. A failing send is logged and skipped. Never publish to SignalR from the control loop.
-- Phase 4: admin-only hub groups require the `CanOperate` policy. The hub has no per-client
+- Staff connections (the `staff` policy when they connect) join the `staff` group, the only audience of
+  `OccupancyChanged`; `CloseOnAuthenticationExpiration` ends them with the cookie. The hub has no per-client
   connection limit yet (threat model OQ-11).
 
 ## Abuse protection and headers
@@ -113,7 +128,8 @@ for LGPD rights, phase 5).
   - a global concurrency limiter for everything under `/api` (256 in flight, no queue)
   - partitioned by client address, IPv6 by /64; the address is used only in memory and is never stored or logged
   - rejections are `429` problems with `Retry-After` from the limiter (default 1 s)
-  - phase 4: per user for authenticated calls; forwarded headers stay off until OQ-10 is decided
+  - `sign-in`: per client, 10 attempts, then one every 6 s; `staff`: per account (per client before sign-in), burst 30, then 5 per second
+  - forwarded headers stay off until OQ-10 is decided
 - Security headers (`Security/SecurityHeaders.cs`), written in `OnStarting` on every response:
   - `Content-Security-Policy: default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'`
     (only the Development-only `/scalar` pages also allow inline scripts)
@@ -126,7 +142,7 @@ for LGPD rights, phase 5).
 ## Logging
 
 Don't log request bodies, headers, cookies or IP addresses; `LogPrivacyTests` captures every category at
-`Trace` and fails if a client address or a body value appears. The audit log (phase 4) records staff
+`Trace` and fails if a client address or a body value appears. The audit trail (ADR-0023) records staff
 actions with a pseudonymised IP (see the `security-lgpd` skill). Use `LoggerMessage` methods in
 `ApiLog`, event IDs 3000–3999.
 
@@ -137,3 +153,6 @@ actions with a pseudonymised IP (see the `security-lgpd` skill). Use `LoggerMess
   and the `X-Test-Client-Address` header to choose the client address.
 - `HubClient` connects over WebSockets through the test server with the browser's JSON settings.
 - `FakeHubContext` replaces the hub context to make sends hang or throw.
+- `Staff/StaffClient` signs in like the browser (HTTPS, cookie jar, antiforgery token) as `StaffAccounts.Admin` or
+  `.Auditor`, seeded by `ApiFactory`; `SignedInWithTwoFactorsAsync` registers an authenticator with the RFC 6238 `Totp`
+  helper. `HubClient.ConnectAsync(..., cookieHeader: client.CookieHeader)` joins the hub as that session.

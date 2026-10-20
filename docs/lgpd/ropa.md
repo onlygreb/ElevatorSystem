@@ -37,32 +37,32 @@ controller, in which case it fills one of the processor rows above.
 
 | Field | Entry |
 |---|---|
-| Purpose | Let authorised staff (operators, administrators, auditors) sign in to the operations panel and act on the elevator, with permissions limited to their role. |
+| Purpose | Let authorised staff (administrators and auditors, ADR-0022) sign in to the admin view: administrators take the elevator out of service and return it; both see occupancy and the audit trail. Permissions are limited to the role. |
 | Legal basis (Art. 7) | **V, performance of a contract** to which the data subject is party, for the controller's own employees (the employment or service contract requires them to operate the system). **IX, legitimate interest** of the controller, for staff of third parties such as maintenance contractors, whose contract is with their employer rather than with the controller. A legitimate interest assessment (Art. 10) must be kept for this case. |
-| Data categories | Name; work e-mail address; role (`Admin`, `Operator`, `Auditor`); password hash (salted and iterated, ASP.NET Core Identity); TOTP two-factor secret (encrypted with ASP.NET Core Data Protection); two-factor recovery codes; security stamp; failed sign-in counter and lockout end time; account creation and deactivation timestamps. No sensitive personal data (Art. 5 II), no data about children or adolescents. |
+| Data categories | Work e-mail address (also the user name); role (`Admin` or `Auditor`); password hash (salted and iterated, ASP.NET Core Identity); TOTP two-factor secret and one-time recovery codes (both encrypted with ASP.NET Core Data Protection before they are stored); security stamp; failed sign-in counter and lockout end time. No name is collected (data minimisation, Art. 6 III). No sensitive personal data (Art. 5 II), no data about children or adolescents. |
 | Data subjects | Staff of the controller and of its contractors who are given access to the operations panel. |
-| Source | Created by an administrator; the password and the two-factor secret are set by the staff member. |
+| Source | Created at deployment from the `Staff:Accounts` configuration (there is no public registration); the initial password comes from the deployment's secret store and the two-factor secret is registered by the staff member. An account management screen is planned. |
 | Retention | While the account is active, plus **6 months** after deactivation, then deleted (see [retention schedule](retention.md)). |
-| Recipients | Administrators of the controller (user management screen). Nobody else, inside or outside the system. |
+| Recipients | The staff member (their own session). Administrators and auditors see staff e-mails next to audit entries. Nobody else, inside or outside the system. |
 | Processors | Hosting provider `{{HOSTING_PROVIDER}}` (database storage). E-mail delivery provider `{{EMAIL_PROVIDER}}`, only if account e-mails such as password reset are enabled. |
 | International transfer | None by design. If `{{HOSTING_REGION}}` or `{{EMAIL_PROVIDER}}` is outside Brazil, the transfer needs one of the mechanisms of Art. 33, such as the standard contractual clauses of Resolution CD/ANPD nº 19/2024, and this entry must name it. |
-| Security measures | TLS for every connection; `HttpOnly`, `Secure`, `SameSite=Strict` session cookie with a 20-minute sliding expiry and antiforgery tokens; mandatory TOTP for administrators; lockout after 5 failed attempts; the Data Protection key ring protected at rest by the deployment environment; least-privilege roles and policies; every account change recorded in the audit trail. |
+| Security measures | TLS for every connection; `HttpOnly`, `Secure`, `SameSite=Strict` session cookie with a 20-minute sliding expiry and antiforgery tokens; a second factor (TOTP or a one-time recovery code) mandatory for every staff role; lockout for 15 minutes after 5 failed attempts and a per-address sign-in rate limit; the Data Protection key ring in the staff database (encrypting it with a key from outside the database is still open, threat model OQ-13); least-privilege roles and policies; sign-ins, sign-outs and two-factor registration recorded in the audit trail. |
 | Data subject rights | Self-service export (JSON) and deletion request from the operations panel, plus requests to the encarregado (see the [privacy notice](privacy-notice.md#your-rights)). |
 
 ## 2. Audit trail
 
 | Field | Entry |
 |---|---|
-| Purpose | Accountability and security: know which staff member performed each privileged action (emergency stop, maintenance mode, strategy change, user and role changes, data export and deletion), detect misuse, and support investigation of incidents. The trail is append-only and hash-chained so tampering is detectable. |
+| Purpose | Accountability and security: know which staff member performed each privileged action (emergency stop, maintenance, return to service, and from phase 5 data export and deletion) and every sign-in attempt, detect misuse, and support investigation of incidents. The trail is append-only and hash-chained so tampering is detectable. |
 | Legal basis (Art. 7) | **IX, legitimate interest** of the controller in the security and accountability of a safety-related system, which also serves the duty to adopt security measures under Art. 46. A legitimate interest assessment (Art. 10) must be kept. Counsel should confirm whether **VI** (regular exercise of rights in judicial, administrative or arbitration proceedings) applies to entries placed under a legal hold. |
-| Data categories | Staff account ID (an opaque identifier, linkable to the account while it exists); action and its target; outcome; timestamp; client IP address **stored only as HMAC-SHA256 with a rotating key**, never in clear; hash-chain fields (previous hash, entry hash). |
+| Data categories | Staff account ID (an opaque identifier, linkable to the account while it exists; absent for a sign-in with an unknown e-mail); action and its target (never the e-mail or anything typed); outcome; timestamp; client IP address **stored only as a keyed pseudonym** (the first 128 bits of HMAC-SHA256), never in clear; a random per-entry salt, the salted digest of the personal fields and the entry hash (ADR-0014, ADR-0023). |
 | Data subjects | Staff who use the operations panel. |
-| Source | Generated by the system when a staff member acts. |
+| Source | Generated by the API when someone signs in or out, registers a second factor or requests a service action, before the action is carried out. |
 | Retention | **1 year**, then purged (see [retention schedule](retention.md)). When a staff member exercises the right to deletion, their entries are anonymised with a tombstone instead of removed, so the hash chain stays verifiable. |
-| Recipients | Staff with the `Auditor` role (audit viewer, `CanAudit` policy) and administrators. The ANPD, courts or other authorities on a lawful request. |
+| Recipients | Staff with the `Auditor` or `Admin` role signed in with their second factor (`staff` policy). The ANPD, courts or other authorities on a lawful request. |
 | Processors | Hosting provider `{{HOSTING_PROVIDER}}` (database storage). |
 | International transfer | As for operation 1. |
-| Security measures | Append-only storage with a hash chain and a verification endpoint; IP pseudonymisation with a keyed HMAC whose key rotates and is kept as a secret, never stored alongside the pseudonyms; read access only through the `CanAudit` policy; TLS; encryption at rest provided by the hosting environment. |
+| Security measures | Append-only storage with a hash chain and a verification endpoint; IP pseudonymisation with a keyed HMAC whose key rotates and is kept as a secret, never stored alongside the pseudonyms; read access only through the `staff` policy; TLS; encryption at rest provided by the hosting environment. |
 | Data subject rights | Access and export include the subject's own audit entries. Deletion anonymises them (see [retention schedule, tombstones](retention.md#4-audit-tombstones-and-the-hash-chain)). |
 
 ## 3. Technical logs, traces and metrics

@@ -15,7 +15,7 @@ report, retention, incident response). These are written as each phase introduce
 | Threat | Control |
 |---|---|
 | Request flooding ("press every button 1,000 times") | Rate limits, bounded intake channel, request merging |
-| Admin account takeover | Identity with TOTP 2FA, lockout, password policy, short sliding sessions |
+| Staff account takeover | Identity with a second factor mandatory for every role, lockout, password policy, per-address sign-in limit, 20-minute sliding `__Host-` cookie (ADR-0022) |
 | CSRF against cookie auth | `SameSite=Strict` cookies + antiforgery tokens |
 | Tampering with the audit trail | Hash-chained, append-only audit entries with a verification endpoint |
 | Forged messages on the broker | Per-service credentials, a dedicated virtual host, validation of every message |
@@ -40,11 +40,11 @@ report, retention, incident response). These are written as each phase introduce
 | Data | Category | Legal basis (LGPD Art. 7) | Default retention | Handling |
 |---|---|---|---|---|
 | Hall and car requests (floor, direction, timestamps) | Not personal | n/a | 90 days, then aggregated | Never linked to a user, device, IP or card |
-| Staff account (name, e-mail, role, password hash, 2FA secret) | Personal | Contract performance / legitimate interest (V, IX) | While active + 6 months | Identity hashing; 2FA secret encrypted with Data Protection |
-| Audit trail (staff ID, action, timestamp, pseudonymised IP) | Personal, pseudonymised | Legitimate interest (IX), serving the Art. 46 security duty | 1 year | IP stored only as HMAC-SHA256 with a rotating key; tombstones and checkpoints per ADR-0014 |
+| Staff account (e-mail, role, password hash, 2FA secret, recovery codes) | Personal | Contract performance / legitimate interest (V, IX) | While active + 6 months | Identity hashing; 2FA secret and recovery codes encrypted with Data Protection (`ProtectedStaffUserStore`); no name collected |
+| Audit trail (staff ID, action, timestamp, pseudonymised IP) | Personal, pseudonymised | Legitimate interest (IX), serving the Art. 46 security duty | 1 year | IP stored only as a keyed HMAC-SHA256 pseudonym; salted personal digests so anonymisation keeps the chain verifiable (ADR-0014, ADR-0023); checkpoints with the retention job |
 | Client IP for anonymous rate limiting | Personal | Legitimate interest (IX), serving the Art. 46 security duty | Not stored: memory only, for the rate-limit window | Never written to the database, logs, traces or metrics |
 | Technical logs and traces | Must contain no personal data | n/a | 30 days | Redaction enforced by tests |
-| HMAC key that pseudonymises IPs | Secret; links pseudonyms to each other | n/a (security measure) | Rotated every `{{HMAC_KEY_ROTATION_PERIOD}}`; retired keys destroyed after `{{HMAC_KEY_RETENTION}}` | Storage location still open (threat model OQ-13); the controller sets the periods (RIPD item O6) |
+| HMAC key that pseudonymises IPs | Secret; links pseudonyms to each other | n/a (security measure) | Rotated every `{{HMAC_KEY_ROTATION_PERIOD}}`; retired keys destroyed after `{{HMAC_KEY_RETENTION}}` | A secret parameter (`Audit:ClientPseudonymKey`), never in the database; random per start when missing. The controller sets the periods (RIPD item O6) |
 | Database backups | Contain everything above | Same as the data they copy | `{{BACKUP_RETENTION}}` (recommended: 35 days or less) | Encrypted; the deletion ledger is re-applied after any restore |
 | Incident records | May contain personal data | Legal obligation (II): Resolution CD/ANPD nº 15/2024 | At least 5 years | Kept outside the system, readable only by the encarregado, the controller and counsel |
 

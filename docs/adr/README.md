@@ -19,7 +19,7 @@ supersedes the old one instead of editing it. New records start from [`template.
 | [0011](0011-orchestration-and-delivery.md) | Local orchestration and container delivery | Accepted |
 | [0012](0012-elevator-control-loop.md) | Elevator control loop and core semantics | Accepted |
 | [0013](0013-ui-culture-preference-in-browser-storage.md) | Keep the UI culture preference in browser storage (amends 0009) | Accepted |
-| [0014](0014-audit-tombstones-and-chain-checkpoints.md) | Anonymise audit entries with salted personal digests and purge with checkpoints | Proposed |
+| [0014](0014-audit-tombstones-and-chain-checkpoints.md) | Anonymise audit entries with salted personal digests and purge with checkpoints | Accepted |
 | [0015](0015-real-time-fan-out-through-a-lossy-buffer.md) | Real-time fan-out through a lossy buffer | Accepted |
 | [0016](0016-keep-the-browser-view-in-step-with-the-server.md) | Keep the browser view in step with the server | Accepted |
 | [0017](0017-manual-passengers-occupancy-and-admin-service-control.md) | Manual passengers, occupancy counts and admin service control | Accepted |
@@ -27,3 +27,5 @@ supersedes the old one instead of editing it. New records start from [`template.
 | [0019](0019-postgresql-snapshots-deduplication-and-leader-lease.md) | Store snapshots, processed commands and the leader lease in PostgreSQL | Accepted |
 | [0020](0020-occupancy-counting-rules-and-traffic-generator.md) | Count passengers by explicit rules and mirror them in the traffic generator | Accepted |
 | [0021](0021-engine-hosting-topology-and-single-process-mode.md) | Engine hosting topology and the single-process mode | Accepted |
+| [0022](0022-staff-authentication-and-authorization.md) | Authenticate staff with Identity cookies and a mandatory second factor | Accepted |
+| [0023](0023-audit-trail-writer-and-verification.md) | The API writes the audit trail, before acting, as one hash chain | Accepted |
