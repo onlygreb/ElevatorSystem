@@ -1,4 +1,6 @@
+using ElevatorSystem.Application.Passengers;
 using ElevatorSystem.Application.Ports;
+using ElevatorSystem.Application.Simulation;
 using ElevatorSystem.Contracts;
 using ElevatorSystem.Domain;
 using ElevatorSystem.Domain.Events;
@@ -9,7 +11,8 @@ namespace ElevatorSystem.Application.Hosting;
 
 /// <summary>
 /// Applies the commands the leader consumes: passenger calls go to the controller with the command's id
-/// as their request id, service commands go to its safety methods. Each command is applied at most once.
+/// as their request id, service commands go to its safety methods, passenger steps go to the registry (with their calls
+/// placed like any other) and scenario commands to the demo scenarios. Each command is applied at most once.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -27,6 +30,8 @@ namespace ElevatorSystem.Application.Hosting;
 /// </remarks>
 internal sealed class EngineCommandHandler(
     ElevatorController controller,
+    PassengerRegistry passengers,
+    DemoScenarioRunner scenarios,
     IProcessedCommandStore processedCommands,
     EngineEventSink sink,
     ElevatorEngineOptions options,
@@ -58,6 +63,15 @@ internal sealed class EngineCommandHandler(
             case ServiceCommandV1 service when Enum.IsDefined(service.Action):
                 Apply(service);
                 break;
+            case PassengerCommandV1 passenger when Enum.IsDefined(passenger.Action):
+                await ApplyAsync(passenger);
+                break;
+            case ScenarioCommandV1 { Scenario: null }:
+                scenarios.StopAll(command.CommandId);
+                break;
+            case ScenarioCommandV1 { Scenario: { } scenario } when Enum.IsDefined(scenario):
+                scenarios.Start(scenario);
+                break;
             default:
                 Log.UnknownCommand(logger, command.CommandId, type);
                 break;
@@ -84,7 +98,8 @@ internal sealed class EngineCommandHandler(
         }
     }
 
-    private async Task SubmitAsync(ElevatorCommandV1 command, ElevatorCall call)
+    /// <returns>Whether the controller accepted the call.</returns>
+    private async Task<bool> SubmitAsync(ElevatorCommandV1 command, ElevatorCall call)
     {
         var request = new PassengerRequest(new RequestId(command.CommandId), call, command.IssuedAt);
         var takenIn = sink.WhenTakenIn(request.Id);
@@ -93,7 +108,7 @@ internal sealed class EngineCommandHandler(
         {
             sink.Forget(request.Id);
             sink.Publish(new RequestRejected(timeProvider.GetUtcNow(), call.Floor, request, result.RejectionReason!.Value));
-            return;
+            return false;
         }
 
         // The loop applies it within moments. Waiting means a graceful stop, which ends consumption before
@@ -107,6 +122,46 @@ internal sealed class EngineCommandHandler(
         catch (OperationCanceledException)
         {
             sink.Forget(request.Id);
+        }
+
+        return true;
+    }
+
+    /// <summary>A passenger step: the registry checks and records it; calls then go to the controller like any other.</summary>
+    private async Task ApplyAsync(PassengerCommandV1 command)
+    {
+        var id = command.PassengerId;
+        var request = command.CommandId;
+        switch (command.Action)
+        {
+            case PassengerAction.Join:
+                passengers.Join(id, simulated: false, request);
+                break;
+            case PassengerAction.CallElevator when command.Direction is { } direction && Enum.IsDefined(direction):
+                var called = passengers.Call(id, ElevatorContractMapper.ToDomain(direction), request);
+                if (called.Succeeded && !await SubmitAsync(command, new HallCall(called.Floor, ElevatorContractMapper.ToDomain(direction))))
+                {
+                    passengers.WithdrawCall(id);
+                }
+
+                break;
+            case PassengerAction.Board:
+                passengers.Board(id, request);
+                break;
+            case PassengerAction.ChooseFloor when command.Floor is { } number:
+                var floor = new Floor(number);
+                if (passengers.ChooseFloor(id, floor, request).Succeeded)
+                {
+                    await SubmitAsync(command, new CarCall(floor));
+                }
+
+                break;
+            case PassengerAction.Leave:
+                passengers.Leave(id, request);
+                break;
+            default:
+                Log.UnknownCommand(logger, command.CommandId, CommandType(command));
+                break;
         }
     }
 
@@ -135,6 +190,8 @@ internal sealed class EngineCommandHandler(
         HallCallCommandV1 => "hall-call.v1",
         CarCallCommandV1 => "car-call.v1",
         ServiceCommandV1 => "service.v1",
+        PassengerCommandV1 => "passenger.v1",
+        ScenarioCommandV1 => "scenario.v1",
         _ => command.GetType().Name,
     };
 }

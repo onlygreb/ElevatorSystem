@@ -26,7 +26,7 @@ internal sealed class EngineEventSink(Elevator elevator, SnapshotPersister persi
     public void Publish(ElevatorEvent elevatorEvent)
     {
         persister.Notify();
-        var status = ElevatorContractMapper.ToStatus(elevator.Snapshot(), Controller?.DoorsCloseAt);
+        var status = CurrentStatus();
         forwarder.Enqueue(new ElevatorUpdateV1(Guid.CreateVersion7(timeProvider.GetUtcNow()), ElevatorContractMapper.ToActivity(elevatorEvent), status));
 
         if (!_awaited.IsEmpty && RequestOf(elevatorEvent) is { } requestId && _awaited.TryRemove(requestId, out var taken))
@@ -34,6 +34,9 @@ internal sealed class EngineEventSink(Elevator elevator, SnapshotPersister persi
             taken.TrySetResult();
         }
     }
+
+    /// <summary>The status now, with the controller's door countdown.</summary>
+    public ElevatorStatusDto CurrentStatus() => ElevatorContractMapper.ToStatus(elevator.Snapshot(), Controller?.DoorsCloseAt);
 
     /// <summary>
     /// Returns a task that completes when the control loop reports <paramref name="requestId"/>. Call it

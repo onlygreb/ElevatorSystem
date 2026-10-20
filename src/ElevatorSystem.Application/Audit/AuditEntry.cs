@@ -66,6 +66,7 @@ public static class AuditActions
     public const string SignOut = "staff.sign-out";
     public const string TwoFactorEnabled = "staff.two-factor-enabled";
     public const string ServiceAction = "elevator.service-action";
+    public const string DemoScenario = "elevator.demo-scenario";
     public const string EntriesAnonymised = "audit.entries-anonymised";
 }
 

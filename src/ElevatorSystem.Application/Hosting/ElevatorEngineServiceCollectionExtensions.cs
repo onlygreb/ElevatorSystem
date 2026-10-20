@@ -1,4 +1,4 @@
-using ElevatorSystem.Application.Occupancy;
+using ElevatorSystem.Application.Passengers;
 using ElevatorSystem.Application.Ports;
 using ElevatorSystem.Application.Simulation;
 using ElevatorSystem.Domain;
@@ -16,8 +16,11 @@ public static class ElevatorEngineServiceCollectionExtensions
     /// <summary>Configuration section bound to <see cref="ElevatorControllerOptions"/>.</summary>
     public const string ElevatorSection = "Elevator";
 
-    /// <summary>Configuration section bound to <see cref="OccupancyOptions"/>.</summary>
-    public const string OccupancySection = "Occupancy";
+    /// <summary>Configuration section bound to <see cref="PassengerOptions"/>.</summary>
+    public const string PassengersSection = PassengerOptions.SectionName;
+
+    /// <summary>Configuration section bound to <see cref="SimulationOptions"/> (the demo scenarios).</summary>
+    public const string SimulationSection = SimulationOptions.SectionName;
 
     /// <summary>
     /// Binds <see cref="ElevatorControllerOptions"/> from <see cref="ElevatorSection"/>, validated at start-up,
@@ -39,7 +42,7 @@ public static class ElevatorEngineServiceCollectionExtensions
 
     /// <summary>
     /// Registers <see cref="ElevatorEngine"/> and the hosted service that runs it, with options from the
-    /// <see cref="ElevatorSection"/>, <see cref="ElevatorEngineOptions.SectionName"/> and <see cref="OccupancySection"/> sections and the
+    /// <see cref="ElevatorSection"/>, <see cref="ElevatorEngineOptions.SectionName"/>, <see cref="PassengersSection"/> and <see cref="SimulationSection"/> sections and the
     /// simulated drive. The host registers the messaging and persistence ports.
     /// </summary>
     public static IServiceCollection AddElevatorEngine(this IServiceCollection services)
@@ -50,9 +53,12 @@ public static class ElevatorEngineServiceCollectionExtensions
         services.AddOptions<ElevatorEngineOptions>().BindConfiguration(ElevatorEngineOptions.SectionName).ValidateOnStart();
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IValidateOptions<ElevatorEngineOptions>, EngineOptionsValidator>());
         services.TryAddSingleton(provider => provider.GetRequiredService<IOptions<ElevatorEngineOptions>>().Value);
-        services.AddOptions<OccupancyOptions>().BindConfiguration(OccupancySection).ValidateOnStart();
-        services.TryAddEnumerable(ServiceDescriptor.Singleton<IValidateOptions<OccupancyOptions>, OccupancyOptionsValidator>());
-        services.TryAddSingleton(provider => provider.GetRequiredService<IOptions<OccupancyOptions>>().Value);
+        services.AddOptions<PassengerOptions>().BindConfiguration(PassengersSection).ValidateOnStart();
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IValidateOptions<PassengerOptions>, PassengerOptionsValidator>());
+        services.TryAddSingleton(provider => provider.GetRequiredService<IOptions<PassengerOptions>>().Value);
+        services.AddOptions<SimulationOptions>().BindConfiguration(SimulationSection).ValidateOnStart();
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IValidateOptions<SimulationOptions>, SimulationOptionsValidator>());
+        services.TryAddSingleton(provider => provider.GetRequiredService<IOptions<SimulationOptions>>().Value);
 
         services.TryAddSingleton(provider =>
         {
@@ -69,7 +75,8 @@ public static class ElevatorEngineServiceCollectionExtensions
                 () => new SimulatedElevatorDrive(controllerOptions.TravelTimePerFloor, timeProvider),
                 controllerOptions,
                 provider.GetRequiredService<ElevatorEngineOptions>(),
-                provider.GetRequiredService<OccupancyOptions>(),
+                provider.GetRequiredService<PassengerOptions>(),
+                provider.GetRequiredService<SimulationOptions>(),
                 timeProvider,
                 provider.GetRequiredService<ILoggerFactory>());
         });
@@ -91,11 +98,18 @@ public static class ElevatorEngineServiceCollectionExtensions
             Check(ElevatorEngineOptions.SectionName, options.Validate);
     }
 
-    /// <summary>Reports options that <see cref="OccupancyOptions.Validate"/> refuses as a start-up failure.</summary>
-    private sealed class OccupancyOptionsValidator : IValidateOptions<OccupancyOptions>
+    /// <summary>Reports options that <see cref="PassengerOptions.Validate"/> refuses as a start-up failure.</summary>
+    private sealed class PassengerOptionsValidator : IValidateOptions<PassengerOptions>
     {
-        public ValidateOptionsResult Validate(string? name, OccupancyOptions options) =>
-            Check(OccupancySection, options.Validate);
+        public ValidateOptionsResult Validate(string? name, PassengerOptions options) =>
+            Check(PassengersSection, options.Validate);
+    }
+
+    /// <summary>Reports options that <see cref="SimulationOptions.Validate"/> refuses as a start-up failure.</summary>
+    private sealed class SimulationOptionsValidator : IValidateOptions<SimulationOptions>
+    {
+        public ValidateOptionsResult Validate(string? name, SimulationOptions options) =>
+            Check(SimulationSection, options.Validate);
     }
 
     private static ValidateOptionsResult Check(string section, Action validate)

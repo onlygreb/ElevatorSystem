@@ -2,17 +2,17 @@ using System.Collections.Immutable;
 using ElevatorSystem.Application.Ports;
 using ElevatorSystem.Domain.Events;
 using Microsoft.Extensions.Logging;
-using Log = ElevatorSystem.Application.Occupancy.OccupancyLog;
+using Log = ElevatorSystem.Application.ElevatorControllerLog;
 
-namespace ElevatorSystem.Application.Occupancy;
+namespace ElevatorSystem.Application;
 
 /// <summary>
 /// Hands every elevator event to several sinks in the order given, for example the
-/// <see cref="OccupancyTracker"/> first and then the real-time fan-out.
+/// <see cref="Passengers.PassengerRegistry"/> first and then the real-time fan-out.
 /// </summary>
 /// <remarks>
 /// The list is fixed at construction, so publishing is thread-safe and takes no lock. A sink that
-/// throws is logged (event ID 1806) and skipped; the sinks after it still receive the event.
+/// throws is logged (event ID 1517) and skipped; the sinks after it still receive the event.
 /// Each sink must itself be thread-safe and fast, as <see cref="IElevatorEventSink"/> requires.
 /// </remarks>
 public sealed class CompositeElevatorEventSink : IElevatorEventSink

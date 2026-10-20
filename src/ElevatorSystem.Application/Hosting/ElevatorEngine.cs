@@ -1,5 +1,6 @@
-using ElevatorSystem.Application.Occupancy;
+using ElevatorSystem.Application.Passengers;
 using ElevatorSystem.Application.Ports;
+using ElevatorSystem.Application.Simulation;
 using ElevatorSystem.Contracts;
 using ElevatorSystem.Domain;
 using ElevatorSystem.Domain.Events;
@@ -34,8 +35,9 @@ public enum EngineRole
 /// <para>
 /// Each term of leadership builds its own <see cref="ElevatorController"/> from the stored snapshot, so a
 /// standby never holds state that could drift from what the leader saved. The controller's events go to an
-/// <see cref="OccupancyTracker"/>, a <see cref="SnapshotPersister"/> and an <see cref="ElevatorUpdateForwarder"/>, which publishes
-/// an elevator update per event and an occupancy update per change of the counts; the control loop never waits for any of them.
+/// <see cref="PassengerRegistry"/>, a <see cref="SnapshotPersister"/> and an <see cref="ElevatorUpdateForwarder"/>, which publishes
+/// an elevator update per event (and per passenger step) and an occupancy update per change of the counts; the control loop never
+/// waits for any of them. The term also runs the demo scenarios (ADR-0027).
 /// </para>
 /// <para>
 /// A term opens with a start-up door cycle at the floor where the car stands: the engine cannot know
@@ -58,12 +60,15 @@ public sealed class ElevatorEngine
     private readonly IElevatorUpdatePublisher _updatePublisher;
     private readonly ISchedulingStrategy _strategy;
     private readonly Func<IElevatorDrive> _createDrive;
-    private readonly OccupancyOptions _occupancyOptions;
+    private readonly PassengerOptions _passengerOptions;
+    private readonly SimulationOptions _simulationOptions;
     private readonly ElevatorEngineOptions _options;
     private readonly TimeProvider _timeProvider;
     private readonly ILoggerFactory _loggerFactory;
     private readonly ILogger _logger;
     private volatile ElevatorController? _controller;
+    private volatile PassengerRegistry? _passengers;
+    private volatile DemoScenarioRunner? _scenarios;
     private volatile int _role = (int)EngineRole.Starting;
     private int _isRunning;
 
@@ -78,7 +83,8 @@ public sealed class ElevatorEngine
         Func<IElevatorDrive> createDrive,
         ElevatorControllerOptions controllerOptions,
         ElevatorEngineOptions options,
-        OccupancyOptions occupancyOptions,
+        PassengerOptions passengerOptions,
+        SimulationOptions simulationOptions,
         TimeProvider timeProvider,
         ILoggerFactory loggerFactory)
     {
@@ -92,12 +98,14 @@ public sealed class ElevatorEngine
         ArgumentNullException.ThrowIfNull(createDrive);
         ArgumentNullException.ThrowIfNull(controllerOptions);
         ArgumentNullException.ThrowIfNull(options);
-        ArgumentNullException.ThrowIfNull(occupancyOptions);
+        ArgumentNullException.ThrowIfNull(passengerOptions);
+        ArgumentNullException.ThrowIfNull(simulationOptions);
         ArgumentNullException.ThrowIfNull(timeProvider);
         ArgumentNullException.ThrowIfNull(loggerFactory);
         controllerOptions.Validate();
         options.Validate();
-        occupancyOptions.Validate();
+        passengerOptions.Validate();
+        simulationOptions.Validate();
 
         _leaderElector = leaderElector;
         _stateStore = stateStore;
@@ -109,7 +117,8 @@ public sealed class ElevatorEngine
         _createDrive = createDrive;
         ControllerOptions = controllerOptions;
         _options = options;
-        _occupancyOptions = occupancyOptions;
+        _passengerOptions = passengerOptions;
+        _simulationOptions = simulationOptions;
         _timeProvider = timeProvider;
         _loggerFactory = loggerFactory;
         _logger = loggerFactory.CreateLogger<ElevatorEngine>();
@@ -120,6 +129,12 @@ public sealed class ElevatorEngine
 
     /// <summary>The controller driving the car while this instance leads; otherwise <see langword="null"/>.</summary>
     public ElevatorController? Controller => _controller;
+
+    /// <summary>The passengers while this instance leads; otherwise <see langword="null"/>.</summary>
+    public PassengerRegistry? Passengers => _passengers;
+
+    /// <summary>The demo scenarios while this instance leads; otherwise <see langword="null"/>.</summary>
+    public DemoScenarioRunner? Scenarios => _scenarios;
 
     public Building Building { get; }
 
@@ -189,26 +204,30 @@ public sealed class ElevatorEngine
         var persister = new SnapshotPersister(elevator, _stateStore, stored?.Version ?? -1, _options, _timeProvider, _logger);
         var forwarder = new ElevatorUpdateForwarder(_updatePublisher, persister, _options, _timeProvider, _logger);
         var sink = new EngineEventSink(elevator, persister, forwarder, _timeProvider);
-        // Counts rebuild from the calls (ADR-0020), so each term starts its own tracker; it sees every event first.
-        var occupancy = new OccupancyTracker(
-            Building, _occupancyOptions, _timeProvider, _loggerFactory.CreateLogger<OccupancyTracker>(), new OccupancyForwarding(forwarder, _timeProvider));
-        IElevatorEventSink controllerSink = new CompositeElevatorEventSink([occupancy, sink], _loggerFactory.CreateLogger<CompositeElevatorEventSink>());
+        // Passengers live in this term's memory (ADR-0026): after a failover they join again. It sees every event first.
+        var passengers = new PassengerRegistry(
+            elevator, _passengerOptions, _timeProvider, _loggerFactory.CreateLogger<PassengerRegistry>(), new PassengerForwarding(forwarder, sink, _timeProvider));
+        IElevatorEventSink controllerSink = new CompositeElevatorEventSink([passengers, sink], _loggerFactory.CreateLogger<CompositeElevatorEventSink>());
         var controller = new ElevatorController(
             elevator, _strategy, _createDrive(), controllerSink, ControllerOptions, _timeProvider, _loggerFactory.CreateLogger<ElevatorController>());
         sink.Controller = controller;
+        using var scenarios = new DemoScenarioRunner(
+            new PassengerService(passengers, controller, _timeProvider), elevator, _simulationOptions, _timeProvider, _loggerFactory.CreateLogger<DemoScenarioRunner>());
 
         // Not linked to the term: the order in which these stop matters, so each is cancelled explicitly.
         using var consuming = new CancellationTokenSource();
         using var driving = new CancellationTokenSource();
         using var workers = new CancellationTokenSource();
-        var handler = new EngineCommandHandler(controller, _processedCommands, sink, _options, _timeProvider, _logger, driving.Token);
+        var handler = new EngineCommandHandler(controller, passengers, scenarios, _processedCommands, sink, _options, _timeProvider, _logger, driving.Token);
         var persisting = persister.RunAsync(workers.Token);
         var forwarding = forwarder.RunAsync(workers.Token);
         persister.Notify();
-        forwarder.Enqueue(new OccupancyUpdateV1(Guid.CreateVersion7(_timeProvider.GetUtcNow()), occupancy.Current));
+        forwarder.Enqueue(new OccupancyUpdateV1(Guid.CreateVersion7(_timeProvider.GetUtcNow()), passengers.Current));
 
         OpenDoorOnTakeOver(elevator, controllerSink);
         _controller = controller;
+        _passengers = passengers;
+        _scenarios = scenarios;
         SetRole(EngineRole.Leader);
         Log.BecameLeader(_logger);
 
@@ -229,6 +248,9 @@ public sealed class ElevatorEngine
         finally
         {
             _controller = null;
+            _passengers = null;
+            _scenarios = null;
+            scenarios.Dispose();
             if (IsLost(lease, stoppingToken))
             {
                 // Another engine may take over within moments: stop driving, consuming and saving at once.
@@ -399,9 +421,15 @@ public sealed class ElevatorEngine
     private void SetRole(EngineRole role) => _role = (int)role;
 }
 
-/// <summary>Turns every change of the passenger counts into an <see cref="OccupancyUpdateV1"/> for the forwarder; never blocks.</summary>
-internal sealed class OccupancyForwarding(ElevatorUpdateForwarder forwarder, TimeProvider timeProvider) : IOccupancyObserver
+/// <summary>
+/// Turns every passenger step into an <see cref="ElevatorUpdateV1"/> (with the status right after it) and every change of the
+/// counts into an <see cref="OccupancyUpdateV1"/>, for the forwarder; never blocks.
+/// </summary>
+internal sealed class PassengerForwarding(ElevatorUpdateForwarder forwarder, EngineEventSink sink, TimeProvider timeProvider) : IPassengerObserver
 {
+    public void PassengerChanged(PassengerEvent passengerEvent) =>
+        forwarder.Enqueue(new ElevatorUpdateV1(Guid.CreateVersion7(timeProvider.GetUtcNow()), PassengerActivity.ToActivity(passengerEvent), sink.CurrentStatus()));
+
     public void OccupancyChanged(BuildingOccupancyDto occupancy) =>
         forwarder.Enqueue(new OccupancyUpdateV1(Guid.CreateVersion7(timeProvider.GetUtcNow()), occupancy));
 }

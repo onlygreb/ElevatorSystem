@@ -70,6 +70,9 @@ internal sealed class EngineHarness : IAsyncDisposable
         StuckTolerance = 100,
     };
 
+    /// <summary>Demo scenarios: off unless a test turns them on.</summary>
+    public ElevatorSystem.Application.Simulation.SimulationOptions Simulation { get; set; } = new();
+
     public MessageRecorder<ElevatorUpdateV1> Updates { get; } = new();
 
     public MessageRecorder<OccupancyUpdateV1> OccupancyUpdates { get; } = new();
@@ -88,7 +91,8 @@ internal sealed class EngineHarness : IAsyncDisposable
             () => new SimulatedElevatorDrive(ControllerOptions.TravelTimePerFloor, TimeProvider.System),
             ControllerOptions,
             Options,
-            new ElevatorSystem.Application.Occupancy.OccupancyOptions(),
+            new ElevatorSystem.Application.Passengers.PassengerOptions(),
+            Simulation,
             TimeProvider.System,
             Logs);
         var running = new RunningEngine(engine);
@@ -112,6 +116,9 @@ internal sealed class EngineHarness : IAsyncDisposable
         new(Guid.CreateVersion7(), DateTimeOffset.UnixEpoch.AddYears(56), floor, direction);
 
     public static CarCallCommandV1 CarCall(int floor) => new(Guid.CreateVersion7(), DateTimeOffset.UnixEpoch.AddYears(56), floor);
+
+    public static PassengerCommandV1 Passenger(Guid passengerId, PassengerAction action, int? floor = null, CallDirection? direction = null) =>
+        new(Guid.CreateVersion7(), DateTimeOffset.UnixEpoch.AddYears(56), passengerId, action, floor, direction);
 
     public static ServiceCommandV1 Service(ServiceAction action) => new(Guid.CreateVersion7(), DateTimeOffset.UnixEpoch.AddYears(56), action);
 

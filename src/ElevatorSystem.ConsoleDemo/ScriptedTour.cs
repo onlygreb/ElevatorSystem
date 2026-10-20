@@ -1,6 +1,6 @@
 using System.Globalization;
 using ElevatorSystem.Application;
-using ElevatorSystem.Application.Occupancy;
+using ElevatorSystem.Application.Passengers;
 using ElevatorSystem.Application.Simulation;
 using ElevatorSystem.Domain;
 using ElevatorSystem.Domain.Events;
@@ -12,7 +12,7 @@ internal sealed class ScriptedTour(
     ElevatorController controller,
     SimulatedElevatorDrive drive,
     ConsoleEventSink events,
-    OccupancyTracker tracker,
+    PassengerService passengers,
     ConsoleOccupancyView people,
     ConsoleOutput output,
     ElevatorControllerOptions options)
@@ -24,22 +24,37 @@ internal sealed class ScriptedTour(
         output.Heading("Elevator System: one car, floors 1-10, FIFO scheduling");
         output.Narrate(string.Create(
             CultureInfo.InvariantCulture,
-            $"Travel {options.TravelTimePerFloor.TotalSeconds:0.0} s per floor, doors open {options.DoorOpenDuration.TotalSeconds:0.0} s, watchdog after {options.StuckTimeout.TotalSeconds:0.0} s."));
+            $"Travel {options.TravelTimePerFloor.TotalSeconds:0.0} s per floor, doors close {options.DoorOpenDuration.TotalSeconds:0.0} s after a call, watchdog after {options.StuckTimeout.TotalSeconds:0.0} s."));
         output.Narrate(string.Create(
             CultureInfo.InvariantCulture,
-            $"People are counted from their calls: each hall call is one person waiting, and the car carries {tracker.Current.CarCapacity} (the 'people' lines)."));
+            $"Everyone arrives on floor 1, and with nowhere to go the car waits there with its door open. It carries {passengers.Registry.Options.CarCapacity}."));
 
-        output.Heading("1. A passenger on floor 7 calls the elevator to go down");
-        var pickedUp = Served(new HallCall(new Floor(7), Direction.Down), cancellationToken);
-        Report(controller.RequestElevator(7, Direction.Down));
+        output.Heading("1. Ana arrives on floor 1, walks straight in and chooses floor 7");
+        var ana = Guid.NewGuid();
+        await DoorOpenAsync(1, cancellationToken);
+        passengers.Join(ana);
+        passengers.Board(ana);
+        var anaArrives = DoorOpenAsync(7, cancellationToken);
+        passengers.ChooseFloor(ana, new Floor(7));
+        await anaArrives;
+        passengers.Leave(ana);
+
+        output.Heading("2. Bruno arrives on floor 1 and calls the car down from floor 7");
+        output.Narrate("The car waits open at floor 7; Bruno's call starts the door countdown, then it comes down.");
+        var bruno = Guid.NewGuid();
+        passengers.Join(bruno);
+        var pickedUp = DoorOpenAsync(1, cancellationToken);
+        passengers.CallElevator(bruno, Direction.Up);
         await pickedUp;
-
-        output.Heading("2. They choose floor 2; meanwhile someone on floor 4 calls to go up");
-        output.Narrate("FIFO: the car serves floor 2 first, passing floor 4 without stopping, then comes back up.");
-        var fourServed = Served(new HallCall(new Floor(4), Direction.Up), cancellationToken);
-        Report(controller.RequestDestination(2));
-        Report(controller.RequestElevator(4, Direction.Up));
-        await fourServed;
+        passengers.Board(bruno);
+        var brunoArrives = DoorOpenAsync(4, cancellationToken);
+        passengers.ChooseFloor(bruno, new Floor(4));
+        await brunoArrives;
+        output.Narrate("Bruno stays in the car: whoever does not walk out rides on until they choose again.");
+        var backDown = DoorOpenAsync(2, cancellationToken);
+        passengers.ChooseFloor(bruno, new Floor(2));
+        await backDown;
+        passengers.Leave(bruno);
 
         output.Heading("3. The same button pressed three times becomes one call");
         var nineServed = Served(new HallCall(new Floor(9), Direction.Down), cancellationToken);
@@ -72,11 +87,18 @@ internal sealed class ScriptedTour(
         controller.ReturnToService();
 
         output.Heading("Where everyone is now");
-        output.Narrate("Riders were evacuated when the car stopped; people whose calls were cancelled are still waiting.");
-        people.PrintTable(tracker.Current);
+        people.PrintTable(passengers.Registry.Current);
 
         output.Heading("Tour complete");
-        output.Narrate("Run with --interactive to drive the elevator yourself.");
+        output.Narrate("Run with --interactive to ride yourself, or --scenario morning|lunch|busy to watch a crowd.");
+    }
+
+    /// <summary>Completes once the door is open at <paramref name="floor"/>, at once if it already is.</summary>
+    private Task DoorOpenAsync(int floor, CancellationToken cancellationToken)
+    {
+        var opened = events.WaitFor(e => e is DoorsOpened door && door.Floor == new Floor(floor), cancellationToken);
+        var snapshot = controller.Elevator.Snapshot();
+        return snapshot.State == ElevatorState.DoorOpen && snapshot.CurrentFloor == new Floor(floor) ? Task.CompletedTask : opened;
     }
 
     private async Task RunBurstAsync(CancellationToken cancellationToken)
@@ -110,7 +132,6 @@ internal sealed class ScriptedTour(
         output.Result(string.Create(
             CultureInfo.InvariantCulture,
             $"Slowest assignment: {events.SlowestAssignment.TotalMilliseconds:0.000} ms (budget: 100 ms)."));
-        output.Result($"Every hall call is a person: {ConsoleOccupancyView.Summary(tracker.Current)}.");
     }
 
     private Task Served(ElevatorCall call, CancellationToken cancellationToken) =>
