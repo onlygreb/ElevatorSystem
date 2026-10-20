@@ -175,6 +175,7 @@
           "Elevator"
         ],
         "summary": "Get the elevator's current status",
+        "description": "The latest status the engine reported. 503 with Retry-After until the engine has reported one.",
         "operationId": "GetStatus",
         "responses": {
           "200": {
@@ -189,6 +190,16 @@
           },
           "429": {
             "description": "Too Many Requests",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -230,10 +241,101 @@
           }
         }
       }
+    },
+    "/api/v1/building/occupancy": {
+      "get": {
+        "tags": [
+          "Elevator"
+        ],
+        "summary": "Get how many people are waiting, riding and present",
+        "description": "Counts estimated from the calls people place (ADR-0017); nobody is identified. 503 with Retry-After until the engine has reported them.",
+        "operationId": "GetOccupancy",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BuildingOccupancyDto"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
     "schemas": {
+      "BuildingOccupancyDto": {
+        "required": [
+          "passengersInCar",
+          "carCapacity",
+          "floors",
+          "passengersDelivered",
+          "averageWaitTime",
+          "takenAt"
+        ],
+        "type": "object",
+        "properties": {
+          "passengersInCar": {
+            "type": "integer",
+            "description": "People riding the elevator now.",
+            "format": "int32"
+          },
+          "carCapacity": {
+            "type": "integer",
+            "description": "The most people the car carries at once.",
+            "format": "int32"
+          },
+          "floors": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FloorOccupancyDto"
+            },
+            "description": "One entry per floor, lowest first."
+          },
+          "passengersDelivered": {
+            "type": "integer",
+            "description": "Trips completed since the engine started.",
+            "format": "int32"
+          },
+          "averageWaitTime": {
+            "pattern": "^-?(\\d+\\.)?\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,7})?$",
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Mean time from calling the elevator to boarding, over completed boardings; null before the first."
+          },
+          "takenAt": {
+            "type": "string",
+            "description": "When the counts were taken.",
+            "format": "date-time"
+          }
+        },
+        "description": "How many passengers are where, counted from the calls they place (ADR-0017). Counts only:\r\npassengers are anonymous by design and nothing identifies an individual (ADR-0009)."
+      },
       "CallDirection": {
         "enum": [
           "Up",
@@ -399,6 +501,29 @@
           }
         },
         "description": "A consistent view of the elevator at one moment. Higher long ElevatorStatusDto.Version is newer."
+      },
+      "FloorOccupancyDto": {
+        "required": [
+          "floor",
+          "waiting",
+          "present"
+        ],
+        "type": "object",
+        "properties": {
+          "floor": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "waiting": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "present": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "description": "People on one floor: int FloorOccupancyDto.Waiting for the elevator, and int FloorOccupancyDto.Present on the floor but not waiting."
       },
       "HallCallRequest": {
         "required": [

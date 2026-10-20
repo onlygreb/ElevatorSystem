@@ -1,5 +1,9 @@
 using System.Net;
 using ElevatorSystem.Api.Hosting;
+using ElevatorSystem.Api.RealTime;
+using ElevatorSystem.Application;
+using ElevatorSystem.Application.Hosting;
+using ElevatorSystem.Contracts;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -27,6 +31,8 @@ public sealed class ApiFactory : WebApplicationFactory<Program>
 
     private readonly Dictionary<string, string> _settings = new()
     {
+        // The engine runs in this process over the in-memory bus and stores (ADR-0021).
+        ["Hosting:Mode"] = nameof(HostingMode.SingleProcess),
         ["Elevator:TravelTimePerFloor"] = TravelTime.ToString("c"),
         ["Elevator:DoorOpenDuration"] = DoorTime.ToString("c"),
         // Generous, so a test host starved of CPU by its neighbours is never mistaken for a stuck car.
@@ -64,13 +70,31 @@ public sealed class ApiFactory : WebApplicationFactory<Program>
         return WithServices(services => services.Replace(ServiceDescriptor.Singleton<TimeProvider>(time)));
     }
 
-    /// <summary>Runs the host without the control loop, so submitted requests stay in the intake.</summary>
-    public ApiFactory WithoutControlLoop() => WithServices(services =>
+    /// <summary>Runs the host without the engine, so commands stay in the in-memory queue and no update ever arrives.</summary>
+    public ApiFactory WithoutEngine() => WithServices(services =>
     {
-        var loop = services.Single(descriptor => descriptor.ServiceType == typeof(IHostedService)
-            && descriptor.ImplementationType == typeof(ElevatorControlLoopService));
-        services.Remove(loop);
+        var engine = services.Single(descriptor => descriptor.ServiceType == typeof(IHostedService)
+            && descriptor.ImplementationType == typeof(ElevatorEngineService));
+        services.Remove(engine);
     });
+
+    /// <summary>The controller of the engine running in this host, once it leads.</summary>
+    public async Task<ElevatorController> ControllerAsync()
+    {
+        _ = Server;
+        var engine = Services.GetRequiredService<ElevatorEngine>();
+        await Eventually.HoldsAsync(() => engine.Controller is not null, "the engine to lead", cancellationToken: TestContext.Current.CancellationToken);
+        return engine.Controller!;
+    }
+
+    /// <summary>Waits until the API's cache holds a status that matches, and returns it.</summary>
+    public async Task<ElevatorStatusDto> StatusAsync(Func<ElevatorStatusDto, bool>? match = null)
+    {
+        _ = Server;
+        var cache = Services.GetRequiredService<ElevatorStateCache>();
+        await Eventually.HoldsAsync(() => cache.Status is { } status && (match?.Invoke(status) ?? true), "the API to hold a matching status", cancellationToken: TestContext.Current.CancellationToken);
+        return cache.Status!;
+    }
 
     public ApiFactory WithServices(Action<IServiceCollection> configure)
     {

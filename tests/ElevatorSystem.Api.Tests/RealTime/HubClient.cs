@@ -18,12 +18,14 @@ internal sealed class HubClient : IAsyncDisposable
     private readonly Channel<ElevatorStatusDto> _statuses = Channel.CreateUnbounded<ElevatorStatusDto>();
     private readonly Channel<ElevatorActivityDto> _activities = Channel.CreateUnbounded<ElevatorActivityDto>();
     private readonly Channel<JsonElement> _rawStatuses = Channel.CreateUnbounded<JsonElement>();
+    private readonly Channel<BuildingOccupancyDto> _occupancies = Channel.CreateUnbounded<BuildingOccupancyDto>();
 
     private HubClient(HubConnection connection)
     {
         Connection = connection;
         connection.On<ElevatorStatusDto>(nameof(IElevatorClient.StatusChanged), status => _statuses.Writer.TryWrite(status));
         connection.On<ElevatorActivityDto>(nameof(IElevatorClient.ActivityOccurred), activity => _activities.Writer.TryWrite(activity));
+        connection.On<BuildingOccupancyDto>(nameof(IElevatorClient.OccupancyChanged), occupancy => _occupancies.Writer.TryWrite(occupancy));
     }
 
     public HubConnection Connection { get; }
@@ -68,6 +70,8 @@ internal sealed class HubClient : IAsyncDisposable
     public Task<ElevatorStatusDto> NextStatusAsync(Func<ElevatorStatusDto, bool>? match = null) => NextAsync(_statuses, match, "status");
 
     public Task<ElevatorActivityDto> NextActivityAsync(Func<ElevatorActivityDto, bool>? match = null) => NextAsync(_activities, match, "activity");
+
+    public Task<BuildingOccupancyDto> NextOccupancyAsync(Func<BuildingOccupancyDto, bool>? match = null) => NextAsync(_occupancies, match, "occupancy");
 
     public Task<JsonElement> NextRawStatusAsync() => NextAsync(_rawStatuses, null, "raw status");
 

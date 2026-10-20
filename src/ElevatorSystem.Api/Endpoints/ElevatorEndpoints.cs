@@ -1,13 +1,19 @@
+using System.Globalization;
+using ElevatorSystem.Api.RealTime;
 using ElevatorSystem.Api.Security;
 using ElevatorSystem.Application;
+using ElevatorSystem.Application.Ports;
 using ElevatorSystem.Contracts;
+using ElevatorSystem.Domain;
+using ElevatorSystem.Domain.Scheduling;
 using Microsoft.AspNetCore.Http.HttpResults;
 
 namespace ElevatorSystem.Api.Endpoints;
 
 /// <summary>
-/// The passenger API, version 1, at the routes in <see cref="ApiRoutes"/>. Requests are handed to
-/// <see cref="ElevatorController"/>, which answers at once; what happens next is reported on the hub.
+/// The passenger API, version 1, at the routes in <see cref="ApiRoutes"/>. A valid call is published to the
+/// engine as a command and answered with <c>202</c> once the broker has confirmed it; what happens next is
+/// reported on the hub. Reads come from the latest state the engine reported (ADR-0021).
 /// </summary>
 internal static class ElevatorEndpoints
 {
@@ -16,8 +22,11 @@ internal static class ElevatorEndpoints
     /// <summary>A request body is a floor and a direction; anything near this size is not a passenger request.</summary>
     public const long MaxRequestBodySize = 1024;
 
-    /// <summary>The intake drains in milliseconds, so a busy refusal is worth retrying almost at once.</summary>
-    public const int BusyRetryAfterSeconds = 1;
+    /// <summary>The broker reconnects within seconds, so a refused call is worth retrying shortly.</summary>
+    public const int UnavailableRetryAfterSeconds = 2;
+
+    /// <summary>The engine re-sends its state every few seconds, so a status that is not yet known soon will be.</summary>
+    public const int StatusUnknownRetryAfterSeconds = 2;
 
     public static IEndpointRouteBuilder MapElevatorEndpoints(this IEndpointRouteBuilder endpoints)
     {
@@ -44,8 +53,10 @@ internal static class ElevatorEndpoints
         elevator.MapGet(ApiRoutes.Elevator, GetStatus)
             .WithName(nameof(GetStatus))
             .WithSummary("Get the elevator's current status")
+            .WithDescription("The latest status the engine reported. 503 with Retry-After until the engine has reported one.")
             .RequireRateLimiting(RateLimiting.ReadPolicy)
-            .ProducesProblem(StatusCodes.Status429TooManyRequests);
+            .ProducesProblem(StatusCodes.Status429TooManyRequests)
+            .ProducesProblem(StatusCodes.Status503ServiceUnavailable);
 
         elevator.MapGet(ApiRoutes.Configuration, GetConfiguration)
             .WithName(nameof(GetConfiguration))
@@ -53,57 +64,113 @@ internal static class ElevatorEndpoints
             .RequireRateLimiting(RateLimiting.ReadPolicy)
             .ProducesProblem(StatusCodes.Status429TooManyRequests);
 
+        elevator.MapGet(ApiRoutes.Occupancy, GetOccupancy)
+            .WithName(nameof(GetOccupancy))
+            .WithSummary("Get how many people are waiting, riding and present")
+            .WithDescription("Counts estimated from the calls people place (ADR-0017); nobody is identified. 503 with Retry-After until the engine has reported them.")
+            .RequireRateLimiting(RateLimiting.ReadPolicy)
+            .ProducesProblem(StatusCodes.Status429TooManyRequests)
+            .ProducesProblem(StatusCodes.Status503ServiceUnavailable);
+
         return endpoints;
     }
 
-    internal static Results<Accepted<RequestAcceptedResponse>, ProblemHttpResult> RequestElevator(
-        HallCallRequest request, ElevatorController controller, HttpContext context, CancellationToken cancellationToken)
+    internal static Task<Results<Accepted<RequestAcceptedResponse>, ProblemHttpResult>> RequestElevator(
+        HallCallRequest request,
+        IElevatorCommandPublisher publisher,
+        ElevatorStateCache cache,
+        Building building,
+        TimeProvider timeProvider,
+        HttpContext context,
+        CancellationToken cancellationToken)
     {
-        cancellationToken.ThrowIfCancellationRequested();
-        var result = controller.RequestElevator(request.Floor, ElevatorContractMapper.ToDomain(request.Direction));
-        return ToResponse(result, context);
+        var call = new HallCall(new Floor(request.Floor), ElevatorContractMapper.ToDomain(request.Direction));
+        var now = timeProvider.GetUtcNow();
+        return SubmitAsync(call, new HallCallCommandV1(Guid.CreateVersion7(now), now, request.Floor, request.Direction), publisher, cache, building, context, cancellationToken);
     }
 
-    internal static Results<Accepted<RequestAcceptedResponse>, ProblemHttpResult> RequestDestination(
-        CarCallRequest request, ElevatorController controller, HttpContext context, CancellationToken cancellationToken)
+    internal static Task<Results<Accepted<RequestAcceptedResponse>, ProblemHttpResult>> RequestDestination(
+        CarCallRequest request,
+        IElevatorCommandPublisher publisher,
+        ElevatorStateCache cache,
+        Building building,
+        TimeProvider timeProvider,
+        HttpContext context,
+        CancellationToken cancellationToken)
     {
-        cancellationToken.ThrowIfCancellationRequested();
-        var result = controller.RequestDestination(request.Floor);
-        return ToResponse(result, context);
+        var call = new CarCall(new Floor(request.Floor));
+        var now = timeProvider.GetUtcNow();
+        return SubmitAsync(call, new CarCallCommandV1(Guid.CreateVersion7(now), now, request.Floor), publisher, cache, building, context, cancellationToken);
     }
 
-    internal static Ok<ElevatorStatusDto> GetStatus(ElevatorController controller, CancellationToken cancellationToken)
+    internal static Results<Ok<ElevatorStatusDto>, ProblemHttpResult> GetStatus(ElevatorStateCache cache, HttpContext context, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        return TypedResults.Ok(ElevatorContractMapper.ToStatus(controller.Elevator.Snapshot()));
+        return cache.Status is { } status
+            ? TypedResults.Ok(status)
+            : NotYetKnown(context, "Elevator status not yet known", "The elevator engine has not reported its status yet. Try again shortly.");
     }
 
-    internal static Ok<ElevatorConfigurationDto> GetConfiguration(ElevatorController controller, CancellationToken cancellationToken)
+    internal static Ok<ElevatorConfigurationDto> GetConfiguration(
+        Building building, ElevatorControllerOptions options, ISchedulingStrategy strategy, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        return TypedResults.Ok(ElevatorContractMapper.ToConfiguration(controller));
+        return TypedResults.Ok(new ElevatorConfigurationDto(
+            building.LowestFloor.Number, building.HighestFloor.Number, options.TravelTimePerFloor, options.DoorOpenDuration, strategy.Name));
     }
 
-    private static Results<Accepted<RequestAcceptedResponse>, ProblemHttpResult> ToResponse(RequestResult result, HttpContext context)
+    internal static Results<Ok<BuildingOccupancyDto>, ProblemHttpResult> GetOccupancy(ElevatorStateCache cache, HttpContext context, CancellationToken cancellationToken)
     {
-        if (result.RequestId is { } requestId)
+        cancellationToken.ThrowIfCancellationRequested();
+        return cache.Occupancy is { } occupancy
+            ? TypedResults.Ok(occupancy)
+            : NotYetKnown(context, "Occupancy not yet known", "The elevator engine has not reported the passenger counts yet. Try again shortly.");
+    }
+
+    private static async Task<Results<Accepted<RequestAcceptedResponse>, ProblemHttpResult>> SubmitAsync(
+        ElevatorCall call,
+        ElevatorCommandV1 command,
+        IElevatorCommandPublisher publisher,
+        ElevatorStateCache cache,
+        Building building,
+        HttpContext context,
+        CancellationToken cancellationToken)
+    {
+        // Refuse what can be refused here; the engine checks again and reports anything it refuses on the hub.
+        var rejection = building.Validate(call)
+            ?? (cache.Status?.Status == ElevatorStatus.OutOfService ? RequestRejectionReason.OutOfService : (RequestRejectionReason?)null);
+        if (rejection is { } reason)
         {
-            return TypedResults.Accepted((string?)null, new RequestAcceptedResponse(requestId.Value));
+            return Refused(ElevatorContractMapper.ToContract(reason), context);
         }
 
-        var reason = ElevatorContractMapper.ToContract(result.RejectionReason!.Value);
+        try
+        {
+            await publisher.PublishAsync(command, cancellationToken);
+        }
+        // Never claim "accepted" without the broker's confirm (ADR-0003).
+        catch (MessagingUnavailableException)
+        {
+            return Refused(RejectionReason.Busy, context);
+        }
+
+        return TypedResults.Accepted((string?)null, new RequestAcceptedResponse(command.CommandId));
+    }
+
+    private static ProblemHttpResult Refused(RejectionReason reason, HttpContext context)
+    {
         var (status, title, detail) = reason switch
         {
             RejectionReason.InvalidFloor => (StatusCodes.Status400BadRequest, "Invalid floor", "The floor is not served by this elevator."),
             RejectionReason.InvalidDirection => (StatusCodes.Status400BadRequest, "Invalid direction", "No travel is possible in that direction from this floor."),
             RejectionReason.OutOfService => (StatusCodes.Status409Conflict, "Elevator out of service", "The elevator is out of service and accepts no requests until it returns to service."),
-            RejectionReason.Busy => (StatusCodes.Status503ServiceUnavailable, "Elevator busy", "Too many requests are waiting to be processed. Try again shortly."),
-            _ => throw new ArgumentOutOfRangeException(nameof(result), reason, "Unmapped rejection reason."),
+            RejectionReason.Busy => (StatusCodes.Status503ServiceUnavailable, "Elevator unavailable", "The request could not be passed to the elevator right now. Try again shortly."),
+            _ => throw new ArgumentOutOfRangeException(nameof(reason), reason, "Unmapped rejection reason."),
         };
 
         if (reason == RejectionReason.Busy)
         {
-            context.Response.Headers.RetryAfter = BusyRetryAfterSeconds.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            context.Response.Headers.RetryAfter = UnavailableRetryAfterSeconds.ToString(CultureInfo.InvariantCulture);
         }
 
         return TypedResults.Problem(
@@ -111,6 +178,12 @@ internal static class ElevatorEndpoints
             statusCode: status,
             title: title,
             extensions: new Dictionary<string, object?> { [ApiRoutes.RejectionReasonExtension] = reason.ToString() });
+    }
+
+    private static ProblemHttpResult NotYetKnown(HttpContext context, string title, string detail)
+    {
+        context.Response.Headers.RetryAfter = StatusUnknownRetryAfterSeconds.ToString(CultureInfo.InvariantCulture);
+        return TypedResults.Problem(detail: detail, statusCode: StatusCodes.Status503ServiceUnavailable, title: title);
     }
 
     private static RouteHandlerBuilder WithRequestSizeLimit(this RouteHandlerBuilder builder) =>

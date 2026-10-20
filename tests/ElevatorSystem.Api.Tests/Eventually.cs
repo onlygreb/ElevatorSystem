@@ -32,4 +32,25 @@ internal static class Eventually
             await Task.Delay(PollInterval, CancellationToken.None);
         }
     }
+
+    /// <summary>Polls <paramref name="attempt"/> until it returns a value, and returns it.</summary>
+    public static async Task<T> ReturnsAsync<T>(Func<Task<T?>> attempt, string because)
+        where T : class
+    {
+        using var guard = new CancellationTokenSource(Guard);
+        while (true)
+        {
+            if (await attempt() is { } result)
+            {
+                return result;
+            }
+
+            if (guard.IsCancellationRequested)
+            {
+                throw new TimeoutException($"Timed out waiting for {because}.");
+            }
+
+            await Task.Delay(PollInterval, CancellationToken.None);
+        }
+    }
 }

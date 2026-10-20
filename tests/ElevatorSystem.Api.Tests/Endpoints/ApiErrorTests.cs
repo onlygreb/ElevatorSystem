@@ -68,11 +68,12 @@ public sealed class ApiErrorTests
         var clock = new FailingClock();
         await using var factory = new ApiFactory()
             .InEnvironment(Environments.Production)
+            .WithoutEngine()
             .WithServices(services => services.Replace(ServiceDescriptor.Singleton<TimeProvider>(clock)));
         using var client = factory.CreateClient();
         clock.Fail = true;
 
-        using var response = await client.GetRouteAsync(ApiRoutes.Elevator);
+        using var response = await client.PostJsonAsync(ApiRoutes.CarCalls, """{"floor":3}""");
 
         var problem = await response.ShouldBeProblemAsync(HttpStatusCode.InternalServerError);
         var body = problem.GetRawText();

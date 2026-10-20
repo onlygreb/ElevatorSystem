@@ -1,28 +1,27 @@
 using System.Net;
-using ElevatorSystem.Application;
 using ElevatorSystem.Contracts;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace ElevatorSystem.Api.Tests.Endpoints;
 
-/// <summary>GET elevator and GET configuration, including the exact wire format.</summary>
+/// <summary>GET elevator, GET configuration and GET occupancy, including the exact wire format.</summary>
 public sealed class ElevatorQueryTests
 {
     [Fact]
-    public async Task GetStatus_IdleElevator_ReturnsItsSnapshot()
+    public async Task GetStatus_AfterStartUp_ReturnsTheStatusTheEngineReported()
     {
         await using var factory = new ApiFactory().WithFakeTime();
         using var client = factory.CreateClient();
+        var reported = await factory.StatusAsync();
 
         using var response = await client.GetRouteAsync(ApiRoutes.Elevator);
 
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
         var status = await response.ReadJsonAsync();
         status.GetProperty("currentFloor").GetInt32().ShouldBe(1);
-        status.GetProperty("status").GetString().ShouldBe("Idle", "enums travel as names");
+        status.GetProperty("status").GetString().ShouldBe("DoorOpen", "enums travel as names; the engine opens the door when it takes over");
         status.GetProperty("travelDirection").ValueKind.ShouldBe(System.Text.Json.JsonValueKind.Null);
         status.GetProperty("pendingCalls").GetArrayLength().ShouldBe(0);
-        status.GetProperty("version").GetInt64().ShouldBe(0);
+        status.GetProperty("version").GetInt64().ShouldBe(reported.Version);
         status.GetProperty("takenAt").GetDateTimeOffset().ShouldBe(ApiFactory.StartTime);
     }
 
@@ -31,9 +30,10 @@ public sealed class ElevatorQueryTests
     {
         await using var factory = new ApiFactory().WithFakeTime();
         using var client = factory.CreateClient();
+        await factory.StatusAsync();
+        factory.Time!.Advance(ApiFactory.DoorTime);
         using var accepted = await client.PostJsonAsync(ApiRoutes.CarCalls, """{"floor":5}""");
-        var controller = factory.Services.GetRequiredService<ElevatorController>();
-        await Eventually.HoldsAsync(() => controller.Elevator.Snapshot().PendingCalls.Length == 1, "the call to be queued", cancellationToken: TestContext.Current.CancellationToken);
+        await factory.StatusAsync(status => status.PendingCalls.Count == 1 && status.Status == ElevatorStatus.MovingUp);
 
         using var response = await client.GetRouteAsync(ApiRoutes.Elevator);
 
@@ -45,6 +45,49 @@ public sealed class ElevatorQueryTests
         pending.GetProperty("call").GetProperty("floor").GetInt32().ShouldBe(5);
         pending.GetProperty("requestCount").GetInt32().ShouldBe(1);
         status.GetProperty("targetFloors").EnumerateArray().Select(floor => floor.GetInt32()).ShouldBe([5]);
+    }
+
+    [Fact]
+    public async Task GetStatus_BeforeTheEngineReported_Returns503WithRetryAfter()
+    {
+        await using var factory = new ApiFactory().WithoutEngine();
+        using var client = factory.CreateClient();
+
+        using var response = await client.GetRouteAsync(ApiRoutes.Elevator);
+
+        var problem = await response.ShouldBeProblemAsync(HttpStatusCode.ServiceUnavailable);
+        problem.Reason().ShouldBeNull("nothing was refused; the state is simply not known yet");
+        response.RetryAfter().ShouldBe("2");
+    }
+
+    [Fact]
+    public async Task GetOccupancy_AfterStartUp_ReturnsTheCountsPerFloor()
+    {
+        await using var factory = new ApiFactory();
+        using var client = factory.CreateClient();
+        await factory.StatusAsync();
+
+        using var response = await Eventually.ReturnsAsync(
+            async () => await client.GetRouteAsync(ApiRoutes.Occupancy) is { StatusCode: HttpStatusCode.OK } ok ? ok : null,
+            "the occupancy to be known");
+
+        var occupancy = await response.ReadJsonAsync();
+        occupancy.GetProperty("passengersInCar").GetInt32().ShouldBe(0);
+        occupancy.GetProperty("carCapacity").GetInt32().ShouldBe(8);
+        occupancy.GetProperty("floors").GetArrayLength().ShouldBe(10);
+        occupancy.GetProperty("floors")[0].GetProperty("floor").GetInt32().ShouldBe(1);
+    }
+
+    [Fact]
+    public async Task GetOccupancy_BeforeTheEngineReported_Returns503WithRetryAfter()
+    {
+        await using var factory = new ApiFactory().WithoutEngine();
+        using var client = factory.CreateClient();
+
+        using var response = await client.GetRouteAsync(ApiRoutes.Occupancy);
+
+        await response.ShouldBeProblemAsync(HttpStatusCode.ServiceUnavailable);
+        response.RetryAfter().ShouldBe("2");
     }
 
     [Fact]

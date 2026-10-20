@@ -1,5 +1,4 @@
 using System.Net;
-using ElevatorSystem.Application;
 using ElevatorSystem.Contracts;
 using Microsoft.AspNetCore.Http.Metadata;
 using Microsoft.AspNetCore.Routing;
@@ -150,7 +149,8 @@ public sealed class PassengerRequestTests(ApiFactory factory) : IClassFixture<Ap
     {
         await using var outOfService = new ApiFactory();
         using var client = outOfService.CreateClient();
-        outOfService.Services.GetRequiredService<ElevatorController>().StartMaintenance();
+        (await outOfService.ControllerAsync()).StartMaintenance();
+        await outOfService.StatusAsync(status => status.Status == ElevatorStatus.OutOfService);
 
         using var response = await client.PostJsonAsync(route, json);
 
@@ -161,9 +161,9 @@ public sealed class PassengerRequestTests(ApiFactory factory) : IClassFixture<Ap
     [Theory]
     [InlineData(ApiRoutes.HallCalls, """{"floor":3,"direction":"Up"}""")]
     [InlineData(ApiRoutes.CarCalls, """{"floor":3}""")]
-    public async Task Request_WhenTheIntakeIsFull_Returns503BusyWithRetryAfter(string route, string json)
+    public async Task Request_WhenTheCommandCannotBePublished_Returns503BusyWithRetryAfter(string route, string json)
     {
-        await using var stalled = new ApiFactory().WithoutControlLoop().WithSetting("Elevator:IntakeCapacity", "1");
+        await using var stalled = new ApiFactory().WithoutEngine().WithSetting("Hosting:InMemoryCommandCapacity", "1");
         using var client = stalled.CreateClient();
         using var first = await client.PostJsonAsync(route, json);
         first.StatusCode.ShouldBe(HttpStatusCode.Accepted);
@@ -172,6 +172,6 @@ public sealed class PassengerRequestTests(ApiFactory factory) : IClassFixture<Ap
 
         var problem = await response.ShouldBeProblemAsync(HttpStatusCode.ServiceUnavailable);
         problem.Reason().ShouldBe(nameof(RejectionReason.Busy));
-        response.RetryAfter().ShouldBe("1");
+        response.RetryAfter().ShouldBe("2");
     }
 }
