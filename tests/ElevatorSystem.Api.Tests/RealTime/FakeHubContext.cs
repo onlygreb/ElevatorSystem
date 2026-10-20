@@ -33,7 +33,7 @@ internal sealed class FakeHubContext : IHubContext<ElevatorStatusHub, IElevatorC
 
     IHubClients<IElevatorClient> IHubContext<ElevatorStatusHub, IElevatorClient>.Clients => this;
 
-    IGroupManager IHubContext<ElevatorStatusHub, IElevatorClient>.Groups => throw new NotSupportedException("The elevator hub uses no groups.");
+    IGroupManager IHubContext<ElevatorStatusHub, IElevatorClient>.Groups => throw new NotSupportedException("The broadcaster never manages groups; the hub does.");
 
     public IElevatorClient All => this;
 
@@ -49,7 +49,8 @@ internal sealed class FakeHubContext : IHubContext<ElevatorStatusHub, IElevatorC
 
     IElevatorClient IHubClients<IElevatorClient>.Clients(IReadOnlyList<string> connectionIds) => throw Unexpected();
 
-    public IElevatorClient Group(string groupName) => throw Unexpected();
+    /// <summary>The staff group gets the occupancy; it is recorded like a message to everyone.</summary>
+    public IElevatorClient Group(string groupName) => groupName == ElevatorStatusHub.StaffGroup ? this : throw Unexpected();
 
     public IElevatorClient GroupExcept(string groupName, IReadOnlyList<string> excludedConnectionIds) => throw Unexpected();
 

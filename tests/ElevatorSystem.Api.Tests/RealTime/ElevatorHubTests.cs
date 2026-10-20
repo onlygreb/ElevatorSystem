@@ -1,4 +1,5 @@
 using System.Net;
+using ElevatorSystem.Api.Tests.Staff;
 using ElevatorSystem.Contracts;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.AspNetCore.SignalR.Client;
@@ -56,10 +57,11 @@ public sealed class ElevatorHubTests
     }
 
     [Fact]
-    public async Task Connect_ReceivesThePassengerCounts()
+    public async Task Connect_AsStaff_ReceivesThePassengerCounts()
     {
         await using var factory = new ApiFactory();
-        await using var client = await HubClient.ConnectAsync(factory);
+        using var staff = await StaffClient.SignedInWithTwoFactorsAsync(factory, StaffAccounts.Auditor);
+        await using var client = await HubClient.ConnectAsync(factory, cookieHeader: staff.CookieHeader);
 
         var occupancy = await client.NextOccupancyAsync();
 
@@ -68,16 +70,44 @@ public sealed class ElevatorHubTests
     }
 
     [Fact]
-    public async Task HallCall_ChangesTheCounts_AndTheyArePushed()
+    public async Task HallCall_ChangesTheCounts_AndTheyArePushedToStaff()
     {
         await using var factory = new ApiFactory();
-        await using var client = await HubClient.ConnectAsync(factory);
+        using var staff = await StaffClient.SignedInWithTwoFactorsAsync(factory, StaffAccounts.Admin);
+        await using var client = await HubClient.ConnectAsync(factory, cookieHeader: staff.CookieHeader);
         using var http = factory.CreateClient();
 
         using var response = await http.PostJsonAsync(ApiRoutes.HallCalls, """{"floor":6,"direction":"Down"}""");
 
         response.StatusCode.ShouldBe(HttpStatusCode.Accepted);
         await client.NextOccupancyAsync(occupancy => occupancy.Floors[5].Waiting == 1 || occupancy.PassengersInCar == 1);
+    }
+
+    [Fact]
+    public async Task Anonymous_NeverReceivesThePassengerCounts()
+    {
+        await using var factory = new ApiFactory();
+        await using var anonymous = await HubClient.ConnectAsync(factory);
+        using var staff = await StaffClient.SignedInWithTwoFactorsAsync(factory, StaffAccounts.Admin);
+        await using var staffHub = await HubClient.ConnectAsync(factory, cookieHeader: staff.CookieHeader);
+        using var http = factory.CreateClient();
+
+        using var response = await http.PostJsonAsync(ApiRoutes.HallCalls, """{"floor":4,"direction":"Up"}""");
+
+        await staffHub.NextOccupancyAsync(occupancy => occupancy.Floors[3].Waiting == 1 || occupancy.PassengersInCar == 1);
+        await anonymous.NextActivityAsync(activity => activity.Kind == ElevatorActivityKind.CallServed);
+        await Should.ThrowAsync<TimeoutException>(() => anonymous.NextOccupancyAsync(), "counts are for staff only (ADR-0022)");
+    }
+
+    [Fact]
+    public async Task Connect_WithAPasswordOnlySession_ReceivesNoCounts()
+    {
+        await using var factory = new ApiFactory();
+        using var staff = await StaffClient.SignedInWithPasswordAsync(factory, StaffAccounts.Admin);
+        await using var client = await HubClient.ConnectAsync(factory, cookieHeader: staff.CookieHeader);
+
+        await client.NextStatusAsync();
+        await Should.ThrowAsync<TimeoutException>(() => client.NextOccupancyAsync(), "every staff capability needs the second factor");
     }
 
     [Fact]

@@ -1,6 +1,7 @@
 using System.Net;
 using ElevatorSystem.Api.Hosting;
 using ElevatorSystem.Api.RealTime;
+using ElevatorSystem.Api.Tests.Staff;
 using ElevatorSystem.Application;
 using ElevatorSystem.Application.Hosting;
 using ElevatorSystem.Contracts;
@@ -40,6 +41,15 @@ public sealed class ApiFactory : WebApplicationFactory<Program>
         // Shared test hosts send many requests from one address; tests of the limits set their own.
         ["RateLimiting:Passenger:TokenLimit"] = "100000",
         ["RateLimiting:Read:TokenLimit"] = "100000",
+        ["RateLimiting:SignIn:TokenLimit"] = "100000",
+        ["RateLimiting:Staff:TokenLimit"] = "100000",
+        // One account per role, created at start-up like the first admin of a real deployment.
+        ["Staff:Accounts:0:Email"] = StaffAccounts.Admin.Email,
+        ["Staff:Accounts:0:Password"] = StaffAccounts.Admin.Password,
+        ["Staff:Accounts:0:Role"] = "Admin",
+        ["Staff:Accounts:1:Email"] = StaffAccounts.Auditor.Email,
+        ["Staff:Accounts:1:Password"] = StaffAccounts.Auditor.Password,
+        ["Staff:Accounts:1:Role"] = "Auditor",
     };
 
     private readonly List<Action<IServiceCollection>> _services = [];

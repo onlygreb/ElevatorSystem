@@ -35,7 +35,8 @@ internal static class RealTimeExtensions
 
     public static IEndpointRouteBuilder MapElevatorHub(this IEndpointRouteBuilder endpoints)
     {
-        endpoints.MapHub<ElevatorStatusHub>(ElevatorHub.Path).AllowAnonymous();
+        // Close a staff connection when its session cookie expires (threat T-API-02).
+        endpoints.MapHub<ElevatorStatusHub>(ElevatorHub.Path, options => options.CloseOnAuthenticationExpiration = true).AllowAnonymous();
         return endpoints;
     }
 }

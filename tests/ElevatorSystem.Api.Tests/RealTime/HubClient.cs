@@ -34,7 +34,8 @@ internal sealed class HubClient : IAsyncDisposable
     /// <param name="captureRawStatus">
     /// Receive status messages as plain JSON instead of contracts, to inspect the wire format itself.
     /// </param>
-    public static async Task<HubClient> ConnectAsync(ApiFactory factory, bool captureRawStatus = false)
+    /// <param name="cookieHeader">A session cookie to connect with, for example <see cref="Staff.StaffClient.CookieHeader"/>.</param>
+    public static async Task<HubClient> ConnectAsync(ApiFactory factory, bool captureRawStatus = false, string? cookieHeader = null)
     {
         var server = factory.Server;
         var connection = new HubConnectionBuilder()
@@ -42,8 +43,21 @@ internal sealed class HubClient : IAsyncDisposable
             {
                 options.Transports = HttpTransportType.WebSockets;
                 options.HttpMessageHandlerFactory = _ => server.CreateHandler();
+                if (cookieHeader is not null)
+                {
+                    options.Headers["Cookie"] = cookieHeader;
+                }
+
                 options.WebSocketFactory = async (context, cancellationToken) =>
-                    await server.CreateWebSocketClient().ConnectAsync(context.Uri, cancellationToken);
+                {
+                    var webSockets = server.CreateWebSocketClient();
+                    if (cookieHeader is not null)
+                    {
+                        webSockets.ConfigureRequest = request => request.Headers.Cookie = cookieHeader;
+                    }
+
+                    return await webSockets.ConnectAsync(context.Uri, cancellationToken);
+                };
             })
             .AddJsonProtocol(options =>
             {
