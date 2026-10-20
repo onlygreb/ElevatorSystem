@@ -80,5 +80,5 @@ Load the matching skill before working in an area:
 1. Domain, `ElevatorController` with trip watchdog, console demo, domain and controller test suites ✅
 2. REST API, SignalR, Blazor passenger view (in-memory bus) ✅
 3. RabbitMQ, PostgreSQL, persistence and recovery, failover, occupancy counting and a test traffic generator (ADR-0017) ✅
-4. Authentication, admin view (people in the car, waiting and present per floor; maintenance, emergency stop, return to service), tamper-evident audit log
+4. Authentication, admin view (people in the car, waiting and present per floor; maintenance, emergency stop, return to service), tamper-evident audit log ✅
 5. LGPD features and documents, observability, load, end-to-end and mutation testing
