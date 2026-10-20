@@ -20,6 +20,33 @@ public static class ApiRoutes
     /// <summary><c>GET</c> the current <see cref="BuildingOccupancyDto"/> (people waiting, riding and present).</summary>
     public const string Occupancy = Base + "/building/occupancy";
 
+    /// <summary><c>POST</c> to arrive as a new anonymous passenger on the lowest floor; answers <c>202</c> with a <see cref="PassengerAcceptedResponse"/>.</summary>
+    public const string Passengers = Base + "/passengers";
+
+    /// <summary><c>GET</c> the <see cref="PassengerDto"/> of one passenger.</summary>
+    public const string Passenger = Base + "/passengers/{passengerId:guid}";
+
+    /// <summary><c>POST</c> a <see cref="PassengerHallCallRequest"/>: the passenger presses the button on their floor.</summary>
+    public const string PassengerHallCall = Passenger + "/hall-call";
+
+    /// <summary><c>POST</c> to walk into the car while its door is open at the passenger's floor.</summary>
+    public const string PassengerBoard = Passenger + "/board";
+
+    /// <summary><c>POST</c> a <see cref="PassengerCarCallRequest"/>: the passenger chooses a floor inside the car.</summary>
+    public const string PassengerCarCall = Passenger + "/car-call";
+
+    /// <summary><c>POST</c> to walk out of the car while its door is open.</summary>
+    public const string PassengerLeave = Passenger + "/leave";
+
+    /// <summary><c>POST</c> a <see cref="StartScenarioRequest"/> (admins): simulated passengers start acting (ADR-0027).</summary>
+    public const string Scenarios = Base + "/admin/scenarios";
+
+    /// <summary><c>POST</c> (admins) to stop every demo scenario and remove its passengers.</summary>
+    public const string ScenariosStop = Base + "/admin/scenarios/stop";
+
+    /// <summary>The route of one passenger, for building client URLs.</summary>
+    public static string PassengerRoute(Guid passengerId) => Passengers + "/" + passengerId.ToString("D");
+
     /// <summary><c>GET</c> an <see cref="AntiforgeryTokenDto"/>; fetch a new one after signing in or out.</summary>
     public const string Antiforgery = Base + "/auth/antiforgery";
 

@@ -59,6 +59,10 @@ public sealed record PendingCallDto(CallDto Call, int RequestCount, DateTimeOffs
 /// <item><c>CallServed</c>: <see cref="Call"/>, <see cref="RequestId"/> (the first request), <see cref="RequestCount"/>, <see cref="WaitTime"/>.</item>
 /// <item><c>OutOfService</c>: <see cref="OutOfServiceCause"/>, <see cref="CancelledCalls"/>.</item>
 /// <item><c>DoorsOpened</c>, <c>DoorsClosed</c>, <c>ReturnedToService</c>: <see cref="Floor"/> only.</item>
+/// <item>Passenger kinds (ADR-0026): <see cref="PassengerId"/>, <see cref="Simulated"/> and the <see cref="RequestId"/> of the step;
+/// <c>PassengerCalled</c> adds <see cref="Direction"/>, <c>PassengerChoseFloor</c> the chosen floor as <see cref="Floor"/>,
+/// <c>PassengerBoarded</c> adds <see cref="WaitTime"/> when they had called, and <c>PassengerRefused</c> adds
+/// <see cref="PassengerAction"/> and <see cref="PassengerRefusal"/>.</item>
 /// </list>
 /// </summary>
 public sealed record ElevatorActivityDto(
@@ -74,17 +78,21 @@ public sealed record ElevatorActivityDto(
     TimeSpan? WaitTime = null,
     RejectionReason? RejectionReason = null,
     OutOfServiceCause? OutOfServiceCause = null,
-    int? CancelledCalls = null);
+    int? CancelledCalls = null,
+    Guid? PassengerId = null,
+    bool? Simulated = null,
+    PassengerAction? PassengerAction = null,
+    PassengerRefusalReason? PassengerRefusal = null);
 
 /// <summary>
-/// How many passengers are where, counted from the calls they place (ADR-0017). Counts only:
+/// How many passengers are where (ADR-0026). Counts only:
 /// passengers are anonymous by design and nothing identifies an individual (ADR-0024).
 /// </summary>
 /// <param name="PassengersInCar">People riding the elevator now.</param>
 /// <param name="CarCapacity">The most people the car carries at once.</param>
 /// <param name="Floors">One entry per floor, lowest first.</param>
-/// <param name="PassengersDelivered">Trips completed since the engine started.</param>
-/// <param name="AverageWaitTime">Mean time from calling the elevator to boarding, over completed boardings; null before the first.</param>
+/// <param name="PassengersDelivered">Rides completed (a passenger left the car on another floor) since the engine started.</param>
+/// <param name="AverageWaitTime">Mean time from calling the elevator to boarding, over boardings after a call; null before the first.</param>
 /// <param name="TakenAt">When the counts were taken.</param>
 public sealed record BuildingOccupancyDto(
     int PassengersInCar,
@@ -159,4 +167,11 @@ public enum ElevatorActivityKind
     DoorsClosed,
     OutOfService,
     ReturnedToService,
+    PassengerJoined,
+    PassengerCalled,
+    PassengerBoarded,
+    PassengerChoseFloor,
+    PassengerLeft,
+    PassengerRemoved,
+    PassengerRefused,
 }
