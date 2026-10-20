@@ -1,0 +1,85 @@
+name: Quality
+
+# Slow checks that would hold up every pull request, run weekly and on demand: the load test fails when p95
+# acceptance reaches 100 ms.
+on:
+  schedule:
+    - cron: '17 3 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+
+jobs:
+  load:
+    name: Load test
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          dotnet-version: 10.0.x
+          cache: true
+          cache-dependency-path: '**/packages.lock.json'
+
+      - name: Build the API
+        run: |
+          dotnet restore src/ElevatorSystem.Api --locked-mode
+          dotnet build src/ElevatorSystem.Api --configuration Release --no-restore
+
+      # Single-process mode with the per-client rate limits raised: one runner is one client (tests/load/README.md).
+      - name: Start the API
+        working-directory: src/ElevatorSystem.Api
+        env:
+          ASPNETCORE_ENVIRONMENT: Development
+          ASPNETCORE_URLS: http://127.0.0.1:5391
+          Hosting__Mode: SingleProcess
+          RateLimiting__Passenger__TokenLimit: '1000000'
+          RateLimiting__Passenger__TokensPerPeriod: '1000000'
+          RateLimiting__Read__TokenLimit: '1000000'
+          RateLimiting__Read__TokensPerPeriod: '1000000'
+          RateLimiting__ConcurrentApiRequests: '1024'
+          Logging__LogLevel__Default: Warning
+        run: |
+          nohup dotnet bin/Release/net10.0/ElevatorSystem.Api.dll > "$RUNNER_TEMP/api.log" 2>&1 &
+          for attempt in $(seq 1 60); do
+            curl --silent --fail http://127.0.0.1:5391/api/v1/elevator > /dev/null && exit 0
+            sleep 1
+          done
+          cat "$RUNNER_TEMP/api.log"
+          exit 1
+
+      # The k6 image runs as a non-root user, so its output folder must be writable by anyone.
+      - name: Run k6
+        run: |
+          mkdir -p "$RUNNER_TEMP/k6" && chmod 777 "$RUNNER_TEMP/k6"
+          docker run --rm --network host \
+            --volume "$GITHUB_WORKSPACE/tests/load:/scripts:ro" \
+            --volume "$RUNNER_TEMP/k6:/out" \
+            grafana/k6:2.3.0 run \
+            --env BASE_URL=http://127.0.0.1:5391 \
+            --summary-export /out/summary.json \
+            /scripts/elevator-load.js
+
+      - name: Upload the load summary
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: load-summary
+          path: ${{ runner.temp }}/k6/summary.json
+          if-no-files-found: warn
+          retention-days: 30
