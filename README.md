@@ -213,55 +213,83 @@ The car never moves with its doors open, never leaves the 1–10 range, and chan
 
 ## Getting started
 
-**Prerequisites:** [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0) (10.0.100 or
-later) and [Docker](https://www.docker.com/) (Docker Desktop or any engine the Docker CLI reaches) for
-the full stack and the integration tests.
+### 1. Choose how to run it
+
+| You have | Run it with | You get |
+|---|---|---|
+| Docker only | **A. Docker Compose** | The whole system as it would be deployed: broker, database, two engines, API and web UI over HTTPS, telemetry dashboard |
+| .NET 10 SDK and Docker | **B. Aspire** (the development path) | The same system, with secrets generated for you and the Aspire dashboard opened for you |
+| .NET 10 SDK only | **C. The API alone** | The web UI and the elevator in one process, in memory; nothing survives a restart |
+| .NET 10 SDK only | **D. The console demo** | Only the elevator core, in the terminal |
+
+Prerequisites, as needed: [Docker](https://www.docker.com/) (Docker Desktop or any engine the Docker CLI reaches)
+and the [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0) (10.0.100 or later). Then get the code:
 
 ```bash
 git clone https://github.com/onlygreb/ElevatorSystem.git
+```
+
+```bash
 cd ElevatorSystem
-dotnet build ElevatorSystem.slnx
-dotnet test --solution ElevatorSystem.slnx
 ```
 
-Run the whole system with the Aspire dashboard (logs, traces and metrics for every service):
+### 2A. Docker Compose
 
-```bash
-dotnet run --project src/ElevatorSystem.AppHost
-```
+1. Create `deploy/.env` from the template and fill in every value: your own passwords, and an audit key from
+   `openssl rand -base64 33`. The file is git-ignored; Compose refuses to start while a value is missing.
+   ```bash
+   cp deploy/.env.example deploy/.env
+   ```
+2. Give the API an HTTPS certificate, `deploy/certs/elevator.pfx`, protected by the `CERTIFICATE_PASSWORD` you
+   chose. With the .NET SDK, export the development certificate your browser already trusts:
+   ```bash
+   dotnet dev-certs https -ep deploy/certs/elevator.pfx -p <CERTIFICATE_PASSWORD>
+   ```
+   Without it, [`deploy/README.md`](deploy/README.md) shows how to make one with OpenSSL.
+3. Build and start everything (the first build takes a few minutes):
+   ```bash
+   docker compose -f deploy/compose.yaml up --build --detach
+   ```
+4. Open https://localhost:8443. The dashboard is at http://localhost:18888 and RabbitMQ's management UI at
+   http://localhost:15672.
 
-Aspire starts RabbitMQ (with its management UI), PostgreSQL, two engines (one leads, one stands by)
-and the API. Open the `api` endpoint from the dashboard, enter the building and ride the elevator; stop the
-leading `engine` replica in the dashboard and the standby takes over from the saved state. Passwords are
-generated on the first run and kept in the AppHost's user secrets; nothing secret is in the repository.
+To stop, run `docker compose -f deploy/compose.yaml down`. The data volumes are kept; add `--volumes` to start over
+([ADR-0029](docs/adr/0029-docker-compose-and-dockerfile.md)).
 
-To use the admin view, open `/admin` on the `api` endpoint and sign in as `admin@elevator.local` with the
-`admin-password` parameter: the dashboard asks you to choose it on the first run and shows it in its Parameters
-view (the account is created once, so keep the same password). The first sign-in asks you to register an authenticator app
-(any TOTP app: scan the QR code), then shows one-time recovery codes. Every staff feature needs that second factor.
-Then press a demo scenario and watch the building fill up.
+### 2B. Aspire
 
-With Docker alone, no .NET SDK needed, [`deploy/compose.yaml`](deploy/compose.yaml) builds and runs the same system: both
-engines, the API on https://localhost:8443, RabbitMQ, PostgreSQL and the Aspire dashboard. Fill in `deploy/.env` and
-add an HTTPS certificate first, as [`deploy/README.md`](deploy/README.md) explains ([ADR-0029](docs/adr/0029-docker-compose-and-dockerfile.md)):
+1. Check that everything builds and the tests pass (the integration tests need Docker running):
+   ```bash
+   dotnet build ElevatorSystem.slnx
+   ```
+   ```bash
+   dotnet test --solution ElevatorSystem.slnx
+   ```
+2. Start the system:
+   ```bash
+   dotnet run --project src/ElevatorSystem.AppHost
+   ```
+3. The terminal prints the dashboard's address. On the first run the dashboard asks for the `admin-password`
+   parameter: choose one (at least 12 characters) and keep it, since the account is created once. The other
+   passwords are generated and kept in the AppHost's user secrets; nothing secret is in the repository.
+4. Open the `api` endpoint from the dashboard.
 
-```bash
-docker compose -f deploy/compose.yaml up --build --detach
-```
+Press Ctrl+C in the terminal to stop. The database and broker volumes keep the car's floor and the staff accounts.
 
-Without Docker, the API alone runs the engine in its own process over in-memory messaging and storage
-(`Hosting:Mode=SingleProcess`, the Development default; [ADR-0021](docs/adr/0021-engine-hosting-topology-and-single-process-mode.md)):
+### 2C. The API alone
 
 ```bash
 dotnet run --project src/ElevatorSystem.Api
 ```
 
-In this mode staff accounts live in memory too: create one for the session with
-`dotnet user-secrets` on the API project (`Staff:Accounts:0:Email`, `Staff:Accounts:0:Password`,
-`Staff:Accounts:0:Role` = `Admin` or `Auditor`).
+The engine runs inside the API over in-memory messaging and storage (`Hosting:Mode=SingleProcess`, the
+Development default; [ADR-0021](docs/adr/0021-engine-hosting-topology-and-single-process-mode.md)). Staff accounts
+live in memory too: create one for the session with `dotnet user-secrets` on the API project
+(`Staff:Accounts:0:Email`, `Staff:Accounts:0:Password`, `Staff:Accounts:0:Role` = `Admin` or `Auditor`).
 
-Run only the elevator core in the terminal, with no infrastructure. A narrated tour of about
-15 seconds walks through each behaviour:
+### 2D. The console demo
+
+A narrated tour of about 15 seconds walks through each behaviour of the core:
 - a pickup and a destination
 - FIFO order
 - merged button presses
@@ -279,6 +307,18 @@ Or drive the elevator yourself (`call 5 up`, `go 3`, `stop`, `resume`, `jam`, `s
 ```bash
 dotnet run --project src/ElevatorSystem.ConsoleDemo -- --interactive
 ```
+
+### 3. Use it
+
+- **Ride the elevator.** On the home page, enter the building (everyone starts on floor 1), call the car,
+  walk in while its doors are open, choose a floor, and walk out when the doors open there, or ride on.
+- **Administer it.** Open `/admin` and sign in as the first admin (`admin@elevator.local` unless you changed it).
+  The first sign-in asks you to register an authenticator app (any TOTP app: scan the QR code), then shows
+  one-time recovery codes; every staff feature needs that second factor. Then start a demo scenario and watch
+  the building fill up, or take the car out of service and return it.
+- **See failover** (A and B). Two engines run: one drives the car, the other stands by. Stop the one that leads
+  (`docker compose -f deploy/compose.yaml stop <container>`, or stop the replica in the Aspire dashboard) and the
+  standby takes over from the last saved state within seconds.
 
 ## Repository layout
 
