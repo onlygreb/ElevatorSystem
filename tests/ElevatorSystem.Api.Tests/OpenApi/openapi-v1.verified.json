@@ -334,7 +334,7 @@
             "format": "date-time"
           }
         },
-        "description": "How many passengers are where, counted from the calls they place (ADR-0017). Counts only:\r\npassengers are anonymous by design and nothing identifies an individual (ADR-0009)."
+        "description": "How many passengers are where, counted from the calls they place (ADR-0017). Counts only:\npassengers are anonymous by design and nothing identifies an individual (ADR-0009)."
       },
       "CallDirection": {
         "enum": [

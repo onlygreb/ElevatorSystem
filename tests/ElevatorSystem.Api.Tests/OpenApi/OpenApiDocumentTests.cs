@@ -65,6 +65,9 @@ public sealed class OpenApiDocumentTests
 
     private static async Task MatchSnapshotAsync(string actual)
     {
+        // Multi-line XML doc comments reach descriptions with the checkout's line endings (CRLF on Windows,
+        // LF on CI); compare them as LF.
+        actual = actual.Replace(@"\r\n", @"\n", StringComparison.Ordinal);
         var directory = SnapshotDirectory();
         var verified = Path.Combine(directory, "openapi-v1.verified.json");
         var received = Path.Combine(directory, "openapi-v1.received.json");
