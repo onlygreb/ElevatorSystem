@@ -3,12 +3,15 @@ using ElevatorSystem.Web.Features.Building;
 
 namespace ElevatorSystem.Web.Tests.Features;
 
+/// <summary>The door countdown: 5 s doors shown as a 4 s countdown (one second of room for lag), on the server's clock.</summary>
 public sealed class DoorCountdownTests : WebTestContext
 {
+    private static readonly TimeSpan DoorTime = TimeSpan.FromSeconds(5);
+
     [Fact]
     public void DoorsClosing_ShowTheSecondsLeftAndABarThatEmpties()
     {
-        var countdown = RenderCountdown(Open(closesInSeconds: 3));
+        var countdown = RenderCountdown(Open(closesInSeconds: 4));
 
         countdown.Find(".door-countdown__label").TextContent.ShouldBe("Doors close in 3 s");
         countdown.Find(".door-countdown__bar").GetAttribute("style").ShouldBe("width: 75%");
@@ -18,7 +21,7 @@ public sealed class DoorCountdownTests : WebTestContext
     [Fact]
     public void Countdown_RunsWithTheClock()
     {
-        var countdown = RenderCountdown(Open(closesInSeconds: 4));
+        var countdown = RenderCountdown(Open(closesInSeconds: 5));
 
         Clock.Advance(TimeSpan.FromSeconds(2.6));
 
@@ -27,10 +30,34 @@ public sealed class DoorCountdownTests : WebTestContext
     }
 
     [Fact]
+    public void Countdown_EndsASecondBeforeTheDoorsClose()
+    {
+        var countdown = RenderCountdown(Open(closesInSeconds: 1));
+
+        countdown.Find(".door-countdown__label").TextContent.ShouldBe("Doors close in 0 s");
+        countdown.Find(".door-countdown__bar").GetAttribute("style").ShouldBe("width: 0%", "the last second is room for a late press to reach the server");
+    }
+
+    [Fact]
     public void Countdown_NeverRunsBelowZeroOrAboveTheFullBar()
     {
         RenderCountdown(Open(closesInSeconds: -1)).Find(".door-countdown__bar").GetAttribute("style").ShouldBe("width: 0%");
         RenderCountdown(Open(closesInSeconds: 9)).Find(".door-countdown__bar").GetAttribute("style").ShouldBe("width: 100%");
+    }
+
+    [Fact]
+    public void Countdown_FollowsTheServersClock_EvenWhenTheBrowsersIsOff()
+    {
+        // The server's clock is 12 s ahead of the browser's (as a Docker Desktop VM can be). A countdown measured on the
+        // browser's clock would sit full at "4 s" until the doors closed.
+        var serverNow = TestData.Noon.AddSeconds(12);
+        var status = TestData.Status(status: ElevatorStatus.DoorOpen) with { TakenAt = serverNow, DoorsCloseAt = serverNow.AddSeconds(4) };
+        Store.ApplyStatus(status);
+
+        var countdown = RenderCountdown(status);
+
+        countdown.Find(".door-countdown__label").TextContent.ShouldBe("Doors close in 3 s");
+        countdown.Find(".door-countdown__bar").GetAttribute("style").ShouldBe("width: 75%");
     }
 
     [Fact]
@@ -54,7 +81,7 @@ public sealed class DoorCountdownTests : WebTestContext
     private IRenderedComponent<DoorCountdown> RenderCountdown(ElevatorStatusDto status, bool showClosed = false) =>
         Render<DoorCountdown>(parameters => parameters
             .Add(countdown => countdown.Status, status)
-            .Add(countdown => countdown.Duration, TimeSpan.FromSeconds(4))
+            .Add(countdown => countdown.Duration, DoorTime)
             .Add(countdown => countdown.ShowClosed, showClosed));
 
     private static ElevatorStatusDto Open(double closesInSeconds) =>

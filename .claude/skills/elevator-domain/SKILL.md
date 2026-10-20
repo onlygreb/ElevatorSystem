@@ -61,7 +61,7 @@ being travelled to, and the drive performs the trip.
 
 - With `HoldDoorOpenWhenIdle` (the default), a car with nowhere to go waits with its door **open** and no
   countdown: at start-up, after `ReturnToService`, and when a stop leaves nothing pending.
-- A call that gives it somewhere to go starts the `DoorOpenDuration` countdown (4 s); then the door closes
+- A call that gives it somewhere to go starts the `DoorOpenDuration` countdown (5 s; the UI shows 4 s of it); then the door closes
   and the car leaves. `ElevatorController.DoorsCloseAt` (and `ElevatorStatusDto.DoorsCloseAt`) is the
   close time while a countdown runs, `null` otherwise.
 - The state machine is unchanged; only the control loop decides when to close. `ReturnToService` nudges

@@ -1,5 +1,6 @@
 using ElevatorSystem.Contracts;
 using ElevatorSystem.Web.Services;
+using Microsoft.Extensions.Time.Testing;
 
 namespace ElevatorSystem.Web.Tests.Services;
 
@@ -152,6 +153,34 @@ public sealed class ElevatorStateStoreTests
     [Fact]
     public void Connection_BeforeAnyAttempt_IsConnecting() =>
         new ElevatorStateStore().Connection.ShouldBe(ConnectionState.Connecting);
+
+    [Fact]
+    public void ServerClockOffset_IsLearntFromTheStatuses_KeepingTheLargestSample()
+    {
+        var clock = new FakeTimeProvider(TestData.Noon);
+        var store = new ElevatorStateStore(clock);
+        store.ServerClockOffset.ShouldBeNull();
+
+        store.ApplyStatus(TestData.Status(version: 1) with { TakenAt = TestData.Noon.AddSeconds(12) });
+        store.ApplyStatus(TestData.Status(version: 1) with { TakenAt = TestData.Noon.AddMinutes(-10) });
+
+        store.ServerClockOffset.ShouldBe(TimeSpan.FromSeconds(12), "an old cached copy never lowers the estimate");
+        store.ServerNow.ShouldBe(TestData.Noon.AddSeconds(12));
+    }
+
+    [Fact]
+    public void ServerClockOffset_IsForgotten_WhenTheConnectionDrops()
+    {
+        var clock = new FakeTimeProvider(TestData.Noon);
+        var store = new ElevatorStateStore(clock);
+        store.SetConnection(ConnectionState.Connected);
+        store.ApplyStatus(TestData.Status(version: 1) with { TakenAt = TestData.Noon.AddSeconds(12) });
+
+        store.SetConnection(ConnectionState.Reconnecting);
+
+        store.ServerClockOffset.ShouldBeNull("the next server may be another instance with another clock");
+        store.ServerNow.ShouldBe(TestData.Noon);
+    }
 
     private static ElevatorStateStore ConnectedStoreShowing(ElevatorStatusDto status)
     {

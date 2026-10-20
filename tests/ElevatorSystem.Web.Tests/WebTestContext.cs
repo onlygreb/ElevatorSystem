@@ -13,6 +13,7 @@ public abstract class WebTestContext : BunitContext
 {
     protected WebTestContext()
     {
+        Store = new ElevatorStateStore(Clock);
         JSInterop.Mode = JSRuntimeMode.Loose;
         Services.AddLocalization();
         Services.AddMudServices();
@@ -29,7 +30,7 @@ public abstract class WebTestContext : BunitContext
 
     internal FakeTimeProvider Clock { get; } = new(TestData.Noon);
 
-    internal ElevatorStateStore Store { get; } = new();
+    internal ElevatorStateStore Store { get; }
 
     internal FakeElevatorApiClient Api { get; } = new();
 

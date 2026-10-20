@@ -13,11 +13,13 @@ public sealed class ElevatorStateStore
 
     private readonly Lock _gate = new();
     private readonly LinkedList<ElevatorActivityDto> _activity = new();
+    private readonly TimeProvider _timeProvider;
     private bool _resynchronising = true;
 
-    public ElevatorStateStore(int activityCapacity = DefaultActivityCapacity)
+    public ElevatorStateStore(TimeProvider? timeProvider = null, int activityCapacity = DefaultActivityCapacity)
     {
         ArgumentOutOfRangeException.ThrowIfLessThan(activityCapacity, 1);
+        _timeProvider = timeProvider ?? TimeProvider.System;
         ActivityCapacity = activityCapacity;
     }
 
@@ -34,6 +36,16 @@ public sealed class ElevatorStateStore
     public ElevatorStatusDto? Status { get; private set; }
 
     public ConnectionState Connection { get; private set; } = ConnectionState.Connecting;
+
+    /// <summary>
+    /// How far the server's clock runs ahead of this browser's (negative when it is behind), learnt from the statuses it
+    /// sends; <see langword="null"/> before the first. Times the server sends, such as when the doors close, are compared
+    /// with <see cref="ServerNow"/>, never with the browser's clock, which may be seconds off.
+    /// </summary>
+    public TimeSpan? ServerClockOffset { get; private set; }
+
+    /// <summary>The server's time now, as well as this browser can tell.</summary>
+    public DateTimeOffset ServerNow => _timeProvider.GetUtcNow() + (ServerClockOffset ?? TimeSpan.Zero);
 
     /// <summary>How many people are where; only staff connections receive it (ADR-0022).</summary>
     public BuildingOccupancyDto? Occupancy { get; private set; }
@@ -69,6 +81,8 @@ public sealed class ElevatorStateStore
 
         lock (_gate)
         {
+            LearnClockOffset(status);
+
             // After the connection is (re)established, the first status comes from the server that is
             // live now. It wins even with a lower version: the API may have restarted and begun counting again.
             if (!_resynchronising && Status is { } shown && status.Version <= shown.Version)
@@ -145,10 +159,26 @@ public sealed class ElevatorStateStore
             if (state != ConnectionState.Connected)
             {
                 _resynchronising = true;
+                // The server may be another instance with another clock.
+                ServerClockOffset = null;
             }
         }
 
         OnChanged();
+    }
+
+    /// <summary>
+    /// A status is taken just before it is sent, so its <c>TakenAt</c> minus the time it arrived is the clock offset less
+    /// the delivery delay. The largest sample is the closest estimate: an older copy (a cached status fetched over HTTP)
+    /// gives a smaller one and never lowers it.
+    /// </summary>
+    private void LearnClockOffset(ElevatorStatusDto status)
+    {
+        var sample = status.TakenAt - _timeProvider.GetUtcNow();
+        if (ServerClockOffset is not { } offset || sample > offset)
+        {
+            ServerClockOffset = sample;
+        }
     }
 
     private void OnChanged() => Changed?.Invoke(this, EventArgs.Empty);

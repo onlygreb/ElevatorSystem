@@ -1,7 +1,9 @@
 @* How long the doors stay open (ADR-0025): a bar that empties as the countdown runs, a calm note while the car waits
-   open with nowhere to go, and nothing while it travels. *@
+   open with nowhere to go, and nothing while it travels. It counts on the server's clock, not the browser's, and ends
+   a moment before the doors really close, so a passenger who presses at the last moment still gets in. *@
 @implements IDisposable
 @inject TimeProvider Clock
+@inject ElevatorStateStore Store
 @inject IStringLocalizer<SharedResource> L
 
 @if (Status is { Status: ElevatorStatus.DoorOpen })
@@ -32,14 +34,22 @@ else if (ShowClosed && Status is not null)
 }
 
 @code {
+    /// <summary>How much earlier than the doors the countdown ends: room for network lag between a press and the server.</summary>
+    public static readonly TimeSpan LagAllowance = TimeSpan.FromSeconds(1);
+
     private ITimer? _timer;
 
     [Parameter]
     public ElevatorStatusDto? Status { get; set; }
 
-    /// <summary>How long a full countdown lasts, to size the bar.</summary>
+    /// <summary>How long the doors stay open (the configuration's <c>DoorOpenDuration</c>), to size the bar.</summary>
     [Parameter]
-    public TimeSpan Duration { get; set; } = TimeSpan.FromSeconds(4);
+    public TimeSpan Duration { get; set; } = TimeSpan.FromSeconds(5);
+
+    /// <summary>The countdown shown: the door time less the lag allowance, when the doors stay open long enough for one.</summary>
+    private TimeSpan Shown => Duration > LagAllowance ? Duration - LagAllowance : Duration;
+
+    private TimeSpan Allowance => Duration > LagAllowance ? LagAllowance : TimeSpan.Zero;
 
     [Parameter]
     public bool ShowClosed { get; set; }
@@ -62,11 +72,11 @@ else if (ShowClosed && Status is not null)
 
     private TimeSpan Remaining(DateTimeOffset closesAt)
     {
-        var left = closesAt - Clock.GetUtcNow();
-        return left < TimeSpan.Zero ? TimeSpan.Zero : left > Duration ? Duration : left;
+        var left = closesAt - Allowance - Store.ServerNow;
+        return left < TimeSpan.Zero ? TimeSpan.Zero : left > Shown ? Shown : left;
     }
 
     private string BarStyle(TimeSpan left) => string.Create(
         CultureInfo.InvariantCulture,
-        $"width: {(Duration <= TimeSpan.Zero ? 0 : left / Duration * 100):0.#}%");
+        $"width: {(Shown <= TimeSpan.Zero ? 0 : left / Shown * 100):0.#}%");
 }
