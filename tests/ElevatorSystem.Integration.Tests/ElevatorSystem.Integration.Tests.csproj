@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    The whole system end to end (ADR-0021): RabbitMQ and PostgreSQL in Testcontainers, the API in process on
+    the test server, and engines as real child processes, so killing one is a real crash.
+  -->
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\ElevatorSystem.Api\ElevatorSystem.Api.csproj" />
+    <!-- Built, not referenced: the tests start its output as separate processes. -->
+    <ProjectReference Include="..\..\src\ElevatorSystem.Engine\ElevatorSystem.Engine.csproj" ReferenceOutputAssembly="false" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" />
+    <PackageReference Include="Microsoft.AspNetCore.SignalR.Client" />
+    <PackageReference Include="Testcontainers.RabbitMq" />
+    <PackageReference Include="Testcontainers.PostgreSql" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <AssemblyMetadata Include="EngineAssemblyPath" Value="$(MSBuildThisFileDirectory)../../src/ElevatorSystem.Engine/bin/$(Configuration)/$(TargetFramework)/ElevatorSystem.Engine.dll" />
+  </ItemGroup>
+</Project>
