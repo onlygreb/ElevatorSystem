@@ -45,7 +45,7 @@ Shared rules:
 
 ## Amendment (2026-10-20)
 
-- **Where the slow checks run.** Mutation testing (about an hour for Application on a loaded machine) and
+- **Where the slow checks run.** Mutation testing (about 25 minutes for Application on a GitHub runner) and
   the load test run in a separate Quality workflow, weekly and on demand, not on every pull request. Both
   fail the run below their thresholds: a mutation score under 80%, a p95 acceptance of 100 ms or more, or
   any `503 Busy` refusal under the sustained load.
