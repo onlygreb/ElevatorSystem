@@ -23,7 +23,9 @@ public sealed class CulturePickerTests : WebTestContext
         var picker = Render<CulturePicker>();
 
         var portuguese = picker.Find("[data-culture='pt-BR']");
-        portuguese.TextContent.Trim().ShouldBe("Português (Brasil)");
+        portuguese.QuerySelector(".culture-picker__name")!.TextContent.ShouldBe("Português (Brasil)");
+        portuguese.QuerySelector(".culture-picker__code")!.TextContent.ShouldBe("PT");
+        portuguese.QuerySelector(".culture-picker__code")!.GetAttribute("aria-hidden").ShouldBe("true");
         portuguese.GetAttribute("lang").ShouldBe("pt-BR");
         picker.Find("[role=group]").GetAttribute("aria-label").ShouldBe("Language");
     }

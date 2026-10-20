@@ -55,7 +55,7 @@
     /* The shaft: one floor's height, the button size (at least 24x24 px, WCAG 2.5.8) */
     --es-floor-height: 3.5rem;
     --es-button-size: 2.25rem;
-    --es-car-width: 4.5rem;
+    --es-car-width: 6.5rem;
 
     /* Lively layer: the app bar, hero gradients and the people in the building */
     --es-color-chrome: #0d2b3e;
