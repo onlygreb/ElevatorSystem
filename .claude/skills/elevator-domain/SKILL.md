@@ -27,7 +27,8 @@ Keep these exact names; they map one-to-one to the system requirements:
 
 - `Elevator`: `CurrentFloor`, `State`, `TargetFloors`, `MoveUp()`, `MoveDown()`, `OpenDoor()`, `CloseDoor()`, `AddRequest(...)`
 - `ElevatorController`: `Elevator`, `RequestElevator(floor, direction)`, `ProcessRequests(...)`, plus
-  `RequestDestination(floor)`, `EmergencyStop()`, `StartMaintenance()`, `ReturnToService()`, `ClearRequests(keep, thenGoTo)`
+  `RequestDestination(floor)`, `EmergencyStop()`, `StartMaintenance()`, `ReturnToService()`, `ClearRequests(keep, thenGoTo)`,
+  `ChangeScheduling(policy)` (only while out of service, ADR-0033)
 
 ## State machine
 

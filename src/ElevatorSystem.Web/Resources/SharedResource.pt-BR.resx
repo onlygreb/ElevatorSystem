@@ -648,4 +648,25 @@
   <data name="ActivityRequestsCleared" xml:space="preserve">
     <value>Fila limpa: {0} chamadas canceladas.</value>
   </data>
+  <data name="SchedulingHeading" xml:space="preserve">
+    <value>Escalonamento</value>
+  </data>
+  <data name="SchedulingFifo" xml:space="preserve">
+    <value>FIFO: ordem de chegada</value>
+  </data>
+  <data name="SchedulingLook" xml:space="preserve">
+    <value>LOOK: varre subindo, depois descendo</value>
+  </data>
+  <data name="SchedulingHintInService" xml:space="preserve">
+    <value>Tire o elevador de serviço para trocar como ele atende as chamadas.</value>
+  </data>
+  <data name="SchedulingHintOutOfService" xml:space="preserve">
+    <value>Escolha como o elevador vai atender as chamadas quando voltar ao serviço.</value>
+  </data>
+  <data name="SchedulingRequested" xml:space="preserve">
+    <value>Trocando para {0}.</value>
+  </data>
+  <data name="ActivitySchedulingChanged" xml:space="preserve">
+    <value>Escalonamento trocado para {0}.</value>
+  </data>
 </root>

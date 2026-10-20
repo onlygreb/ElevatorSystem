@@ -68,4 +68,7 @@ internal static partial class ElevatorControllerLog
 
     [LoggerMessage(1519, LogLevel.Information, "Queue cleared: {Cancelled} pending call(s) cancelled")]
     public static partial void RequestsCleared(ILogger logger, int cancelled);
+
+    [LoggerMessage(1520, LogLevel.Information, "Scheduling switched to {Policy}")]
+    public static partial void SchedulingChanged(ILogger logger, SchedulingPolicy policy);
 }

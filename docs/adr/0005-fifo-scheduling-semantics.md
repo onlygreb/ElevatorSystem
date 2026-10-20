@@ -23,9 +23,9 @@ queue? What happens when the same button is pressed twice? How large can the que
 - **A replaceable strategy:** scheduling sits behind `ISchedulingStrategy`.
   `FifoSchedulingStrategy` is the default; `LookSchedulingStrategy` (serve every request in the
   current direction, then reverse) can be chosen per deployment with `Elevator:Scheduling` (`Fifo` or
-  `Look`; `ELEVATOR_SCHEDULING` in Docker Compose). The admin view shows the average wait with the
-  strategy it was measured under, so the two can be compared run by run, for example with the same demo
-  scenario.
+  `Look`; `ELEVATOR_SCHEDULING` in Docker Compose), or switched by an admin while the car is out of service
+  (ADR-0033). The admin view shows the average wait with the strategy it was measured under, so the two can
+  be compared run by run, for example with the same demo scenario.
 
 ## Alternatives considered
 

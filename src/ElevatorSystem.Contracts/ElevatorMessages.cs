@@ -15,6 +15,7 @@ namespace ElevatorSystem.Contracts;
 [JsonDerivedType(typeof(ServiceCommandV1), "service.v1")]
 [JsonDerivedType(typeof(PassengerCommandV1), "passenger.v1")]
 [JsonDerivedType(typeof(ScenarioCommandV1), "scenario.v1")]
+[JsonDerivedType(typeof(SchedulingCommandV1), "scheduling.v1")]
 public abstract record ElevatorCommandV1(Guid CommandId, DateTimeOffset IssuedAt);
 
 /// <summary>A passenger on <see cref="Floor"/> wants to go <see cref="Direction"/>.</summary>
@@ -42,6 +43,10 @@ public sealed record PassengerCommandV1(
 
 /// <summary>An admin starts a demo scenario, or stops them all and removes their passengers (<see cref="Scenario"/> null; ADR-0027).</summary>
 public sealed record ScenarioCommandV1(Guid CommandId, DateTimeOffset IssuedAt, DemoScenario? Scenario)
+    : ElevatorCommandV1(CommandId, IssuedAt);
+
+/// <summary>An admin switches the scheduling strategy; applied only while the car is out of service (ADR-0033).</summary>
+public sealed record SchedulingCommandV1(Guid CommandId, DateTimeOffset IssuedAt, Scheduling Scheduling)
     : ElevatorCommandV1(CommandId, IssuedAt);
 
 public enum ServiceAction

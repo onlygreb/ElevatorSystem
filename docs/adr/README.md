@@ -38,3 +38,4 @@ supersedes the old one instead of editing it. New records start from [`template.
 | [0030](0030-test-account-without-second-factor.md) | A configured test account may sign in without a second factor | Accepted |
 | [0031](0031-huge-load-scenario-and-fast-forward.md) | A huge load scenario that fast-forwards the building | Accepted |
 | [0032](0032-stop-and-clear-empties-the-queue.md) | Stop and clear empties the queue and sends the car to the lobby | Accepted |
+| [0033](0033-admins-switch-scheduling-out-of-service.md) | Admins switch between FIFO and LOOK while the car is out of service | Accepted |

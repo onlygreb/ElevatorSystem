@@ -48,7 +48,7 @@ ElevatorSystem controls an elevator serving floors 1 to 10 and gives passengers 
 | Capability | Description |
 |---|---|
 | **Passenger journeys** | Every passenger enters the building on floor 1, calls the car, walks in while its doors are open on their floor (a bar counts down the last seconds, ending one second early so a late press still makes it), chooses a floor and walks out when the doors open, or rides on. With nowhere to go, the car waits with its doors open. Invalid requests are refused with a reason. |
-| **Scheduling** | First-in, first-out by default, with duplicate presses merged. A LOOK strategy can be chosen in configuration (`Elevator:Scheduling`, or `ELEVATOR_SCHEDULING` in Docker Compose) to compare average wait times, which the admin view shows with the strategy they were measured under. |
+| **Scheduling** | First-in, first-out by default, with duplicate presses merged. A LOOK strategy can be chosen in configuration (`Elevator:Scheduling`, or `ELEVATOR_SCHEDULING` in Docker Compose), or switched by an admin while the car is out of service, to compare average wait times, which the admin view shows with the strategy they were measured under ([ADR-0033](docs/adr/0033-admins-switch-scheduling-out-of-service.md)). |
 | **Real-time simulation** | Car movement and doors run in real time; every change streams live to connected browsers. |
 | **Concurrency** | 100+ simultaneous requests handled safely; target time from request to assignment under 100 ms. |
 | **Fail-safe operation** | Stuck-car detection, out-of-service mode, emergency stop, recovery after restart, and a guarantee that only one controller drives the car. |

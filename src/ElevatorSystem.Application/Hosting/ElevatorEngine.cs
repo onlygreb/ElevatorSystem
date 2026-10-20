@@ -218,6 +218,7 @@ public sealed class ElevatorEngine
             elevator, _strategy, _createDrive(), controllerSink, ControllerOptions, _timeProvider, _loggerFactory.CreateLogger<ElevatorController>());
         sink.Controller = controller;
         controller.SpeedChanged += (_, speed) => sink.PublishSpeedChanged(speed);
+        controller.SchedulingChanged += (_, policy) => sink.PublishSchedulingChanged(policy);
         using var scenarios = new DemoScenarioRunner(
             new PassengerService(passengers, controller, _timeProvider), elevator, _simulationOptions, _timeProvider, _loggerFactory.CreateLogger<DemoScenarioRunner>());
 

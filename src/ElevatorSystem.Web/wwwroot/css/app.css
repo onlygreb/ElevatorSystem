@@ -818,6 +818,57 @@ h1:focus {
     background: repeating-linear-gradient(45deg, var(--es-color-warning) 0 6px, var(--es-color-car) 6px 12px);
 }
 
+/* ---------- Scheduling switch ---------- */
+
+.scheduling {
+    margin-top: var(--es-space-4);
+    padding-top: var(--es-space-4);
+    border-top: 1px solid var(--es-color-divider);
+}
+
+.scheduling__title {
+    margin: 0 0 var(--es-space-2);
+    font-size: 0.875rem;
+    font-weight: 700;
+}
+
+.scheduling__options {
+    display: inline-flex;
+    flex-wrap: wrap;
+    border: 1px solid var(--es-color-outline);
+    border-radius: 999px;
+    overflow: hidden;
+}
+
+.scheduling__option {
+    padding: var(--es-space-2) var(--es-space-4);
+    border: 0;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.scheduling__option--on {
+    background: var(--es-color-accent);
+    color: var(--es-color-on-accent);
+}
+
+.scheduling__option:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+.scheduling__option--on:disabled {
+    opacity: 0.85;
+}
+
+.scheduling__option:focus-visible {
+    outline: 3px solid var(--es-color-focus);
+    outline-offset: -3px;
+}
+
 /* ---------- Car panel ---------- */
 
 .car-panel {

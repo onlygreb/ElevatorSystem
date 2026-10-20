@@ -13,7 +13,8 @@ public static class ElevatorContractMapper
     /// <param name="snapshot">The elevator's state.</param>
     /// <param name="doorsCloseAt">The controller's door countdown (<see cref="ElevatorController.DoorsCloseAt"/>); ignored unless the door is open.</param>
     /// <param name="speed">The controller's <see cref="ElevatorController.Speed"/>.</param>
-    public static ElevatorStatusDto ToStatus(ElevatorSnapshot snapshot, DateTimeOffset? doorsCloseAt = null, double speed = 1)
+    /// <param name="scheduling">The controller's <see cref="ElevatorController.Scheduling"/>, when known.</param>
+    public static ElevatorStatusDto ToStatus(ElevatorSnapshot snapshot, DateTimeOffset? doorsCloseAt = null, double speed = 1, SchedulingPolicy? scheduling = null)
     {
         ArgumentNullException.ThrowIfNull(snapshot);
 
@@ -27,7 +28,8 @@ public static class ElevatorContractMapper
             snapshot.Version,
             snapshot.TakenAt,
             snapshot.State == ElevatorState.DoorOpen ? doorsCloseAt : null,
-            speed);
+            speed,
+            scheduling is { } policy ? ToContract(policy) : null);
     }
 
     public static ElevatorConfigurationDto ToConfiguration(ElevatorController controller)
@@ -71,6 +73,20 @@ public static class ElevatorContractMapper
             _ => throw new ArgumentOutOfRangeException(nameof(elevatorEvent), elevatorEvent.GetType().Name, "Unmapped elevator event."),
         };
     }
+
+    public static Scheduling ToContract(SchedulingPolicy policy) => policy switch
+    {
+        SchedulingPolicy.Fifo => Scheduling.Fifo,
+        SchedulingPolicy.Look => Scheduling.Look,
+        _ => throw new ArgumentOutOfRangeException(nameof(policy), policy, null),
+    };
+
+    public static SchedulingPolicy ToDomain(Scheduling scheduling) => scheduling switch
+    {
+        Scheduling.Fifo => SchedulingPolicy.Fifo,
+        Scheduling.Look => SchedulingPolicy.Look,
+        _ => throw new ArgumentOutOfRangeException(nameof(scheduling), scheduling, null),
+    };
 
     public static Direction ToDomain(CallDirection direction) => direction switch
     {

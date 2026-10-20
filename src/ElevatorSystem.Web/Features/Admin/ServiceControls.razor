@@ -34,6 +34,21 @@
     {
         <MudAlert Severity="@(_messageIsError ? Severity.Error : Severity.Success)" Class="mt-3" role="status" data-testid="action-message">@message</MudAlert>
     }
+
+    @* FIFO or LOOK, only while the car is out of service: it then holds no calls (ADR-0033). *@
+    <div class="scheduling" data-testid="scheduling-switch">
+        <h3 id="scheduling-heading" class="scheduling__title">@L[Text.SchedulingHeading]</h3>
+        <div class="scheduling__options" role="radiogroup" aria-labelledby="scheduling-heading" aria-describedby="scheduling-hint">
+            @foreach (var (option, label) in SchedulingOptions)
+            {
+                var on = Status?.Scheduling == option;
+                <button type="button" role="radio" aria-checked="@(on ? "true" : "false")" disabled="@(!CanSwitch || _busy)"
+                        class="scheduling__option@(on ? " scheduling__option--on" : null)" data-testid="scheduling-@option"
+                        @onclick="@(() => SwitchAsync(option))">@L[label]</button>
+            }
+        </div>
+        <p id="scheduling-hint" class="es-panel__hint">@L[CanSwitch ? Text.SchedulingHintOutOfService : Text.SchedulingHintInService]</p>
+    </div>
 </section>
 
 @code {
@@ -49,6 +64,40 @@
     private bool CanTakeOutOfService => Status is not null && Status.Status != ElevatorStatus.OutOfService;
 
     private bool CanReturn => Status is { Status: ElevatorStatus.OutOfService };
+
+    private bool CanSwitch => Status is { Status: ElevatorStatus.OutOfService };
+
+    private static readonly (Scheduling Option, string Label)[] SchedulingOptions =
+    [
+        (Scheduling.Fifo, Text.SchedulingFifo),
+        (Scheduling.Look, Text.SchedulingLook),
+    ];
+
+    private async Task SwitchAsync(Scheduling scheduling)
+    {
+        if (_busy || Status?.Scheduling == scheduling)
+        {
+            return;
+        }
+
+        _busy = true;
+        try
+        {
+            var result = await Api.ChangeSchedulingAsync(scheduling);
+            _messageIsError = !result.Succeeded;
+            _message = result.Succeeded
+                ? L[Text.SchedulingRequested, scheduling.ToString().ToUpperInvariant()]
+                : result.Failure == StaffFailure.Conflict ? L[Text.SchedulingHintInService] : L[StaffText.For(result.Failure!.Value)];
+            if (result.Succeeded)
+            {
+                Session.ReportActionAudited();
+            }
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
 
     /// <summary>One key per confirmed action, reused if the same request has to be retried.</summary>
     private sealed record PendingAction(ServiceAction Action, Guid IdempotencyKey);

@@ -99,6 +99,21 @@ public sealed class ElevatorBroadcastServiceTests : IAsyncDisposable
     }
 
     [Fact]
+    public async Task Broadcast_ASchedulingChange_SendsTheStatusAgain_ThoughTheVersionIsTheSame()
+    {
+        var hub = new FakeHubContext();
+        await StartAsync(hub);
+        PublishDoorUpdates(version: 3, 1);
+        await Eventually.HoldsAsync(() => hub.Statuses.Count == 1, "the first status", cancellationToken: TestContext.Current.CancellationToken);
+
+        var switched = Update(ElevatorActivityKind.SchedulingChanged, 1, version: 3);
+        _buffer.Publish(switched with { Status = switched.Status with { Scheduling = Scheduling.Look } });
+
+        await Eventually.HoldsAsync(() => hub.Statuses.Count == 2, "the status with the new scheduling", cancellationToken: TestContext.Current.CancellationToken);
+        hub.Statuses[1].Scheduling.ShouldBe(Scheduling.Look);
+    }
+
+    [Fact]
     public async Task Broadcast_OccupancyUpdates_SendTheNewestCountsOncePerBatch()
     {
         var hub = new FakeHubContext();
