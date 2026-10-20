@@ -513,6 +513,22 @@ h1:focus {
     height: 1.25rem;
 }
 
+.status-line__speed {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--es-space-1);
+    padding: var(--es-space-1) var(--es-space-3);
+    border-radius: 999px;
+    background: #9a3412;
+    color: #fff;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+}
+
+.status-line__speed .mud-icon-root {
+    font-size: 1.25rem;
+}
+
 .status-line__out-of-service {
     display: inline-flex;
     align-items: center;
@@ -1012,7 +1028,7 @@ h1:focus {
 
 .demo-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 13rem), 1fr));
     gap: var(--es-space-3);
 }
 
@@ -1052,6 +1068,10 @@ h1:focus {
 
 .demo-card--busyday {
     background: linear-gradient(135deg, #2f5fb3, #4338ca);
+}
+
+.demo-card--hugeload {
+    background: linear-gradient(135deg, #b91c1c, #7c3aed);
 }
 
 .demo-card__icon {

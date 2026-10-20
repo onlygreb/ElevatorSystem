@@ -308,6 +308,23 @@ public sealed class ElevatorEngineTests
     }
 
     [Fact]
+    public async Task HugeLoad_PublishesTheSpeedChange_AndEveryStatusCarriesIt()
+    {
+        await using var harness = new EngineHarness { Simulation = new SimulationOptions { Enabled = true, Seed = 7, HugeLoadPassengers = 5, HugeLoadSpeed = 4 } };
+        await harness.StartLeaderAsync();
+
+        await harness.SendAsync(new ScenarioCommandV1(Guid.CreateVersion7(), DateTimeOffset.UnixEpoch, DemoScenario.HugeLoad));
+        var faster = await harness.Updates.WaitForAsync(update => update.Activity is { Kind: ElevatorActivityKind.SpeedChanged, Speed: 4 });
+        var later = await harness.Updates.WaitForAsync(update => update.Activity is { Kind: ElevatorActivityKind.PassengerJoined, Simulated: true });
+        await harness.SendAsync(new ScenarioCommandV1(Guid.CreateVersion7(), DateTimeOffset.UnixEpoch, null));
+        var normal = await harness.Updates.WaitForAsync(update => update.Activity is { Kind: ElevatorActivityKind.SpeedChanged, Speed: 1 });
+
+        faster.Status.Speed.ShouldBe(4);
+        later.Status.Speed.ShouldBe(4);
+        normal.Status.Speed.ShouldBe(1);
+    }
+
+    [Fact]
     public async Task RunAsync_Twice_IsRefused()
     {
         await using var harness = new EngineHarness();

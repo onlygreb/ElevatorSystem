@@ -19,8 +19,20 @@ public sealed record SimulationOptions
     /// <summary>Makes every run of a scenario identical (tests); a different run each time when absent.</summary>
     public int? Seed { get; init; }
 
+    /// <summary>How many simulated passengers the huge load brings in (ADR-0031).</summary>
+    public int HugeLoadPassengers { get; init; } = 120;
+
+    /// <summary>How many times faster than normal the car and every simulation run while a huge load is on (ADR-0031).</summary>
+    public double HugeLoadSpeed { get; init; } = 8;
+
     /// <summary>Throws if any setting is out of range.</summary>
-    public void Validate() => ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(TickInterval, TimeSpan.Zero, nameof(TickInterval));
+    public void Validate()
+    {
+        ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(TickInterval, TimeSpan.Zero, nameof(TickInterval));
+        ArgumentOutOfRangeException.ThrowIfLessThan(HugeLoadPassengers, 1, nameof(HugeLoadPassengers));
+        ArgumentOutOfRangeException.ThrowIfLessThan(HugeLoadSpeed, 1.0, nameof(HugeLoadSpeed));
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(HugeLoadSpeed, ElevatorController.MaxSpeed, nameof(HugeLoadSpeed));
+    }
 }
 
 /// <summary>
@@ -30,8 +42,16 @@ public sealed record SimulationOptions
 /// car calls again.
 /// </summary>
 /// <remarks>
+/// <para>
 /// Every passenger looks around once per <see cref="SimulationOptions.TickInterval"/> on a <see cref="TimeProvider"/>
 /// timer, so tests drive whole scenarios in simulated time. Thread-safe: starting, stopping and the timer share one lock.
+/// </para>
+/// <para>
+/// While a huge load is on, the car and the simulation run <see cref="SimulationOptions.HugeLoadSpeed"/> times faster
+/// (ADR-0031): the passengers follow their own clock, which runs that much faster than the real one, and look around
+/// that much more often. The speed returns to normal once the last of them is done, or the scenarios stop, and the car
+/// has served the calls they left behind.
+/// </para>
 /// </remarks>
 public sealed class DemoScenarioRunner : IDisposable
 {
@@ -46,6 +66,9 @@ public sealed class DemoScenarioRunner : IDisposable
     private readonly Random _random;
     private readonly List<SimulatedPassenger> _passengers = [];
     private ITimer? _timer;
+    private double _speed = 1;
+    private DateTimeOffset _clock;
+    private DateTimeOffset _clockReadAt;
 
     public DemoScenarioRunner(PassengerService service, Elevator elevator, SimulationOptions options, TimeProvider timeProvider, ILogger<DemoScenarioRunner> logger)
     {
@@ -62,6 +85,8 @@ public sealed class DemoScenarioRunner : IDisposable
         _timeProvider = timeProvider;
         _logger = logger;
         _random = options.Seed is { } seed ? new Random(seed) : new Random();
+        _clockReadAt = timeProvider.GetUtcNow();
+        _clock = _clockReadAt;
     }
 
     public bool IsEnabled => _options.Enabled;
@@ -78,6 +103,18 @@ public sealed class DemoScenarioRunner : IDisposable
         }
     }
 
+    /// <summary>How many times faster than normal the simulation runs now: 1, or more while a huge load is on.</summary>
+    public double Speed
+    {
+        get
+        {
+            lock (_gate)
+            {
+                return _speed;
+            }
+        }
+    }
+
     /// <summary>Starts <paramref name="scenario"/> alongside any already running.</summary>
     /// <returns>How many simulated passengers it adds; 0 when scenarios are disabled.</returns>
     public int Start(DemoScenario scenario)
@@ -90,10 +127,9 @@ public sealed class DemoScenarioRunner : IDisposable
 
         lock (_gate)
         {
-            var now = _timeProvider.GetUtcNow();
-            var added = Plan(scenario, now);
+            var added = Plan(scenario, ReadClock());
             _passengers.AddRange(added);
-            _timer ??= _timeProvider.CreateTimer(_ => Tick(), null, _options.TickInterval, _options.TickInterval);
+            AdjustSpeed();
             PassengerLog.ScenarioStarted(_logger, scenario, added.Count);
             return added.Count;
         }
@@ -106,8 +142,7 @@ public sealed class DemoScenarioRunner : IDisposable
         lock (_gate)
         {
             _passengers.Clear();
-            _timer?.Dispose();
-            _timer = null;
+            AdjustSpeed();
             var removed = _service.Registry.RemoveSimulated(requestId);
             PassengerLog.ScenariosStopped(_logger, removed);
             return removed;
@@ -128,7 +163,7 @@ public sealed class DemoScenarioRunner : IDisposable
     {
         lock (_gate)
         {
-            var now = _timeProvider.GetUtcNow();
+            var now = ReadClock();
             var snapshot = _elevator.Snapshot();
             foreach (var passenger in _passengers.ToList())
             {
@@ -147,11 +182,48 @@ public sealed class DemoScenarioRunner : IDisposable
                 }
             }
 
-            if (_passengers.Count == 0)
-            {
-                _timer?.Dispose();
-                _timer = null;
-            }
+            AdjustSpeed();
+        }
+    }
+
+    private TimeSpan TickPeriod => _options.TickInterval / _speed;
+
+    /// <summary>The simulation's clock: it runs <see cref="_speed"/> times faster than the real one.</summary>
+    private DateTimeOffset ReadClock()
+    {
+        var now = _timeProvider.GetUtcNow();
+        _clock += (now - _clockReadAt) * _speed;
+        _clockReadAt = now;
+        return _clock;
+    }
+
+    /// <summary>
+    /// Fast-forwards the car and the simulation while a huge load is on, and back to normal after it; keeps the timer
+    /// running while anyone acts or the speed is not back to normal.
+    /// </summary>
+    private void AdjustSpeed()
+    {
+        var crowd = _passengers.Any(passenger => passenger.FastForward);
+        // After a huge load the car stays fast until it has served the calls the crowd left behind, so normal service
+        // resumes within seconds rather than after minutes of working through them at the normal pace.
+        var leftovers = !crowd && _speed > 1 && !_elevator.Snapshot().PendingCalls.IsEmpty;
+        var wanted = crowd ? _options.HugeLoadSpeed : leftovers ? _speed : 1;
+        if (wanted != _speed)
+        {
+            ReadClock();
+            // A real drive cannot be fast-forwarded; then the simulation keeps the normal pace too.
+            _speed = _service.Controller.SetSpeed(wanted) ? wanted : 1;
+            _timer?.Change(TickPeriod, TickPeriod);
+        }
+
+        if (_passengers.Count == 0 && _speed == 1)
+        {
+            _timer?.Dispose();
+            _timer = null;
+        }
+        else
+        {
+            _timer ??= _timeProvider.CreateTimer(_ => Tick(), null, TickPeriod, TickPeriod);
         }
     }
 
@@ -199,6 +271,21 @@ public sealed class DemoScenarioRunner : IDisposable
                 }
 
                 break;
+            case DemoScenario.HugeLoad:
+                // A crowd pours in within a minute, rides up, stays a moment and comes back down to leave; half of them
+                // keep pressing the call button while they wait. Everything runs fast-forwarded until the last one is gone.
+                var count = _options.HugeLoadPassengers;
+                for (var index = 0; index < count; index++)
+                {
+                    plans.Add(new SimulatedPassenger(
+                        now + (TimeSpan.FromSeconds(60.0 * index / count) * Jitter()),
+                        [new Leg(UpperFloor(lobby), Seconds(2, 8)), new Leg(lobby, Seconds(1, 2))],
+                        retireWhenDone: true,
+                        impatient: _random.NextDouble() < 0.5,
+                        fastForward: true));
+                }
+
+                break;
             default:
                 throw new ArgumentOutOfRangeException(nameof(scenario), scenario, "Unknown demo scenario.");
         }
@@ -222,10 +309,14 @@ public sealed class DemoScenarioRunner : IDisposable
     /// <summary>Where a simulated passenger goes next, and how long they stay there.</summary>
     private sealed record Leg(Floor Target, TimeSpan Stay);
 
-    /// <summary>One simulated passenger: a plan of legs, followed at a human pace.</summary>
-    private sealed class SimulatedPassenger(DateTimeOffset arrivesAt, List<Leg> legs, bool retireWhenDone)
+    /// <summary>
+    /// One simulated passenger: a plan of legs, followed at a human pace. An impatient one presses the call button again
+    /// every second or so while waiting; one that fast-forwards keeps the whole simulation fast while it acts.
+    /// </summary>
+    private sealed class SimulatedPassenger(DateTimeOffset arrivesAt, List<Leg> legs, bool retireWhenDone, bool impatient = false, bool fastForward = false)
     {
         private static readonly TimeSpan ButtonPress = TimeSpan.FromMilliseconds(600);
+        private static readonly TimeSpan Impatience = TimeSpan.FromSeconds(2);
 
         private readonly Queue<Leg> _legs = new(legs);
         private bool _joined;
@@ -233,6 +324,8 @@ public sealed class DemoScenarioRunner : IDisposable
         private DateTimeOffset _nextActionAt = arrivesAt;
 
         public Guid Id { get; } = Guid.NewGuid();
+
+        public bool FastForward => fastForward;
 
         /// <returns><see langword="true"/> when this passenger is done acting.</returns>
         public bool Act(DemoScenarioRunner runner, DateTimeOffset now, ElevatorSnapshot snapshot)
@@ -296,6 +389,12 @@ public sealed class DemoScenarioRunner : IDisposable
                     // First call, or the car left without them (it was full): press the button (again).
                     service.CallElevator(Id, direction);
                     _nextActionAt = now + ButtonPress;
+                }
+                else if (impatient && !doorOpenHere)
+                {
+                    // Pressing again does not bring the car sooner: the controller merges every press into the call.
+                    service.PressCallButton(new Floor(me.Floor), direction);
+                    _nextActionAt = now + (Impatience * runner.Jitter());
                 }
 
                 return false;

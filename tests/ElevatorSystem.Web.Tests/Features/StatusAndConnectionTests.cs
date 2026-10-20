@@ -41,6 +41,24 @@ public sealed class StatusAndConnectionTests : WebTestContext
     }
 
     [Fact]
+    public void StatusLine_FastForwarded_SaysHowMuchFaster()
+    {
+        var line = Render<StatusLine>(parameters => parameters.Add(line => line.Status, TestData.Status() with { Speed = 8 }));
+
+        var badge = line.Find("[data-testid=status-speed]");
+        badge.QuerySelector("[aria-hidden=true]:last-child")!.TextContent.ShouldBe("Fast-forward 8×");
+        badge.QuerySelector(".visually-hidden")!.TextContent.ShouldBe("The demo runs 8 times faster than normal");
+    }
+
+    [Fact]
+    public void StatusLine_AtNormalSpeed_ShowsNoBadge()
+    {
+        var line = Render<StatusLine>(parameters => parameters.Add(line => line.Status, TestData.Status()));
+
+        line.FindAll("[data-testid=status-speed]").ShouldBeEmpty();
+    }
+
+    [Fact]
     public void StatusLine_BeforeTheFirstStatus_SaysItIsWaiting()
     {
         var line = Render<StatusLine>();

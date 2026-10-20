@@ -35,8 +35,16 @@ internal sealed class EngineEventSink(Elevator elevator, SnapshotPersister persi
         }
     }
 
-    /// <summary>The status now, with the controller's door countdown.</summary>
-    public ElevatorStatusDto CurrentStatus() => ElevatorContractMapper.ToStatus(elevator.Snapshot(), Controller?.DoorsCloseAt);
+    /// <summary>The status now, with the controller's door countdown and speed.</summary>
+    public ElevatorStatusDto CurrentStatus() => ElevatorContractMapper.ToStatus(elevator.Snapshot(), Controller?.DoorsCloseAt, Controller?.Speed ?? 1);
+
+    /// <summary>Tells subscribers the car's speed changed (ADR-0031): not an elevator event, so it carries the status as it is.</summary>
+    public void PublishSpeedChanged(double speed)
+    {
+        var status = CurrentStatus();
+        var activity = new ElevatorActivityDto(timeProvider.GetUtcNow(), ElevatorActivityKind.SpeedChanged, status.CurrentFloor, Speed: speed);
+        forwarder.Enqueue(new ElevatorUpdateV1(Guid.CreateVersion7(timeProvider.GetUtcNow()), activity, status));
+    }
 
     /// <summary>
     /// Returns a task that completes when the control loop reports <paramref name="requestId"/>. Call it

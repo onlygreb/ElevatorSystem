@@ -103,10 +103,10 @@
         + (Status?.Status is ElevatorStatus.MovingUp or ElevatorStatus.MovingDown ? " cabin--moving" : null)
         + (Status?.Status == ElevatorStatus.OutOfService ? " cabin--out-of-service" : null);
 
-    // One floor per move, so each move glides over exactly the configured travel time per floor.
+    // One floor per move, so each move glides over exactly the travel time per floor, shorter while a demo fast-forwards.
     private string CarStyle => string.Create(
         CultureInfo.InvariantCulture,
-        $"transform: translateY(calc({-(CarFloor - Configuration.LowestFloor)} * var(--es-floor-height))); transition-duration: {(long)Configuration.TravelTimePerFloor.TotalMilliseconds}ms");
+        $"transform: translateY(calc({-(CarFloor - Configuration.LowestFloor)} * var(--es-floor-height))); transition-duration: {(long)(Configuration.TravelTimePerFloor / Math.Max(1, Status?.Speed ?? 1)).TotalMilliseconds}ms");
 
     private string CarDescription => L[Text.CarDescription, CarFloor, L[DoorsOpen ? Text.DoorsOpen : Text.DoorsClosed]];
 

@@ -74,6 +74,50 @@ public sealed class DemoScenarioTests
     }
 
     [Fact]
+    public async Task HugeLoad_FastForwardsEverything_ServesEveryone_AndReturnsToNormalSpeed()
+    {
+        await using var world = World.Create(seed: 8, hugeLoad: 30);
+
+        var added = world.Runner.Start(DemoScenario.HugeLoad);
+        world.Runner.Speed.ShouldBe(4);
+        world.Harness.Controller.Speed.ShouldBe(4);
+        await world.RunUntilAsync(() => world.Runner.Active == 0);
+
+        added.ShouldBe(30);
+        world.Registry.Passengers.ShouldBeEmpty("everyone rode back to the lobby and went out");
+        world.Registry.Current.PassengersDelivered.ShouldBeGreaterThanOrEqualTo(60, "each rode at least up and back down");
+        world.Harness.Probe.Events.OfType<Domain.Events.CallMerged>().ShouldNotBeEmpty("impatient people pressed the button again");
+        world.Runner.Speed.ShouldBe(1);
+        world.Harness.Controller.Speed.ShouldBe(1);
+    }
+
+    [Fact]
+    public async Task HugeLoad_FastForwardsTheOtherScenariosToo_UntilTheScenariosStopAndTheirCallsAreServed()
+    {
+        await using var world = World.Create(seed: 4, hugeLoad: 30);
+        world.Runner.Start(DemoScenario.BusyDay);
+        world.Runner.Speed.ShouldBe(1, "only a huge load fast-forwards");
+
+        world.Runner.Start(DemoScenario.HugeLoad);
+        await world.RunForAsync(TimeSpan.FromSeconds(10));
+        world.Runner.Speed.ShouldBe(4);
+        world.Harness.Elevator.Snapshot().PendingCalls.ShouldNotBeEmpty("the crowd is still calling");
+        world.Runner.StopAll();
+        world.Runner.Speed.ShouldBe(4, "the car first serves the calls the crowd left behind");
+        await world.RunUntilAsync(() => world.Runner.Speed == 1);
+
+        world.Harness.Elevator.Snapshot().PendingCalls.ShouldBeEmpty();
+        world.Harness.Controller.Speed.ShouldBe(1);
+    }
+
+    [Theory]
+    [InlineData(0, 8)]
+    [InlineData(120, 0.5)]
+    [InlineData(120, ElevatorController.MaxSpeed + 1)]
+    public void HugeLoadSettings_OutOfRange_AreRefused(int passengers, double speed) =>
+        Should.Throw<ArgumentOutOfRangeException>(() => new SimulationOptions { HugeLoadPassengers = passengers, HugeLoadSpeed = speed }.Validate());
+
+    [Fact]
     public async Task WhenDisabled_NothingStarts()
     {
         await using var world = World.Create(seed: 1, enabled: false);
@@ -112,7 +156,7 @@ public sealed class DemoScenarioTests
 
         public DemoScenarioRunner Runner { get; }
 
-        public static World Create(int seed, int capacity = 8, bool enabled = true)
+        public static World Create(int seed, int capacity = 8, bool enabled = true, int hugeLoad = 200)
         {
             var harness = ControllerHarness.Create(startFloor: 1, options: HoldOpen).Start();
             var registry = new PassengerRegistry(
@@ -120,7 +164,7 @@ public sealed class DemoScenarioTests
             var runner = new DemoScenarioRunner(
                 new PassengerService(registry, harness.Controller, harness.Time),
                 harness.Elevator,
-                new SimulationOptions { Enabled = enabled, Seed = seed, TickInterval = Tick },
+                new SimulationOptions { Enabled = enabled, Seed = seed, TickInterval = Tick, HugeLoadPassengers = hugeLoad, HugeLoadSpeed = 4 },
                 harness.Time,
                 NullLogger<DemoScenarioRunner>.Instance);
             return new World(harness, registry, runner);

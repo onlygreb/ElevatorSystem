@@ -26,7 +26,7 @@ internal sealed class InteractiveSession(
           call <floor> up|down   call the elevator from a floor
           go <floor>             press a floor button inside the car
         Demo scenarios:
-          scenario morning|lunch|busy   simulated passengers arrive on floor 1 and ride around
+          scenario <name>        morning, lunch, busy or huge: simulated passengers arrive on floor 1
           scenario stop          stop them and let them leave
         Service:
           stop                   emergency stop (cancels every call)

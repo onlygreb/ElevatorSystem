@@ -23,6 +23,22 @@ public sealed class AdminTests(BrowserFixture fixture)
         await Expect(page.GetByTestId("demo-message")).ToContainTextAsync("The demo passengers are leaving.");
     }
 
+    [Fact]
+    public async Task Admin_StartsAHugeLoad_SeesTheBuildingFastForwarded_AndStopsIt()
+    {
+        var page = await fixture.NewPageAsync();
+
+        await SignInAsync(page, fixture);
+        await page.GetByTestId("demo-HugeLoad").ClickAsync();
+
+        await Expect(page.GetByTestId("demo-message")).ToContainTextAsync("Huge load started");
+        await Expect(page.GetByTestId("status-speed")).ToContainTextAsync("Fast-forward 8×");
+
+        await page.GetByTestId("demo-stop").ClickAsync();
+        // The car first serves, still fast-forwarded, the calls the crowd left behind.
+        await Expect(page.GetByTestId("status-speed")).ToHaveCountAsync(0, new() { Timeout = 60_000 });
+    }
+
     /// <summary>
     /// Registers the test admin's authenticator: the first sign-in with a password asks for it, then shows recovery
     /// codes. The fixture does this once, before any test, with a generous timeout.

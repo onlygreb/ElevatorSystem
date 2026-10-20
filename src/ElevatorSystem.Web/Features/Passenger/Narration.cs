@@ -69,6 +69,9 @@ internal static class Narration
         ElevatorActivityKind.PassengerLeft => text[Text.ActivityPassengerLeft, activity.Floor],
         ElevatorActivityKind.PassengerRemoved => text[Text.ActivityPassengerRemoved, activity.Floor],
         ElevatorActivityKind.PassengerRefused => text[Text.ActivityPassengerRefused, activity.Floor],
+        ElevatorActivityKind.SpeedChanged when activity.Speed > 1 =>
+            text[Text.ActivitySpeedFast, activity.Speed.Value.ToString("0.#", CultureInfo.CurrentCulture)],
+        ElevatorActivityKind.SpeedChanged => text[Text.ActivitySpeedNormal],
         _ => activity.Kind.ToString(),
     };
 

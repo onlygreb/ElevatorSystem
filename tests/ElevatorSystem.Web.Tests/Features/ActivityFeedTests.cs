@@ -21,6 +21,8 @@ public sealed class ActivityFeedTests : WebTestContext
         ["DoorsClosed"] = (new(At, ElevatorActivityKind.DoorsClosed, 4), "Doors closed at floor 4."),
         ["OutOfService"] = (new(At, ElevatorActivityKind.OutOfService, 6, OutOfServiceCause: OutOfServiceCause.EmergencyStop, CancelledCalls: 2), "Out of service at floor 6: emergency stop. Calls cancelled: 2."),
         ["ReturnedToService"] = (new(At, ElevatorActivityKind.ReturnedToService, 6), "Back in service at floor 6."),
+        ["SpeedFaster"] = (new(At, ElevatorActivityKind.SpeedChanged, 1, Speed: 8), "Fast-forward: the car and the simulation now run 8× faster."),
+        ["SpeedNormal"] = (new(At, ElevatorActivityKind.SpeedChanged, 1, Speed: 1), "Back to normal speed."),
     };
 
     public static TheoryData<string> EveryKind => [.. Cases.Keys];

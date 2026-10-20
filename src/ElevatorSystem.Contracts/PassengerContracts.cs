@@ -84,6 +84,12 @@ public enum DemoScenario
 
     /// <summary>A steady stream of people moving between floors for a couple of minutes.</summary>
     BusyDay,
+
+    /// <summary>
+    /// Hundreds of people, many of them pressing the call button again and again, while the car and every simulation
+    /// run fast-forwarded (ADR-0031): a stress test of the whole system.
+    /// </summary>
+    HugeLoad,
 }
 
 /// <summary>An admin starts a demo scenario.</summary>

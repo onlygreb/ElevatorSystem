@@ -71,8 +71,9 @@ public sealed class ElevatorStateStore
     }
 
     /// <summary>
-    /// Shows <paramref name="status"/> unless an equal or newer version is already shown, so a late HTTP
-    /// response or a reordered message can never move the car backwards.
+    /// Shows <paramref name="status"/> unless a newer version, or the same version taken later, is already shown, so a
+    /// late HTTP response or a reordered message can never move the car backwards. The same version taken later still
+    /// applies: the speed (ADR-0031) changes without a new version.
     /// </summary>
     /// <returns><c>true</c> when the status was applied.</returns>
     public bool ApplyStatus(ElevatorStatusDto status)
@@ -85,7 +86,8 @@ public sealed class ElevatorStateStore
 
             // After the connection is (re)established, the first status comes from the server that is
             // live now. It wins even with a lower version: the API may have restarted and begun counting again.
-            if (!_resynchronising && Status is { } shown && status.Version <= shown.Version)
+            if (!_resynchronising && Status is { } shown
+                && (status.Version < shown.Version || (status.Version == shown.Version && status.TakenAt <= shown.TakenAt)))
             {
                 return false;
             }

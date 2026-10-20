@@ -12,7 +12,7 @@ public sealed class DemoScenariosTests : WebTestContext
         var demos = Render<DemoScenarios>();
 
         demos.FindAll(".demo-card").Select(card => card.GetAttribute("data-testid"))
-            .ShouldBe(["demo-MorningRush", "demo-LunchBreak", "demo-BusyDay"]);
+            .ShouldBe(["demo-MorningRush", "demo-LunchBreak", "demo-BusyDay", "demo-HugeLoad"]);
         demos.FindAll(".demo-card").ShouldAllBe(card => card.QuerySelector(".demo-card__title")!.TextContent.Length > 0
             && card.QuerySelector(".demo-card__hint")!.TextContent.Length > 0);
     }

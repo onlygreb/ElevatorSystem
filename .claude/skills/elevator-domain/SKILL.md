@@ -145,6 +145,14 @@ lunch break, busy day. Simulated passengers arrive on the lowest floor and use `
 people, at a human pace, on a `TimeProvider` timer (`TickInterval`), seeded for reproducible runs.
 `StopAll` removes them. `DemoScenarioTests` drive whole scenarios in simulated time.
 
+**Huge load and fast-forward** (ADR-0031): `HugeLoadPassengers` (120) people, half of them pressing the call button
+again and again (`PassengerService.PressCallButton`), while everything runs `HugeLoadSpeed` (8) times faster.
+`ElevatorController.SetSpeed` divides travel and the door countdown (the watchdog keeps its limit); only an
+`IVariableSpeedDrive` (the simulated drive) accepts it. The runner keeps its own clock, which runs that much faster,
+and resets the speed to 1 once the last huge load passenger is done, or the scenarios stop, and the car has served
+the calls left behind. The engine publishes a
+`SpeedChanged` activity, and every status carries `Speed`.
+
 ## Before you finish a change here
 
 - [ ] Transition-table rows cover every (state, command) pair that changed

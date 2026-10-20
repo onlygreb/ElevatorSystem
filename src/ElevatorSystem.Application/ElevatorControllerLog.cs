@@ -62,4 +62,7 @@ internal static partial class ElevatorControllerLog
 
     [LoggerMessage(1517, LogLevel.Error, "Event sink {Sink} failed to accept {EventType}; the other sinks still receive it")]
     public static partial void SinkFailed(ILogger logger, Exception exception, string sink, string eventType);
+
+    [LoggerMessage(1518, LogLevel.Information, "The simulated car now runs at {Speed}x normal speed")]
+    public static partial void SpeedChanged(ILogger logger, double speed);
 }
