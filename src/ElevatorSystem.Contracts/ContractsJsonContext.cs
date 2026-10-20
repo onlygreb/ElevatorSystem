@@ -28,4 +28,10 @@ namespace ElevatorSystem.Contracts;
 [JsonSerializable(typeof(ServiceActionAcceptedResponse))]
 [JsonSerializable(typeof(AuditPageDto))]
 [JsonSerializable(typeof(AuditVerificationDto))]
+[JsonSerializable(typeof(PassengerAcceptedResponse))]
+[JsonSerializable(typeof(PassengerHallCallRequest))]
+[JsonSerializable(typeof(PassengerCarCallRequest))]
+[JsonSerializable(typeof(PassengerDto))]
+[JsonSerializable(typeof(StartScenarioRequest))]
+[JsonSerializable(typeof(ScenarioAcceptedResponse))]
 public sealed partial class ContractsJsonContext : JsonSerializerContext;

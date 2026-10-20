@@ -13,6 +13,8 @@ namespace ElevatorSystem.Contracts;
 [JsonDerivedType(typeof(HallCallCommandV1), "hall-call.v1")]
 [JsonDerivedType(typeof(CarCallCommandV1), "car-call.v1")]
 [JsonDerivedType(typeof(ServiceCommandV1), "service.v1")]
+[JsonDerivedType(typeof(PassengerCommandV1), "passenger.v1")]
+[JsonDerivedType(typeof(ScenarioCommandV1), "scenario.v1")]
 public abstract record ElevatorCommandV1(Guid CommandId, DateTimeOffset IssuedAt);
 
 /// <summary>A passenger on <see cref="Floor"/> wants to go <see cref="Direction"/>.</summary>
@@ -30,6 +32,18 @@ public sealed record CarCallCommandV1(Guid CommandId, DateTimeOffset IssuedAt, i
 public sealed record ServiceCommandV1(Guid CommandId, DateTimeOffset IssuedAt, ServiceAction Action)
     : ElevatorCommandV1(CommandId, IssuedAt);
 
+/// <summary>
+/// An anonymous passenger takes a step (ADR-0026): <see cref="Floor"/> is set for <see cref="PassengerAction.ChooseFloor"/>,
+/// <see cref="Direction"/> for <see cref="PassengerAction.CallElevator"/>.
+/// </summary>
+public sealed record PassengerCommandV1(
+    Guid CommandId, DateTimeOffset IssuedAt, Guid PassengerId, PassengerAction Action, int? Floor = null, CallDirection? Direction = null)
+    : ElevatorCommandV1(CommandId, IssuedAt);
+
+/// <summary>An admin starts a demo scenario, or stops them all and removes their passengers (<see cref="Scenario"/> null; ADR-0027).</summary>
+public sealed record ScenarioCommandV1(Guid CommandId, DateTimeOffset IssuedAt, DemoScenario? Scenario)
+    : ElevatorCommandV1(CommandId, IssuedAt);
+
 public enum ServiceAction
 {
     /// <summary>Take the elevator out of service for maintenance; pending calls are cancelled.</summary>
@@ -38,7 +52,7 @@ public enum ServiceAction
     /// <summary>Stop the car at once and take it out of service; pending calls are cancelled.</summary>
     EmergencyStop,
 
-    /// <summary>Return an out-of-service elevator to service, idle with the door closed.</summary>
+    /// <summary>Return an out-of-service elevator to service; with nothing to do it opens its door and waits.</summary>
     ReturnToService,
 }
 
