@@ -96,6 +96,30 @@ public sealed class PassengerRegistryTests
     }
 
     [Fact]
+    public void Depart_TakesThePassengerOutOfTheBuilding_EvenFromTheCar()
+    {
+        var id = Joined();
+        _elevator.OpenDoor();
+        _registry.Board(id);
+
+        _registry.Depart(id);
+
+        _registry.Find(id).ShouldBeNull();
+        _registry.Current.PassengersInCar.ShouldBe(0);
+        _observer.Events.OfType<PassengerRemoved>().ShouldHaveSingleItem().PassengerId.ShouldBe(id);
+    }
+
+    [Fact]
+    public void Depart_OfSomeoneNotInTheBuilding_ChangesNothing_AndSaysNothing()
+    {
+        var before = _observer.Events.Count;
+
+        _registry.Depart(Guid.NewGuid());
+
+        _observer.Events.Count.ShouldBe(before, "a tab that closed twice is not a refusal");
+    }
+
+    [Fact]
     public void Board_WithTheDoorClosed_OrOpenOnAnotherFloor_IsRefused()
     {
         var id = Joined();

@@ -1,6 +1,7 @@
 # 0026. Passengers walk in and out of the car themselves, and are counted as they move
 
-- **Status:** Accepted (amended by [0035](0035-a-passenger-per-browser-tab.md): the id is kept per browser tab)
+- **Status:** Accepted (amended by [0035](0035-a-passenger-per-browser-tab.md): the id is kept per browser tab; and
+  [0036](0036-a-closed-tab-leaves-the-building.md): a passenger whose tab closes leaves the building)
 - **Date:** 2026-10-20
 - **Supersedes:** [0020](0020-occupancy-counting-rules-and-traffic-generator.md); amends [0017](0017-manual-passengers-occupancy-and-admin-service-control.md) §2 and §4
 

@@ -267,6 +267,22 @@ public sealed class PassengerRegistry : IElevatorEventSink
         }
     }
 
+    /// <summary>
+    /// A passenger leaves the building from wherever they are, the car included: their browser tab closed (ADR-0036).
+    /// Someone the building does not know is simply ignored; their tab may have closed twice.
+    /// </summary>
+    public void Depart(Guid passengerId, Guid? requestId = null)
+    {
+        lock (_gate)
+        {
+            if (_passengers.TryGetValue(passengerId, out var passenger))
+            {
+                Remove(passenger, _elevator.Snapshot(), _timeProvider.GetUtcNow(), requestId);
+                NotifyCounts();
+            }
+        }
+    }
+
     /// <summary>Removes one simulated passenger who reached the end of their scenario.</summary>
     public void Retire(Guid passengerId)
     {

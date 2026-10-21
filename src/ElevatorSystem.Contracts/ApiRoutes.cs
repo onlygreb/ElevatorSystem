@@ -38,6 +38,9 @@ public static class ApiRoutes
     /// <summary><c>POST</c> to walk out of the car while its door is open.</summary>
     public const string PassengerLeave = Passenger + "/leave";
 
+    /// <summary><c>POST</c> when the passenger's tab closes: they leave the building unless they are back within moments (ADR-0036).</summary>
+    public const string PassengerDepart = Passenger + "/depart";
+
     /// <summary><c>POST</c> a <see cref="StartScenarioRequest"/> (admins): simulated passengers start acting (ADR-0027).</summary>
     public const string Scenarios = Base + "/admin/scenarios";
 

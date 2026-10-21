@@ -31,6 +31,42 @@ public sealed class PassengerEndpointTests
     }
 
     [Fact]
+    public async Task ATabThatCloses_TakesItsPassengerOutOfTheBuilding_EvenFromTheCar()
+    {
+        await using var factory = new ApiFactory().WithSetting("Passengers:DepartureGrace", "00:00:00.2");
+        using var client = factory.CreateClient();
+        await factory.StatusAsync(status => status is { Status: ElevatorStatus.DoorOpen, CurrentFloor: 1 });
+        var me = await JoinAsync(client);
+        await PassengerAsync(factory, me.PassengerId, _ => true);
+        (await client.PostJsonAsync(ApiRoutes.PassengerRoute(me.PassengerId) + "/board", "{}")).Dispose();
+        await PassengerAsync(factory, me.PassengerId, passenger => passenger.InCar);
+
+        using var departed = await client.PostAsync(new Uri(ApiRoutes.PassengerRoute(me.PassengerId) + "/depart", UriKind.Relative), content: null, Http.Cancellation);
+
+        departed.StatusCode.ShouldBe(HttpStatusCode.Accepted);
+        await Eventually.HoldsAsync(() => factory.Services.GetRequiredService<ElevatorStateCache>().Passenger(me.PassengerId) is null, "the passenger to leave the building", cancellationToken: Http.Cancellation);
+        using var gone = await client.GetRouteAsync(ApiRoutes.PassengerRoute(me.PassengerId));
+        gone.StatusCode.ShouldBe(HttpStatusCode.NotFound);
+    }
+
+    [Fact]
+    public async Task AReloadedTab_ComesBackWithinTheGrace_AndItsPassengerStays()
+    {
+        await using var factory = new ApiFactory().WithSetting("Passengers:DepartureGrace", "00:00:00.5");
+        using var client = factory.CreateClient();
+        await factory.StatusAsync();
+        var me = await JoinAsync(client);
+        await PassengerAsync(factory, me.PassengerId, _ => true);
+
+        (await client.PostAsync(new Uri(ApiRoutes.PassengerRoute(me.PassengerId) + "/depart", UriKind.Relative), content: null, Http.Cancellation)).Dispose();
+        using var restored = await client.GetRouteAsync(ApiRoutes.PassengerRoute(me.PassengerId));
+        await Task.Delay(TimeSpan.FromSeconds(1), Http.Cancellation);
+
+        restored.StatusCode.ShouldBe(HttpStatusCode.OK);
+        factory.Services.GetRequiredService<ElevatorStateCache>().Passenger(me.PassengerId).ShouldNotBeNull("the reloaded tab asked for its passenger within the grace");
+    }
+
+    [Fact]
     public async Task CallingTheCar_MarksThePassengerWaiting_AndBringsTheCar()
     {
         await using var factory = new ApiFactory();

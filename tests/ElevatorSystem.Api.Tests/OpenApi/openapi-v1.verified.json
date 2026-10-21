@@ -1527,6 +1527,72 @@
         }
       }
     },
+    "/api/v1/passengers/{passengerId}/depart": {
+      "post": {
+        "tags": [
+          "Passengers"
+        ],
+        "summary": "Say the passenger's tab closed",
+        "description": "Sent by the browser as its tab goes away (ADR-0036). The passenger leaves the building a few seconds later, unless the same passenger is heard from first, as a reloaded tab is. No body.",
+        "operationId": "PassengerDeparts",
+        "parameters": [
+          {
+            "name": "passengerId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "Accepted"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Payload Too Large",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/passengers/{passengerId}/leave": {
       "post": {
         "tags": [

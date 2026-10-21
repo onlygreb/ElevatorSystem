@@ -1,3 +1,4 @@
+using ElevatorSystem.Api.Passengers;
 using ElevatorSystem.Contracts;
 
 namespace ElevatorSystem.Api.RealTime;
@@ -19,6 +20,7 @@ internal static class RealTimeExtensions
 
         services.AddOptions<RealTimeOptions>().BindConfiguration(RealTimeOptions.Section).ValidateDataAnnotations().ValidateOnStart();
         services.AddSingleton<ElevatorStateCache>();
+        services.AddSingleton<PassengerDepartures>();
         services.AddSingleton<ElevatorEventBuffer>();
         services.AddHostedService<ElevatorUpdateSubscriptionService>();
         services.AddHostedService<ElevatorBroadcastService>();

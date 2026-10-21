@@ -34,6 +34,9 @@ internal static partial class ApiLog
     [LoggerMessage(3017, LogLevel.Information, "Staff account {Index} has no password configured, so it is not created")]
     public static partial void StaffAccountSkipped(ILogger logger, int index);
 
+    [LoggerMessage(3018, LogLevel.Warning, "A passenger whose tab closed could not be sent out of the building; the engine forgets them once they are idle")]
+    public static partial void DepartureNotSent(ILogger logger, Exception exception);
+
     [LoggerMessage(3014, LogLevel.Critical, "Preparing the staff database failed; staff sign-in stays unavailable until the API is restarted with a valid configuration")]
     public static partial void StaffPreparationFailed(ILogger logger, Exception exception);
 }

@@ -41,3 +41,4 @@ supersedes the old one instead of editing it. New records start from [`template.
 | [0033](0033-admins-switch-scheduling-out-of-service.md) | Admins switch between FIFO and LOOK while the car is out of service | Accepted |
 | [0034](0034-docker-compose-starts-with-no-setup.md) | Docker Compose starts with no setup | Accepted |
 | [0035](0035-a-passenger-per-browser-tab.md) | Every browser tab is a passenger of its own | Accepted |
+| [0036](0036-a-closed-tab-leaves-the-building.md) | A passenger whose tab closes leaves the building | Accepted |

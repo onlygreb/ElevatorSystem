@@ -1,6 +1,6 @@
 # ElevatorSystem threat model (STRIDE)
 
-- **Version:** 1.10
+- **Version:** 1.11
 - **Date:** 2026-10-19
 - **Covers:** the planned architecture of ADR-0002 to ADR-0011 at the end of delivery phase 0
 - **Method:** STRIDE per element and per data flow, plus elevator-specific abuse cases
@@ -584,3 +584,4 @@ rows that cite it.
 | 2026-10-20 | 1.8 | ADR-0033 (scheduling switch) | P5 | T-API-05, T-API-07: a new admin action under `service-control`, with antiforgery, audited before it is sent, allowed only while the car is out of service. |
 | 2026-10-20 | 1.9 | ADR-0034 (Compose with no setup) | P5 | T-API-01: Docker Compose runs with public default passwords and the test admin on, so the API is bound to 127.0.0.1 unless `API_ADDRESS` says otherwise; own values are required beyond one machine. A self-signed certificate keeps HTTPS and the `__Host-` cookies. |
 | 2026-10-21 | 1.10 | ADR-0035 (a passenger per tab) | P5 | T-WEB-04: the passenger's id moves from `localStorage` to `sessionStorage`, one per tab; it is kept for less time, nothing more. |
+| 2026-10-21 | 1.11 | ADR-0036 (a closed tab leaves) | P5 | T-API-04: a new anonymous endpoint, `POST /passengers/{id}/depart`, under the passenger rate limit with no body; it only schedules a departure, at most 10,000 at once, and anyone who knows a passenger's id could already move them. |

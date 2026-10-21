@@ -37,6 +37,9 @@ public enum PassengerAction
 
     /// <summary>Walk out of the car, while its door is open.</summary>
     Leave,
+
+    /// <summary>Leave the building, from wherever they are: their browser tab closed (ADR-0036).</summary>
+    LeaveBuilding,
 }
 
 /// <summary>Why a passenger's step was refused; the <c>passengerRefusal</c> of a <c>PassengerRefused</c> activity.</summary>
