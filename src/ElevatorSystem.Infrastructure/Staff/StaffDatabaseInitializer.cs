@@ -9,6 +9,9 @@ namespace ElevatorSystem.Infrastructure.Staff;
 /// </summary>
 public sealed class StaffDatabaseInitializer(IDbContextFactory<StaffDbContext> contextFactory)
 {
+    /// <summary>The advisory lock that serialises migrations of the staff schema (any key distinct from the others in use).</summary>
+    public const long MigrationLockKey = 7_300_000_001;
+
     private readonly IDbContextFactory<StaffDbContext> _contextFactory = contextFactory ?? throw new ArgumentNullException(nameof(contextFactory));
 
     public async Task InitializeAsync(CancellationToken cancellationToken)
@@ -16,7 +19,7 @@ public sealed class StaffDatabaseInitializer(IDbContextFactory<StaffDbContext> c
         await using var context = await _contextFactory.CreateDbContextAsync(cancellationToken);
         if (context.Database.IsNpgsql())
         {
-            await context.Database.MigrateAsync(cancellationToken);
+            await DatabaseMigrations.MigrateAsync(context, MigrationLockKey, cancellationToken);
         }
         else
         {

@@ -33,8 +33,9 @@ services:
     volumes:
       - rabbitmq-data:/var/lib/rabbitmq
     healthcheck:
-      # Ready only once AMQP accepts connections; "ping" answers earlier than that.
-      test: ["CMD", "rabbitmq-diagnostics", "-q", "check_port_connectivity"]
+      # Ready only once AMQP accepts connections; "ping" answers earlier than that. As the rabbitmq user: run as root
+      # before the server has started, the CLI would create the Erlang cookie as root, and the server could not read it.
+      test: ["CMD", "gosu", "rabbitmq", "rabbitmq-diagnostics", "-q", "check_port_connectivity"]
       interval: 5s
       timeout: 10s
       retries: 30

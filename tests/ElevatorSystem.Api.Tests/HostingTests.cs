@@ -54,7 +54,9 @@ public sealed class HostingTests
             .WithoutOverride("Hosting:Mode")
             .InEnvironment("Production")
             .WithSetting("ConnectionStrings:messaging", "amqp://api:secret@127.0.0.1:1/")
-            .WithSetting("ConnectionStrings:elevatordb", "Host=127.0.0.1;Port=1;Database=elevatordb;Username=api;Password=secret");
+            .WithSetting("ConnectionStrings:elevatordb", "Host=127.0.0.1;Port=1;Database=elevatordb;Username=api;Password=secret")
+            // The database is unreachable: start-up goes on without it after its head start.
+            .WithSetting("Staff:DatabaseHeadStart", "00:00:00.5");
         _ = factory.Server;
 
         factory.Services.GetRequiredService<IOptions<HostingOptions>>().Value.Mode.ShouldBe(HostingMode.Distributed);

@@ -33,12 +33,13 @@ internal sealed class StaffStartupService(
     /// <summary>The staff database is migrated and seeded.</summary>
     public bool IsReady => _preparation.IsCompletedSuccessfully;
 
-    public Task StartAsync(CancellationToken cancellationToken)
+    public async Task StartAsync(CancellationToken cancellationToken)
     {
         if (hosting.Value.Mode == HostingMode.SingleProcess)
         {
             _preparation = PrepareAsync(cancellationToken);
-            return _preparation;
+            await _preparation;
+            return;
         }
 
         var stopping = lifetime.ApplicationStopping;
@@ -57,7 +58,11 @@ internal sealed class StaffStartupService(
                 }
             },
             CancellationToken.None);
-        return Task.CompletedTask;
+
+        // A head start: hosted services registered after this one (data protection reads its key ring at start-up) then
+        // find the schema in place, rather than logging errors on a fresh database. A preparation still waiting for the
+        // database goes on in the background, as before.
+        await Task.WhenAny(_preparation, Task.Delay(options.Value.DatabaseHeadStart, timeProvider, cancellationToken));
     }
 
     /// <summary>Waits for a preparation still running; the host's stopping token has already cancelled it.</summary>
