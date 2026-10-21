@@ -47,6 +47,27 @@ public sealed class PassengerJourneyTests(BrowserFixture fixture)
     }
 
     [Fact]
+    public async Task EveryTab_IsAPassengerOfItsOwn()
+    {
+        var first = await fixture.NewPageAsync();
+        await fixture.OpenAsync(first, "/");
+        await first.GetByTestId("arrive").ClickAsync();
+        await Expect(Where(first)).ToHaveTextAsync("You are on floor 1");
+
+        // Another tab of the same browser: a second person arriving, not the first one again (ADR-0035).
+        var second = await first.Context.NewPageAsync();
+        await fixture.OpenAsync(second, "/");
+
+        await Expect(second.GetByTestId("arrive")).ToBeVisibleAsync();
+        await second.GetByTestId("arrive").ClickAsync();
+        await Expect(Where(second)).ToHaveTextAsync("You are on floor 1");
+        var ids = await Task.WhenAll(
+            first.EvaluateAsync<string>("sessionStorage.getItem('elevator.passenger')"),
+            second.EvaluateAsync<string>("sessionStorage.getItem('elevator.passenger')"));
+        ids[0].ShouldNotBe(ids[1]);
+    }
+
+    [Fact]
     public async Task DoorCountdown_ShowsWhileTheDoorsCanClose()
     {
         var page = await fixture.NewPageAsync();

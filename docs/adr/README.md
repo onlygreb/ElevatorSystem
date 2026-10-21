@@ -40,3 +40,4 @@ supersedes the old one instead of editing it. New records start from [`template.
 | [0032](0032-stop-and-clear-empties-the-queue.md) | Stop and clear empties the queue and sends the car to the lobby | Accepted |
 | [0033](0033-admins-switch-scheduling-out-of-service.md) | Admins switch between FIFO and LOOK while the car is out of service | Accepted |
 | [0034](0034-docker-compose-starts-with-no-setup.md) | Docker Compose starts with no setup | Accepted |
+| [0035](0035-a-passenger-per-browser-tab.md) | Every browser tab is a passenger of its own | Accepted |
