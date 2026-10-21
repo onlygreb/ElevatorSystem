@@ -56,6 +56,13 @@ public sealed class DemoScenarioRunner : IDisposable
 {
     private static readonly TimeSpan Stagger = TimeSpan.FromSeconds(1.2);
 
+    /// <summary>
+    /// How long a simulated passenger who walked out waits before boarding again a car that stays at their floor with
+    /// nothing to do, which would otherwise never leave. Long enough that a queue that only looks empty, because new
+    /// presses have not reached the controller yet, never counts as "nothing to do".
+    /// </summary>
+    internal static readonly TimeSpan IdleCarGrace = TimeSpan.FromSeconds(3);
+
     private readonly Lock _gate = new();
     private readonly PassengerService _service;
     private readonly Elevator _elevator;
@@ -346,6 +353,7 @@ public sealed class DemoScenarioRunner : IDisposable
         private readonly Queue<Leg> _legs = new(legs);
         private bool _joined;
         private bool _waitForTheCarToLeave;
+        private DateTimeOffset? _carIdleHereSince;
         private DateTimeOffset _readyAt = arrivesAt;
         private DateTimeOffset _nextActionAt = arrivesAt;
 
@@ -405,17 +413,25 @@ public sealed class DemoScenarioRunner : IDisposable
 
                 if (_waitForTheCarToLeave)
                 {
-                    // Just walked out here, or the car was full: try again once it has left this floor. A car waiting
-                    // here with nothing at all to do will not leave, so then they go ahead.
-                    var carStillHere = snapshot.CurrentFloor.Number == me.Floor
-                        && snapshot.State is ElevatorState.DoorOpen or ElevatorState.Idle
-                        && !snapshot.PendingCalls.IsEmpty;
-                    if (carStillHere)
+                    // Just walked out here, or the car was full: try again once it has left this floor. A car that stays
+                    // here with nothing at all to do will not leave, so once it has been idle for a while they go ahead.
+                    if (snapshot.CurrentFloor.Number == me.Floor && snapshot.State is ElevatorState.DoorOpen or ElevatorState.Idle)
                     {
-                        return false;
+                        if (!snapshot.PendingCalls.IsEmpty)
+                        {
+                            _carIdleHereSince = null;
+                            return false;
+                        }
+
+                        _carIdleHereSince ??= now;
+                        if (now - _carIdleHereSince < IdleCarGrace)
+                        {
+                            return false;
+                        }
                     }
 
                     _waitForTheCarToLeave = false;
+                    _carIdleHereSince = null;
                 }
 
                 if (doorOpenHere)
