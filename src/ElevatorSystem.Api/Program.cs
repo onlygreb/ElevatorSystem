@@ -10,6 +10,9 @@ using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Before Kestrel loads it: Docker Compose may ask for a certificate to be made on first start (ADR-0034).
+var createdCertificate = SelfSignedCertificate.EnsureExists(builder.Configuration, TimeProvider.System);
+
 builder.AddServiceDefaults();
 builder.WebHost.ConfigureKestrel(options => options.AddServerHeader = false);
 
@@ -39,6 +42,11 @@ builder.Services.AddRazorComponents()
     .AddInteractiveWebAssemblyComponents();
 
 var app = builder.Build();
+
+if (createdCertificate is not null)
+{
+    ApiLog.SelfSignedCertificateCreated(app.Logger, createdCertificate);
+}
 
 // First, so every response carries the headers, whichever middleware produces it.
 app.UseSecurityHeaders(app.Environment.IsDevelopment());

@@ -1,18 +1,19 @@
 # The whole system with Docker only (ADR-0029): RabbitMQ, PostgreSQL, two engines (one leads, one stands by), the
 # API with the web UI, and the Aspire dashboard for logs, traces and metrics. See deploy/README.md.
 #
-#   cp deploy/.env.example deploy/.env    # then set the passwords and the keys in it
 #   docker compose -f deploy/compose.yaml up --build
 #
-# Secrets come from deploy/.env (git-ignored); compose refuses to start while one is missing.
+# Nothing to set up first (ADR-0034): every setting has a local default, the API makes itself a self-signed HTTPS
+# certificate, and a test admin signs in without an authenticator app. The defaults are public, so the API listens on
+# this machine only. Put your own values in deploy/.env (git-ignored; see .env.example) for anything beyond that.
 
 name: elevatorsystem
 
 x-dotnet: &dotnet
   ASPNETCORE_ENVIRONMENT: Production
-  ConnectionStrings__messaging: amqp://${MESSAGING_USER:-elevator}:${MESSAGING_PASSWORD:?set MESSAGING_PASSWORD in deploy/.env}@rabbitmq:5672/
+  ConnectionStrings__messaging: amqp://${MESSAGING_USER:-elevator}:${MESSAGING_PASSWORD:-elevator-local-broker}@rabbitmq:5672/
   # The chiseled images have no Kerberos library, so Npgsql must not probe for GSS encryption.
-  ConnectionStrings__elevatordb: Host=postgres;Port=5432;Database=elevatordb;Username=${DATABASE_USER:-elevator};Password=${DATABASE_PASSWORD:?set DATABASE_PASSWORD in deploy/.env};GSS Encryption Mode=Disable
+  ConnectionStrings__elevatordb: Host=postgres;Port=5432;Database=elevatordb;Username=${DATABASE_USER:-elevator};Password=${DATABASE_PASSWORD:-elevator-local-database};GSS Encryption Mode=Disable
   # Admins can start demo scenarios with simulated passengers (ADR-0027).
   Simulation__Enabled: "true"
   # The order the car serves its calls in: Fifo (the requirement) or Look, to compare average wait times (ADR-0005).
@@ -26,7 +27,7 @@ services:
     image: rabbitmq:4.1-management
     environment:
       RABBITMQ_DEFAULT_USER: ${MESSAGING_USER:-elevator}
-      RABBITMQ_DEFAULT_PASS: ${MESSAGING_PASSWORD:?set MESSAGING_PASSWORD in deploy/.env}
+      RABBITMQ_DEFAULT_PASS: ${MESSAGING_PASSWORD:-elevator-local-broker}
     ports:
       - "127.0.0.1:15672:15672"
     volumes:
@@ -44,7 +45,7 @@ services:
     image: postgres:17.6-alpine
     environment:
       POSTGRES_USER: ${DATABASE_USER:-elevator}
-      POSTGRES_PASSWORD: ${DATABASE_PASSWORD:?set DATABASE_PASSWORD in deploy/.env}
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD:-elevator-local-database}
       POSTGRES_DB: elevatordb
     volumes:
       - postgres-data:/var/lib/postgresql/data
@@ -98,21 +99,26 @@ services:
       # HTTPS, because the staff cookies are __Host- and Secure (ADR-0022); plain HTTP redirects to it.
       ASPNETCORE_HTTP_PORTS: "8080"
       ASPNETCORE_HTTPS_PORTS: "8443"
+      # Made on first start when there is none yet: self-signed for localhost (ADR-0034). Point CERTIFICATE_DIR at a
+      # folder holding an elevator.pfx of your own to use that instead.
       ASPNETCORE_Kestrel__Certificates__Default__Path: /https/elevator.pfx
-      ASPNETCORE_Kestrel__Certificates__Default__Password: ${CERTIFICATE_PASSWORD:?set CERTIFICATE_PASSWORD in deploy/.env}
-      # The first admin, created once (ADR-0022); after signing in, register an authenticator app.
+      ASPNETCORE_Kestrel__Certificates__Default__Password: ${CERTIFICATE_PASSWORD:-elevator-local-certificate}
+      Tls__CreateSelfSignedCertificate: "true"
+      # A real admin, created once when ADMIN_PASSWORD is set (ADR-0022); it registers an authenticator app on first sign-in.
       Staff__Accounts__0__Email: ${ADMIN_EMAIL:-admin@elevator.local}
-      Staff__Accounts__0__Password: ${ADMIN_PASSWORD:?set ADMIN_PASSWORD in deploy/.env}
+      Staff__Accounts__0__Password: ${ADMIN_PASSWORD:-}
       Staff__Accounts__0__Role: Admin
-      # A test admin that signs in with its password only (ADR-0030); leave TEST_ADMIN_PASSWORD empty to turn it off.
+      # A test admin that signs in with its password only (ADR-0030); set TEST_ADMIN_PASSWORD empty to turn it off.
       Staff__TestAccount__Email: ${TEST_ADMIN_EMAIL:-tester@elevator.local}
-      Staff__TestAccount__Password: ${TEST_ADMIN_PASSWORD:-}
-      Audit__ClientPseudonymKey: ${AUDIT_PSEUDONYM_KEY:?set AUDIT_PSEUDONYM_KEY in deploy/.env}
+      Staff__TestAccount__Password: ${TEST_ADMIN_PASSWORD-elevator-test-account}
+      # Without a key, client pseudonyms in the audit trail link only until the next restart (a warning says so).
+      Audit__ClientPseudonymKey: ${AUDIT_PSEUDONYM_KEY:-}
     ports:
-      - "8080:8080"
-      - "8443:8443"
+      # This machine only, as the defaults are public; set API_ADDRESS=0.0.0.0 to reach it from your network.
+      - "${API_ADDRESS:-127.0.0.1}:8080:8080"
+      - "${API_ADDRESS:-127.0.0.1}:8443:8443"
     volumes:
-      - ./certs:/https:ro
+      - ${CERTIFICATE_DIR:-api-certificate}:/https
     depends_on:
       rabbitmq:
         condition: service_healthy
@@ -125,3 +131,4 @@ services:
 volumes:
   rabbitmq-data:
   postgres-data:
+  api-certificate:

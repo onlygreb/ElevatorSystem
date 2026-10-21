@@ -19,7 +19,8 @@ RUN --mount=type=cache,id=nuget,target=/root/.nuget/packages \
 
 FROM build AS publish-api
 RUN --mount=type=cache,id=nuget,target=/root/.nuget/packages \
-    dotnet publish src/ElevatorSystem.Api/ElevatorSystem.Api.csproj --configuration Release --no-restore --output /app
+    dotnet publish src/ElevatorSystem.Api/ElevatorSystem.Api.csproj --configuration Release --no-restore --output /app \
+    && mkdir -p /https
 
 FROM build AS publish-engine
 RUN --mount=type=cache,id=nuget,target=/root/.nuget/packages \
@@ -28,6 +29,8 @@ RUN --mount=type=cache,id=nuget,target=/root/.nuget/packages \
 FROM mcr.microsoft.com/dotnet/aspnet:10.0.13-noble-chiseled-extra AS api
 WORKDIR /app
 COPY --from=publish-api /app .
+# Where compose keeps the HTTPS certificate; owned by the app user, so the API can make one on first start (ADR-0034).
+COPY --from=publish-api --chown=$APP_UID:$APP_UID /https /https
 USER $APP_UID
 EXPOSE 8080 8443
 ENTRYPOINT ["dotnet", "ElevatorSystem.Api.dll"]

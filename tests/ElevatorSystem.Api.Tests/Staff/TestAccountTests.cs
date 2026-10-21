@@ -1,6 +1,9 @@
 using System.Net;
 using System.Net.Http.Json;
 using ElevatorSystem.Contracts;
+using ElevatorSystem.Infrastructure.Staff;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
 namespace ElevatorSystem.Api.Tests.Staff;
@@ -28,6 +31,21 @@ public sealed class TestAccountTests
         (await current.Content.ReadFromJsonAsync(ContractsJsonContext.Default.StaffSessionDto, Http.Cancellation))!.TestAccount.ShouldBeTrue();
         using var occupancy = await client.GetAsync(ApiRoutes.Occupancy);
         occupancy.StatusCode.ShouldBeOneOf(HttpStatusCode.OK, HttpStatusCode.ServiceUnavailable);
+    }
+
+    [Fact]
+    public async Task AConfiguredAccountWithoutAPassword_IsNotCreated_AndTheTestAccountStillWorks()
+    {
+        // What Docker Compose passes with no setup (ADR-0034): the real admin has no password, the test admin has one.
+        await using var factory = WithTestAccount(new ApiFactory().WithSetting("Staff:Accounts:2:Email", "nobody@elevator.test").WithSetting("Staff:Accounts:2:Password", ""), TestAdmin);
+        using var client = StaffClient.Anonymous(factory);
+
+        using var tester = await client.SignInAsync(TestAdmin.Email, TestAdmin.Password);
+
+        tester.StatusCode.ShouldBe(HttpStatusCode.OK, "start-up went on past the account without a password");
+        await using var scope = factory.Services.CreateAsyncScope();
+        var users = scope.ServiceProvider.GetRequiredService<UserManager<StaffUser>>();
+        (await users.FindByEmailAsync("nobody@elevator.test")).ShouldBeNull();
     }
 
     [Fact]

@@ -16,6 +16,7 @@ ADR-0022 (staff authentication) and ADR-0023 (audit trail). The threat model is 
 | Request flooding ("press every button 1,000 times") | Rate limits, bounded intake channel, request merging |
 | Staff account takeover | Identity with a second factor mandatory for every role, lockout, password policy, per-address sign-in limit, 20-minute sliding `__Host-` cookie (ADR-0022) |
 | A test account left on where the system is exposed | `Staff:TestAccount` is opt-in, exempts only an account created as the test account, shows a banner and logs warning 3015; turn it off (empty password) anywhere beyond a local machine (ADR-0030) |
+| Docker Compose defaults reused beyond one machine | The defaults (passwords, test admin on, self-signed certificate) are public, so the API is bound to 127.0.0.1 unless `API_ADDRESS` is set; set your own values in `deploy/.env` first (ADR-0034) |
 | CSRF against cookie auth | `SameSite=Strict` cookies + antiforgery tokens |
 | Tampering with the audit trail | Hash-chained, append-only audit entries with a verification endpoint |
 | Forged messages on the broker | Per-service credentials, a dedicated virtual host, validation of every message |
