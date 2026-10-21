@@ -21,7 +21,7 @@ public sealed class ReadmeScreenshots(BrowserFixture fixture)
         Directory.CreateDirectory(folder);
 
         // The admin starts a busy day, so the building is full of people in every picture.
-        var admin = await fixture.NewPageAsync(viewport: new() { Width = 1440, Height = 1000 }, colorScheme: ColorScheme.Dark);
+        var admin = await fixture.NewPageAsync(viewport: new() { Width = 1440, Height = 1180 }, colorScheme: ColorScheme.Dark);
         await AdminTests.SignInAsync(admin, fixture);
         await admin.GetByTestId("demo-BusyDay").ClickAsync();
         await Expect(admin.GetByTestId("demo-message")).ToContainTextAsync("Busy day started");
@@ -36,7 +36,9 @@ public sealed class ReadmeScreenshots(BrowserFixture fixture)
         await PassengerJourneyTests.BoardAsync(passenger);
         await passenger.Locator(".car-button[data-floor='8']").ClickAsync();
         await Expect(passenger.Locator(".car-button[data-floor='8']")).ToHaveAttributeAsync("aria-pressed", "true");
-        await passenger.WaitForTimeoutAsync(800);
+        // While the doors still count down: a picture taken as the car leaves would catch it mid-glide.
+        await Expect(passenger.GetByTestId("door-countdown").First).ToBeVisibleAsync();
+        await passenger.WaitForTimeoutAsync(200);
         await passenger.ScreenshotAsync(new() { Path = Path.Combine(folder, "passenger-journey.png") });
 
         // The same journey on a phone, in Portuguese.

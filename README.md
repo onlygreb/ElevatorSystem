@@ -60,12 +60,13 @@ ElevatorSystem controls an elevator serving floors 1 to 10 and gives passengers 
 ### Screenshots
 
 The admin dashboard during a busy day: simulated passengers wait, walk around and ride, while the admin watches
-the car, starts demo scenarios and controls the service.
+the car, starts demo scenarios (the huge load among them), controls the service and, with the car out of service,
+switches between FIFO and LOOK scheduling.
 
 ![The admin dashboard during a busy day, in the dark theme](docs/images/admin-dashboard.png)
 
-A passenger's journey: in the car at floor 1 with floor 8 chosen, the doors counting down, and the request queue
-served in order. On a phone, in Brazilian Portuguese and the dark theme, the same journey starts in the lobby.
+A passenger's journey: in the car among the demo crowd, floor 8 chosen, the doors counting down, and the request
+queue served in order. On a phone, in Brazilian Portuguese and the dark theme, the same journey starts in the lobby.
 
 <p>
   <img src="docs/images/passenger-journey.png" alt="A passenger in the car with floor 8 chosen and the doors counting down" width="72%">
