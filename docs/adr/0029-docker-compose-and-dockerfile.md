@@ -1,6 +1,6 @@
 # 0029. Run the whole system with Docker Compose, built by a Dockerfile
 
-- **Status:** Accepted
+- **Status:** Accepted (amended by [0034](0034-docker-compose-starts-with-no-setup.md): no setup needed, local defaults bound to this machine)
 - **Date:** 2026-10-20
 - **Amends:** [0011](0011-orchestration-and-delivery.md)
 

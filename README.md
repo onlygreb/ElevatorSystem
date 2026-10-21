@@ -232,7 +232,7 @@ The car never moves with its doors open, never leaves the 1–10 range, and chan
 
 | You have | Run it with | You get |
 |---|---|---|
-| Docker only | **A. Docker Compose** | The whole system as it would be deployed: broker, database, two engines, API and web UI over HTTPS, telemetry dashboard |
+| Docker only | **A. Docker Compose** (one command, nothing to set up) | The whole system as it would be deployed: broker, database, two engines, API and web UI over HTTPS, telemetry dashboard |
 | .NET 10 SDK and Docker | **B. Aspire** (the development path) | The same system, with secrets generated for you and the Aspire dashboard opened for you |
 | .NET 10 SDK only | **C. The API alone** | The web UI and the elevator in one process, in memory; nothing survives a restart |
 | .NET 10 SDK only | **D. The console demo** | Only the elevator core, in the terminal |
@@ -250,23 +250,23 @@ cd ElevatorSystem
 
 ### 2A. Docker Compose
 
-1. Create `deploy/.env` from the template and fill in every value: your own passwords, and an audit key from
-   `openssl rand -base64 33`. The file is git-ignored; Compose refuses to start while a value is missing.
-   ```bash
-   cp deploy/.env.example deploy/.env
-   ```
-2. Give the API an HTTPS certificate, `deploy/certs/elevator.pfx`, protected by the `CERTIFICATE_PASSWORD` you
-   chose. With the .NET SDK, export the development certificate your browser already trusts:
-   ```bash
-   dotnet dev-certs https -ep deploy/certs/elevator.pfx -p <CERTIFICATE_PASSWORD>
-   ```
-   Without it, [`deploy/README.md`](deploy/README.md) shows how to make one with OpenSSL.
-3. Build and start everything (the first build takes a few minutes):
-   ```bash
-   docker compose -f deploy/compose.yaml up --build --detach
-   ```
-4. Open https://localhost:8443. The dashboard is at http://localhost:18888 and RabbitMQ's management UI at
-   http://localhost:15672.
+Nothing to set up first ([ADR-0034](docs/adr/0034-docker-compose-starts-with-no-setup.md)). From the repository root,
+build and start everything (the first build takes a few minutes):
+
+```bash
+docker compose -f deploy/compose.yaml up --build --detach
+```
+
+Then open https://localhost:8443. The API made itself a self-signed certificate on first start, so the browser warns
+once: choose to continue (in Chrome and Edge, **Advanced**, then **Proceed to localhost**). Sign in to `/admin` as the
+test admin (see [Use it](#3-use-it)). The dashboard is at http://localhost:18888 and RabbitMQ's management UI at
+http://localhost:15672 (user `elevator`, password `elevator-local-broker`).
+
+Every setting has a local default, and the defaults are public, so the API listens on this machine only. To use your
+own passwords, your own certificate, a real admin or another scheduling strategy, copy
+[`deploy/.env.example`](deploy/.env.example) to `deploy/.env` (git-ignored) and change what you need; it explains each
+value, and [`deploy/README.md`](deploy/README.md) shows how to use the .NET development certificate, which browsers
+trust without a warning.
 
 To stop, run `docker compose -f deploy/compose.yaml down`. The data volumes are kept; add `--volumes` to start over
 ([ADR-0029](docs/adr/0029-docker-compose-and-dockerfile.md)).
@@ -337,9 +337,10 @@ dotnet run --project src/ElevatorSystem.ConsoleDemo -- --interactive
   `tester@elevator.local`, password `elevator-test-account`. It needs no authenticator app, and the page says it is a
   test account. The password is public, so turn the account off wherever others can reach the system: an empty
   `TEST_ADMIN_PASSWORD` in `deploy/.env`, or an empty `test-admin-password` parameter in Aspire
-  ([ADR-0030](docs/adr/0030-test-account-without-second-factor.md)). The real admin (`admin@elevator.local` unless you
-  changed it) registers an authenticator app at the first sign-in (any TOTP app: scan the QR code), then gets one-time
-  recovery codes; every real staff account needs that second factor.
+  ([ADR-0030](docs/adr/0030-test-account-without-second-factor.md)). A real admin (`admin@elevator.local` unless you
+  change it; with Docker Compose, created once you set `ADMIN_PASSWORD`) registers an authenticator app at the first
+  sign-in (any TOTP app: scan the QR code), then gets one-time recovery codes; every real staff account needs that
+  second factor.
 - **Watch it run.** Start a demo scenario and watch the building fill up, start a huge load to see the whole system under
   stress, fast-forwarded, or take the car out of service and return it.
 - **See failover** (A and B). Two engines run: one drives the car, the other stands by. Stop the one that leads

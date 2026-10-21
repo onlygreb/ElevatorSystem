@@ -15,37 +15,39 @@ package manager, non-root. Data lives in the `rabbitmq-data` and `postgres-data`
 
 ## First run
 
-1. **Secrets.** Copy `.env.example` to `.env` (git-ignored) and fill it in. Each password must be your own; generate
-   the audit key with `openssl rand -base64 33`. Compose refuses to start while a value is missing.
-2. **HTTPS certificate.** The API serves HTTPS because the staff cookies are `__Host-` and `Secure`. Export one to
-   `certs/elevator.pfx` (git-ignored) with the password you put in `CERTIFICATE_PASSWORD`:
-   - with the .NET SDK, the development certificate, which your browser already trusts after
-     `dotnet dev-certs https --trust`:
-     ```bash
-     dotnet dev-certs https -ep deploy/certs/elevator.pfx -p <CERTIFICATE_PASSWORD>
-     ```
-   - without it, a self-signed one (the browser warns once):
-     ```bash
-     openssl req -x509 -newkey rsa:2048 -nodes -days 365 -subj "/CN=localhost" -addext "subjectAltName=DNS:localhost" -keyout deploy/certs/key.pem -out deploy/certs/cert.pem
-     ```
-     ```bash
-     openssl pkcs12 -export -inkey deploy/certs/key.pem -in deploy/certs/cert.pem -out deploy/certs/elevator.pfx -passout pass:<CERTIFICATE_PASSWORD>
-     ```
-3. **Start**, from the repository root:
-   ```bash
-   docker compose -f deploy/compose.yaml up --build --detach
-   ```
+From the repository root, with nothing to set up first (ADR-0034):
 
-Open https://localhost:8443 to ride the elevator. For the admin view, open `/admin` and either:
-- sign in as the test admin, `tester@elevator.local` with `elevator-test-account` (from `.env.example`), with no
-  authenticator app; it is a test account with a public password, so set `TEST_ADMIN_PASSWORD` empty wherever others
-  can reach the system (ADR-0030); or
-- sign in as `ADMIN_EMAIL` with `ADMIN_PASSWORD`; the first sign-in asks you to register an authenticator app and shows
-  recovery codes.
+```bash
+docker compose -f deploy/compose.yaml up --build --detach
+```
 
-Then start a demo scenario and watch the building fill up. To compare scheduling strategies, take the car out of
-service in the admin view, switch between FIFO and LOOK there, return it to service and run the same scenario
-(ADR-0033); `ELEVATOR_SCHEDULING` in `deploy/.env` sets the one the engines start with.
+Open https://localhost:8443 and accept the browser's warning once: on first start the API made itself a self-signed
+certificate for localhost, kept in the `api-certificate` volume. For the admin view, open `/admin` and sign in as the
+test admin, `tester@elevator.local` with `elevator-test-account`, with no authenticator app (ADR-0030). Then start a
+demo scenario and watch the building fill up. To compare scheduling strategies, take the car out of service in the
+admin view, switch between FIFO and LOOK there, return it to service and run the same scenario (ADR-0033).
+
+## Your own settings
+
+Every setting has a local default. The defaults are public, so the API listens on this machine only (`API_ADDRESS`).
+For anything beyond trying it out, copy [`.env.example`](.env.example) to `.env` (git-ignored) and change what you
+need; each value is explained there:
+
+- **Passwords** for RabbitMQ (`MESSAGING_PASSWORD`) and PostgreSQL (`DATABASE_PASSWORD`). Both keep the password they
+  were first created with: after changing one, run `down --volumes` once.
+- **A real admin**: set `ADMIN_PASSWORD` (at least 12 characters, at least 4 different). It is created once; the
+  first sign-in registers an authenticator app and shows recovery codes. Set `TEST_ADMIN_PASSWORD` empty to turn the
+  test account off.
+- **The audit key** `AUDIT_PSEUDONYM_KEY` (`openssl rand -base64 33`). Without one, client pseudonyms in the audit
+  trail link only until the API restarts.
+- **Your own HTTPS certificate**: put `elevator.pfx` in `deploy/certs` (git-ignored), set `CERTIFICATE_DIR=./certs`
+  and its password in `CERTIFICATE_PASSWORD`. With the .NET SDK, the development certificate is one your browser
+  already trusts after `dotnet dev-certs https --trust`:
+  ```bash
+  dotnet dev-certs https -ep deploy/certs/elevator.pfx -p <CERTIFICATE_PASSWORD>
+  ```
+- **Another address**: `API_ADDRESS=0.0.0.0` to reach the API from your network, once the passwords are your own.
+- **Scheduling**: `ELEVATOR_SCHEDULING=Look` to start the engines with LOOK instead of FIFO.
 
 ## Day to day
 

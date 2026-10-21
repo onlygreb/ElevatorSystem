@@ -39,3 +39,4 @@ supersedes the old one instead of editing it. New records start from [`template.
 | [0031](0031-huge-load-scenario-and-fast-forward.md) | A huge load scenario that fast-forwards the building | Accepted |
 | [0032](0032-stop-and-clear-empties-the-queue.md) | Stop and clear empties the queue and sends the car to the lobby | Accepted |
 | [0033](0033-admins-switch-scheduling-out-of-service.md) | Admins switch between FIFO and LOOK while the car is out of service | Accepted |
+| [0034](0034-docker-compose-starts-with-no-setup.md) | Docker Compose starts with no setup | Accepted |

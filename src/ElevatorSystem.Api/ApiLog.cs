@@ -28,6 +28,12 @@ internal static partial class ApiLog
     [LoggerMessage(3013, LogLevel.Warning, "No Audit:ClientPseudonymKey is configured: client pseudonyms use a random key and link only until the next restart")]
     public static partial void EphemeralPseudonymKey(ILogger logger);
 
+    [LoggerMessage(3016, LogLevel.Warning, "Created a self-signed HTTPS certificate at {Path}: browsers warn about it once; use a certificate of your own beyond this machine (ADR-0034)")]
+    public static partial void SelfSignedCertificateCreated(ILogger logger, string path);
+
+    [LoggerMessage(3017, LogLevel.Information, "Staff account {Index} has no password configured, so it is not created")]
+    public static partial void StaffAccountSkipped(ILogger logger, int index);
+
     [LoggerMessage(3014, LogLevel.Critical, "Preparing the staff database failed; staff sign-in stays unavailable until the API is restarted with a valid configuration")]
     public static partial void StaffPreparationFailed(ILogger logger, Exception exception);
 }

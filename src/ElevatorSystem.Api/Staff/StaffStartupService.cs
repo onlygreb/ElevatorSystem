@@ -88,8 +88,16 @@ internal sealed class StaffStartupService(
         }
 
         var users = scope.ServiceProvider.GetRequiredService<UserManager<StaffUser>>();
-        foreach (var seed in options.Value.Accounts)
+        for (var index = 0; index < options.Value.Accounts.Count; index++)
         {
+            var seed = options.Value.Accounts[index];
+            // Docker Compose passes the first admin even when no password is set (ADR-0034): then there is nobody to create.
+            if (string.IsNullOrEmpty(seed.Password))
+            {
+                ApiLog.StaffAccountSkipped(logger, index);
+                continue;
+            }
+
             await SeedAsync(users, seed);
         }
 
