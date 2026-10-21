@@ -48,7 +48,7 @@ core. Implementing them raised concrete questions those records leave open:
 ## Alternatives considered
 
 - **Applying requests only between trips:** simpler, but assignment would wait up to a full trip
-  (1.5 s by default), far over the 100 ms budget.
+  (1.2 s by default), far over the 100 ms budget.
 - **A watchdog thread polling for progress:** more moving parts and a polling interval to tune,
   where a timeout on the awaited operation is exact.
 - **Stopping only for the call that made the car stop:** passengers going to the same floor would
