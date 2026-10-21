@@ -16,10 +16,10 @@ public enum SchedulingPolicy
 public sealed record ElevatorControllerOptions
 {
     /// <summary>How long the car normally takes to travel one floor.</summary>
-    public TimeSpan TravelTimePerFloor { get; init; } = TimeSpan.FromSeconds(1.5);
+    public TimeSpan TravelTimePerFloor { get; init; } = TimeSpan.FromSeconds(1.2);
 
     /// <summary>How long the door stays open at a stop when the car has somewhere to go next.</summary>
-    public TimeSpan DoorOpenDuration { get; init; } = TimeSpan.FromSeconds(5);
+    public TimeSpan DoorOpenDuration { get; init; } = TimeSpan.FromSeconds(4);
 
     /// <summary>
     /// With nothing to do, the car waits with its door open (<see langword="true"/>, the default) so passengers can

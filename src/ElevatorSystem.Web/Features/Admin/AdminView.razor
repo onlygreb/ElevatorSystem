@@ -64,7 +64,7 @@ else
                         <section aria-labelledby="elevator-heading">
                             <h2 id="elevator-heading" class="es-panel__title">@L[Text.ElevatorHeading]</h2>
                             <StatusLine Status="Store.Status" />
-                            <DoorCountdown Status="Store.Status" Duration="@(Store.Configuration?.DoorOpenDuration ?? TimeSpan.FromSeconds(5))" ShowClosed="true" />
+                            <DoorCountdown Status="Store.Status" Duration="@(Store.Configuration?.DoorOpenDuration ?? TimeSpan.FromSeconds(4))" ShowClosed="true" />
                         </section>
                     </div>
                     @if (Session.IsAdmin)

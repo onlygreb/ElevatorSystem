@@ -44,7 +44,7 @@ else if (ShowClosed && Status is not null)
 
     /// <summary>How long the doors stay open (the configuration's <c>DoorOpenDuration</c>), to size the bar.</summary>
     [Parameter]
-    public TimeSpan Duration { get; set; } = TimeSpan.FromSeconds(5);
+    public TimeSpan Duration { get; set; } = TimeSpan.FromSeconds(4);
 
     /// <summary>A fast-forwarded demo (ADR-0031) shortens the doors, and the allowance with them.</summary>
     private double Speed => Math.Max(1, Status?.Speed ?? 1);
