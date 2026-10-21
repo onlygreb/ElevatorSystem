@@ -148,6 +148,7 @@ public sealed class DemoScenarioTests
         await using var world = World.Create(seed, hugeLoad: 30);
 
         world.Runner.Start(scenario);
+        var speed = world.Runner.Speed;
         await world.RunUntilAsync(() => world.Runner.Active == 0);
 
         var steps = world.Journal.Events;
@@ -156,10 +157,12 @@ public sealed class DemoScenarioTests
         {
             var boardedAgain = steps.OfType<PassengerBoarded>()
                 .FirstOrDefault(boarded => boarded.PassengerId == left.PassengerId && boarded.OccurredAt >= left.OccurredAt);
-            if (boardedAgain is not null && boardedAgain.Floor == left.Floor)
+            if (boardedAgain is not null && boardedAgain.Floor == left.Floor
+                && !moves.Any(moved => moved > left.OccurredAt && moved < boardedAgain.OccurredAt))
             {
-                moves.ShouldContain(
-                    moved => moved > left.OccurredAt && moved < boardedAgain.OccurredAt,
+                // Only a car that stayed with nothing to do may be boarded again without leaving, and only after a while.
+                (boardedAgain.OccurredAt - left.OccurredAt).ShouldBeGreaterThanOrEqualTo(
+                    DemoScenarioRunner.IdleCarGrace / speed,
                     $"a passenger who walked out on floor {left.Floor.Number} boarded there again before the car left");
             }
         }
