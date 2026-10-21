@@ -44,6 +44,36 @@ public sealed class PassengerJourneyTests(BrowserFixture fixture)
 
         await Expect(Where(page)).ToHaveTextAsync("You are on floor 1");
         await Expect(page.GetByTestId("arrive")).ToHaveCountAsync(0);
+
+        // The reload also said "this tab is going away"; coming back within the grace kept the passenger (ADR-0036).
+        await page.WaitForTimeoutAsync((float)(ApiServer.DepartureGrace + TimeSpan.FromSeconds(2)).TotalMilliseconds);
+        var id = await page.EvaluateAsync<string>("sessionStorage.getItem('elevator.passenger')");
+        (await page.APIRequest.GetAsync($"api/v1/passengers/{id}")).Status.ShouldBe(200);
+    }
+
+    [Fact]
+    public async Task ClosingATab_TakesItsPassengerOutOfTheBuilding()
+    {
+        var page = await fixture.NewPageAsync();
+        await fixture.OpenAsync(page, "/");
+        await page.GetByTestId("arrive").ClickAsync();
+        await Expect(Where(page)).ToHaveTextAsync("You are on floor 1");
+        var id = await page.EvaluateAsync<string>("sessionStorage.getItem('elevator.passenger')");
+        var browser = page.Context;
+
+        await page.CloseAsync();
+
+        // Asking within the grace would call the departure off, as a reloaded tab does: wait it out first.
+        var observer = await browser.NewPageAsync();
+        await observer.WaitForTimeoutAsync((float)(ApiServer.DepartureGrace + TimeSpan.FromSeconds(1)).TotalMilliseconds);
+        var status = 0;
+        for (var attempt = 0; attempt < 20 && status != 404; attempt++)
+        {
+            status = (await observer.APIRequest.GetAsync($"api/v1/passengers/{id}")).Status;
+            await observer.WaitForTimeoutAsync(250);
+        }
+
+        status.ShouldBe(404, "the passenger of a closed tab left the building");
     }
 
     [Fact]

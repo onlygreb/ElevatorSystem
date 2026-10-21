@@ -209,7 +209,8 @@ The car never moves with its doors open, never leaves the 1–10 range, and chan
 - See [SECURITY.md](SECURITY.md) and [ADR-0008](docs/adr/0008-dependency-and-supply-chain-policy.md).
 
 **Private by design.**
-- Passengers are anonymous: a passenger is a random ID kept by the browser tab, so every tab is a person of its own.
+- Passengers are anonymous: a passenger is a random ID kept by the browser tab, so every tab is a person of its own, and
+  closing the tab takes that person out of the building.
 - Staff credentials, keys and client addresses never reach the logs, and tests enforce it.
 - Client addresses in the audit trail are keyed pseudonyms, and a staff member's entries can be
   anonymised without breaking the hash chain.

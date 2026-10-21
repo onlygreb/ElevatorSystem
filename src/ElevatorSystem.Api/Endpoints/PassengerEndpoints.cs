@@ -1,3 +1,4 @@
+using ElevatorSystem.Api.Passengers;
 using ElevatorSystem.Api.RealTime;
 using ElevatorSystem.Api.Security;
 using ElevatorSystem.Application.Ports;
@@ -63,6 +64,15 @@ internal static class PassengerEndpoints
             .WithRequestSizeLimit()
             .ProducesStepRefusals();
 
+        passengers.MapPost(ApiRoutes.PassengerDepart, Depart)
+            .AllowAnonymous()
+            .WithName("PassengerDeparts")
+            .WithSummary("Say the passenger's tab closed")
+            .WithDescription("Sent by the browser as its tab goes away (ADR-0036). The passenger leaves the building a few seconds later, unless the same passenger is heard from first, as a reloaded tab is. No body.")
+            .RequireRateLimiting(RateLimiting.PassengerPolicy)
+            .WithRequestSizeLimit()
+            .ProducesStepRefusals();
+
         passengers.MapPost(ApiRoutes.PassengerLeave, LeaveAsync)
             .AllowAnonymous()
             .WithName("PassengerLeaves")
@@ -79,9 +89,12 @@ internal static class PassengerEndpoints
         IElevatorCommandPublisher publisher, TimeProvider timeProvider, HttpContext context, CancellationToken cancellationToken) =>
         PublishAsync(Guid.NewGuid(), PassengerAction.Join, null, null, publisher, timeProvider, context, cancellationToken);
 
-    internal static Results<Ok<PassengerDto>, ProblemHttpResult> GetPassenger(Guid passengerId, ElevatorStateCache cache, CancellationToken cancellationToken)
+    internal static Results<Ok<PassengerDto>, ProblemHttpResult> GetPassenger(
+        Guid passengerId, ElevatorStateCache cache, PassengerDepartures departures, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
+        // A reloaded tab asks for its passenger first: they are still here.
+        departures.Cancel(passengerId);
         return cache.Passenger(passengerId) is { } passenger
             ? TypedResults.Ok(passenger)
             : TypedResults.Problem(
@@ -90,6 +103,9 @@ internal static class PassengerEndpoints
                 title: "Unknown passenger",
                 extensions: new Dictionary<string, object?> { [ApiRoutes.RejectionReasonExtension] = nameof(PassengerRefusalReason.UnknownPassenger) });
     }
+
+    internal static Results<Accepted, ProblemHttpResult> Depart(Guid passengerId, PassengerDepartures departures, HttpContext context) =>
+        departures.Schedule(passengerId) ? TypedResults.Accepted((string?)null) : ElevatorEndpoints.Refused(RejectionReason.Busy, context);
 
     internal static Task<Results<Accepted<PassengerAcceptedResponse>, ProblemHttpResult>> CallElevatorAsync(
         Guid passengerId,
@@ -134,6 +150,9 @@ internal static class PassengerEndpoints
         HttpContext context,
         CancellationToken cancellationToken)
     {
+        // Any step shows the passenger is still here, so a departure announced by a reloading tab is called off. Every
+        // step comes through here, so the departures are resolved once rather than in each handler.
+        context.RequestServices.GetRequiredService<PassengerDepartures>().Cancel(passengerId);
         var now = timeProvider.GetUtcNow();
         var command = new PassengerCommandV1(Guid.CreateVersion7(now), now, passengerId, action, floor, direction);
         try

@@ -166,6 +166,9 @@ internal sealed class EngineCommandHandler(
             case PassengerAction.Leave:
                 passengers.Leave(id, request);
                 break;
+            case PassengerAction.LeaveBuilding:
+                passengers.Depart(id, request);
+                break;
             default:
                 Log.UnknownCommand(logger, command.CommandId, CommandType(command));
                 break;

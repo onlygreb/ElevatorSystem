@@ -12,6 +12,9 @@ namespace ElevatorSystem.E2E.Tests;
 /// </summary>
 internal sealed class ApiServer : IAsyncDisposable
 {
+    /// <summary>How long a closed tab's passenger may take to come back before leaving the building.</summary>
+    public static readonly TimeSpan DepartureGrace = TimeSpan.FromSeconds(2);
+
     public const string AdminEmail = "e2e.admin@elevator.test";
 
     /// <summary>A password for this throwaway, local-only test account; it exists only while the tests run.</summary>
@@ -50,6 +53,8 @@ internal sealed class ApiServer : IAsyncDisposable
         start.Environment["Elevator__TravelTimePerFloor"] = "00:00:00.400";
         start.Environment["Elevator__DoorOpenDuration"] = "00:00:03";
         start.Environment["Simulation__Enabled"] = "true";
+        // A closed tab's passenger leaves after this; short, so the tests that wait it out stay quick (ADR-0036).
+        start.Environment["Passengers__DepartureGrace"] = DepartureGrace.ToString("c", System.Globalization.CultureInfo.InvariantCulture);
         start.Environment["Staff__Accounts__0__Email"] = AdminEmail;
         start.Environment["Staff__Accounts__0__Password"] = AdminPassword;
         start.Environment["Staff__Accounts__0__Role"] = "Admin";
