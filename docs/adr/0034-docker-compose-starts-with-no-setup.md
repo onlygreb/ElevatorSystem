@@ -31,6 +31,15 @@ for a stack that only ever runs on their own machine.
 5. **No audit key by default.** Without `AUDIT_PSEUDONYM_KEY` the API already uses a random key per start and warns
    that pseudonyms link only until a restart; that is acceptable for trying the system out.
 
+6. **A first start logs no errors.** On a fresh database, EF Core read its history table before creating it, and
+   data protection read its key ring before the staff schema existed, both logged as errors although nothing was
+   wrong. Migrations now create the history table first with EF's own script, under an advisory lock per schema so
+   instances starting together take turns; and in distributed mode start-up gives the staff database a head start
+   (`Staff:DatabaseHeadStart`, 10 s) before other hosted services run, going on without it if it takes longer.
+7. **RabbitMQ's health check runs as the `rabbitmq` user.** Run as root before the server had started, the CLI
+   created the Erlang cookie as root and the server, unable to read it, crashed on its first start; compose then
+   gave up on the stack. It only ever happened on a fresh volume, which is exactly what a new clone has.
+
 ## Alternatives considered
 
 - **Plain HTTP for local runs:** the antiforgery and `__Host-` cookies need HTTPS; relaxing them would make the local

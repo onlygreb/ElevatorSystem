@@ -39,6 +39,9 @@ public sealed class ApiHost(TestEnvironment environment) : WebApplicationFactory
         builder.ConfigureLogging(logging => logging.ClearProviders().AddProvider(new QueueLoggerProvider(_logs)));
     }
 
+    /// <summary>What the API has logged so far, one entry per line, with its level and category.</summary>
+    public IReadOnlyList<string> Logs => [.. _logs];
+
     public async Task<HttpResponseMessage> CallAsync(string route, string json)
     {
         using var client = CreateClient();

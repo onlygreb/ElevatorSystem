@@ -20,6 +20,13 @@ public sealed class StaffOptions
     public IList<StaffAccountSeed> Accounts { get; } = [];
 
     /// <summary>
+    /// Distributed mode: how long start-up waits for the staff database to be migrated before going on without it. Within
+    /// it, nothing (data protection reading its keys, say) finds the schema missing on a fresh database; past it, the API
+    /// starts anyway and keeps preparing the database in the background.
+    /// </summary>
+    public TimeSpan DatabaseHeadStart { get; set; } = TimeSpan.FromSeconds(10);
+
+    /// <summary>
     /// A test account that signs in with its password only, for demonstrations and testing (ADR-0030); off unless both the
     /// e-mail and the password are set. It is marked as a test account when it is created, so an existing account is never
     /// exempted, and it loses the exemption as soon as this setting is removed.

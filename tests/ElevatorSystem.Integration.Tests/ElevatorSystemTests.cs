@@ -34,8 +34,10 @@ public sealed class ElevatorSystemTests(SystemFixture system)
         await hub.WaitForActivityAsync(activity => activity.Kind == ElevatorActivityKind.CallServed && activity.RequestId == requestId, "the call to be served");
         await hub.WaitForStatusAsync(status => status is { CurrentFloor: 5, Status: ElevatorStatus.DoorOpen }, "the hub to show the car at floor 5 with its door open");
         hub.Statuses.Select(status => status.Version).ShouldBeInOrder(SortDirection.Ascending, "hub clients see the car move forwards only");
-        engine.Output.ShouldNotContain(line => (line.Contains("fail:", StringComparison.Ordinal) || line.Contains("crit:", StringComparison.Ordinal)) && line.Contains(" ElevatorSystem.", StringComparison.Ordinal),
-            "a fresh start on an empty database logs no errors: migrations run before anything uses the schema");
+        engine.Output.ShouldNotContain(line => line.Contains("fail:", StringComparison.Ordinal) || line.Contains("crit:", StringComparison.Ordinal),
+            "a fresh start on an empty database logs no errors, the framework's included: migrations run before anything uses the schema, and create their history table first");
+        api.Logs.ShouldNotContain(line => line.Contains("Error", StringComparison.Ordinal) && (line.Contains("DataProtection", StringComparison.Ordinal) || line.Contains("EntityFrameworkCore", StringComparison.Ordinal)),
+            "the API's staff schema is in place before data protection reads its keys (ADR-0034)");
     }
 
     [Fact]
