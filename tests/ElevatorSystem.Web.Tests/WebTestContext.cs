@@ -6,7 +6,7 @@ namespace ElevatorSystem.Web.Tests;
 
 /// <summary>
 /// A bUnit context with the UI's real localisation, MudBlazor, state store and passenger journey, a clock stopped at
-/// noon, and fakes for everything that would reach the network. JavaScript calls (MudBlazor's, localStorage) succeed
+/// noon, and fakes for everything that would reach the network. JavaScript calls (MudBlazor's, browser storage) succeed
 /// with default results.
 /// </summary>
 public abstract class WebTestContext : BunitContext

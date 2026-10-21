@@ -44,7 +44,7 @@ wwwroot/css/         tokens.css (design tokens), app.css (all custom styles)
     `GetAsync`, `CallElevatorAsync`, `BoardAsync`, `ChooseFloorAsync`, `LeaveAsync`). An accepted step
     returns a `RequestOutcome` with its request id; 409, 429, 502–504, network failures and unknown
     bodies map to fixed localised messages; server text is never shown.
-  - `PassengerJourney`: this browser's passenger. A random id in `localStorage` (`elevator.passenger`)
+  - `PassengerJourney`: this tab's passenger. A random id in `sessionStorage` (`elevator.passenger`, ADR-0035)
     lets a reload pick the journey up again; where the passenger is follows their own activities
     from the hub. `Stage(status)` gives `Outside`, `OnFloor`, `Waiting`, `DoorOpenHere` or `InCar`,
     and the journey panel offers only what that stage allows. A refused step's

@@ -23,8 +23,8 @@ public enum JourneyStage
 }
 
 /// <summary>
-/// This browser's passenger (ADR-0026): a random id kept in <c>localStorage</c>, so a reload keeps the journey, and where
-/// they are, followed from their own activities on the hub. The server decides every step; this only remembers the last
+/// This tab's passenger (ADR-0026, ADR-0035): a random id kept in <c>sessionStorage</c>, so a reload keeps the journey
+/// while every other tab is a passenger of its own, and where they are, followed from their own activities on the hub. The server decides every step; this only remembers the last
 /// answer and why a step was refused.
 /// </summary>
 public sealed class PassengerJourney : IDisposable
@@ -75,13 +75,13 @@ public sealed class PassengerJourney : IDisposable
         { } me => me.Floor,
     };
 
-    /// <summary>Picks up the journey this browser left off, if the building still knows the passenger.</summary>
+    /// <summary>Picks up the journey this tab left off, if the building still knows the passenger.</summary>
     public async Task RestoreAsync()
     {
         string? stored = null;
         try
         {
-            stored = await _js.InvokeAsync<string?>("localStorage.getItem", StorageKey);
+            stored = await _js.InvokeAsync<string?>("sessionStorage.getItem", StorageKey);
         }
         catch (JSException)
         {
@@ -193,7 +193,7 @@ public sealed class PassengerJourney : IDisposable
     {
         try
         {
-            await _js.InvokeVoidAsync("localStorage.setItem", StorageKey, passengerId.ToString("D"));
+            await _js.InvokeVoidAsync("sessionStorage.setItem", StorageKey, passengerId.ToString("D"));
         }
         catch (JSException)
         {

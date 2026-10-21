@@ -71,7 +71,7 @@ public sealed class PassengerViewTests : WebTestContext
 
         view.Find("[data-testid=arrive]").Click();
 
-        JSInterop.VerifyInvoke("localStorage.setItem").Arguments.ShouldBe([PassengerJourney.StorageKey, Passengers.PassengerId.ToString("D")]);
+        JSInterop.VerifyInvoke("sessionStorage.setItem").Arguments.ShouldBe([PassengerJourney.StorageKey, Passengers.PassengerId.ToString("D")]);
     }
 
     [Fact]
@@ -295,7 +295,7 @@ public sealed class PassengerViewTests : WebTestContext
     public void Reload_PicksUpTheJourneyTheBuildingStillKnows()
     {
         var id = Passengers.PassengerId;
-        JSInterop.Setup<string?>("localStorage.getItem", PassengerJourney.StorageKey).SetResult(id.ToString("D"));
+        JSInterop.Setup<string?>("sessionStorage.getItem", PassengerJourney.StorageKey).SetResult(id.ToString("D"));
         Passengers.Known = new PassengerDto(id, 3, InCar: true, Waiting: null, Destination: 9, Simulated: false);
         Api.Status = TestData.Status(floor: 3);
 
@@ -308,7 +308,7 @@ public sealed class PassengerViewTests : WebTestContext
     [Fact]
     public void Reload_OfAPassengerTheBuildingForgot_StartsOutside()
     {
-        JSInterop.Setup<string?>("localStorage.getItem", PassengerJourney.StorageKey).SetResult(Guid.NewGuid().ToString("D"));
+        JSInterop.Setup<string?>("sessionStorage.getItem", PassengerJourney.StorageKey).SetResult(Guid.NewGuid().ToString("D"));
 
         var view = Render<PassengerView>();
 
