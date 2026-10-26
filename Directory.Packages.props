@@ -13,9 +13,9 @@
   <ItemGroup Label="ASP.NET Core and Blazor">
     <PackageVersion Include="Microsoft.AspNetCore.Components.WebAssembly" Version="10.0.13" />
     <PackageVersion Include="Microsoft.AspNetCore.Components.WebAssembly.Server" Version="10.0.13" />
-    <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="10.0.13" />
+    <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="10.0.14" />
     <PackageVersion Include="Microsoft.AspNetCore.SignalR.Client" Version="10.0.13" />
-    <PackageVersion Include="Microsoft.Extensions.Localization" Version="10.0.13" />
+    <PackageVersion Include="Microsoft.Extensions.Localization" Version="10.0.14" />
     <PackageVersion Include="MudBlazor" Version="9.11.0" />
     <!-- The authenticator enrolment QR code, drawn in the browser as a PNG (MIT, no native code). -->
     <PackageVersion Include="QRCoder" Version="1.7.0" />
@@ -41,9 +41,9 @@
     <!-- Pinned so every project runs the EF Core that Infrastructure compiles against: Design brings 10.0.13
          at build time, while Npgsql alone would resolve 10.0.4 in the projects that reference Infrastructure. -->
     <PackageVersion Include="Microsoft.EntityFrameworkCore.Relational" Version="10.0.13" />
-    <PackageVersion Include="Microsoft.Extensions.Hosting.Abstractions" Version="10.0.13" />
+    <PackageVersion Include="Microsoft.Extensions.Hosting.Abstractions" Version="10.0.14" />
     <PackageVersion Include="Microsoft.Extensions.Diagnostics.HealthChecks" Version="10.0.13" />
-    <PackageVersion Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="10.0.13" />
+    <PackageVersion Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="10.0.14" />
   </ItemGroup>
 
   <ItemGroup Label="Staff accounts and keys">
@@ -59,7 +59,7 @@
   </ItemGroup>
 
   <ItemGroup Label="Logging">
-    <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.13" />
+    <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.14" />
     <PackageVersion Include="Microsoft.Extensions.Logging.Console" Version="10.0.13" />
   </ItemGroup>
 
