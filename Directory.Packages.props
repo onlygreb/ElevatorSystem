@@ -52,8 +52,8 @@
   </ItemGroup>
 
   <ItemGroup Label="Aspire hosting and client integrations">
-    <PackageVersion Include="Aspire.Hosting.RabbitMQ" Version="13.6.1" />
-    <PackageVersion Include="Aspire.Hosting.PostgreSQL" Version="13.6.1" />
+    <PackageVersion Include="Aspire.Hosting.RabbitMQ" Version="13.6.4" />
+    <PackageVersion Include="Aspire.Hosting.PostgreSQL" Version="13.6.4" />
     <PackageVersion Include="Aspire.RabbitMQ.Client" Version="13.6.1" />
     <PackageVersion Include="Aspire.Npgsql.EntityFrameworkCore.PostgreSQL" Version="13.6.1" />
   </ItemGroup>
